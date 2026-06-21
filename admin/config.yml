@@ -3,12 +3,14 @@ backend:
   branch: main
 
 media_folder: images
+public_folder: /images
 
 collections:
   - name: blog
     label: Blog Posts
     folder: _posts
     create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
     fields:
       - { label: Title, name: title, widget: string }
       - { label: Category, name: category, widget: select, options: [Trail Reports, Cheeto Diaries, Gear, Tips] }
