@@ -4,7 +4,30 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Content Manager</title>
-    <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+    <!-- Netlify Identity widget must load early so it can handle the invite/login handoff -->
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
   </head>
-  <body></body>
+  <body>
+    <!-- Decap (Netlify) CMS script must load after the body so it can mount into the document -->
+    <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+
+    <script>
+      // Help with the login handoff: when Identity completes login, keep users on /admin/
+      if (window.netlifyIdentity) {
+        window.netlifyIdentity.on('login', function() {
+          // Ensure we are inside the admin path after login
+          if (location.pathname !== '/admin/' && location.pathname !== '/admin') {
+            location.href = '/admin/';
+          }
+        });
+
+        // Optional: initialize the widget if it wasn't already
+        try {
+          window.netlifyIdentity.init();
+        } catch (e) {
+          // ignore if init is not available
+        }
+      }
+    </script>
+  </body>
 </html>
