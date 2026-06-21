@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nomadic Paws — Adventures with Cheeto</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --cream: #FDFAF5;
+            --sand: #F2E8D9;
+            --terra: #C4622D;
+            --terra-light: #E8845A;
+            --sage: #4A5E4F;
+            --sage-light: #7A9E82;
+            --bark: #2C1810;
+            --bark-mid: #5C3D2E;
+            --mist: #EAE4DA;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--cream);
+            color: var(--bark);
+            overflow-x: hidden;
+        }
+
+        /* NAV */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+        nav.scrolled {
+            background: var(--cream);
+            box-shadow: 0 1px 20px rgba(44,24,16,0.08);
+        }
+        .nav-logo {
+            font-family: 'Fraunces', serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--cream);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        nav.scrolled .nav-logo { color: var(--bark); }
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+            list-style: none;
+        }
+        .nav-links a {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: rgba(253,250,245,0.85);
+            text-decoration: none;
+            letter-spacing: 0.03em;
+            transition: color 0.2s;
+        }
+        nav.scrolled .nav-links a { color: var(--bark-mid); }
+        .nav-links a:hover { color: var(--terra); }
+        .nav-cta {
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 10px 22px;
+            border-radius: 100px;
+            background: var(--terra);
+            color: white !important;
+            text-decoration: none;
+            transition: background 0.2s, transform 0.2s;
+        }
+        .nav-cta:hover { background: var(--terra-light); transform: translateY(-1px); }
+
+        /* HERO */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(160deg, #2C1810 0%, #4A3728 40%, #5C4A3A 70%, #4A5E4F 100%);
+            padding: 120px 40px 80px;
+        }
+
+        /* Paw trail SVG background */
+        .paw-trail {
+            position: absolute;
+            inset: 0;
+            opacity: 0.06;
+            pointer-events: none;
+        }
+
+        .hero-content { position: relative; z-index: 2; max-width: 760px; }
+
+        .hero-eyebrow {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--terra-light);
+            margin-bottom: 24px;
+        }
+
+        .hero h1 {
+            font-family: 'Fraunces', serif;
+            font-size: clamp(3rem, 7vw, 5.5rem);
+            font-weight: 900;
+            color: var(--cream);
+            line-height: 1.05;
+            margin-bottom: 24px;
+        }
+
+        .hero h1 em {
+            font-style: italic;
+            color: var(--terra-light);
+        }
+
+        .hero-sub {
+            font-size: clamp(1rem, 2.5vw, 1.2rem);
+            color: rgba(253,250,245,0.72);
+            max-width: 480px;
+            margin: 0 auto 44px;
+            line-height: 1.7;
+            font-weight: 300;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            padding: 16px 36px;
+            background: var(--terra);
+            color: white;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: background 0.2s, transform 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary:hover { background: var(--terra-light); transform: translateY(-2px); }
+
+        .btn-ghost {
+            padding: 16px 36px;
+            border: 1.5px solid rgba(253,250,245,0.35);
+            color: var(--cream);
+            border-radius: 100px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .btn-ghost:hover { border-color: var(--cream); background: rgba(253,250,245,0.08); }
+
+        /* SCROLL INDICATOR */
+        .scroll-hint {
+            position: absolute;
+            bottom: 36px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            color: rgba(253,250,245,0.4);
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(6px); }
+        }
+
+        /* ABOUT STRIP */
+        .about-strip {
+            background: var(--sand);
+            padding: 80px 40px;
+        }
+        .about-inner {
+            max-width: 960px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 64px;
+            align-items: center;
+        }
+        .about-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--terra);
+            margin-bottom: 16px;
+        }
+        .about-inner h2 {
+            font-family: 'Fraunces', serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            line-height: 1.15;
+            color: var(--bark);
+            margin-bottom: 20px;
+        }
+        .about-inner p {
+            color: var(--bark-mid);
+            line-height: 1.8;
+            font-size: 1.025rem;
+            margin-bottom: 16px;
+        }
+        .about-paw {
+            font-size: 5rem;
+            text-align: center;
+            filter: drop-shadow(0 4px 12px rgba(196,98,45,0.2));
+        }
+
+        /* TRAIL FEATURES */
+        .features {
+            background: var(--cream);
+            padding: 96px 40px;
+        }
+        .features-inner { max-width: 1100px; margin: 0 auto; }
+        .section-header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+        .section-header h2 {
+            font-family: 'Fraunces', serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            color: var(--bark);
+            margin-bottom: 16px;
+        }
+        .section-header p {
+            color: var(--bark-mid);
+            font-size: 1.05rem;
+            max-width: 480px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+        .feature-card {
+            background: var(--sand);
+            border-radius: 20px;
+            padding: 40px 32px;
+            transition: transform 0.2s;
+        }
+        .feature-card:hover { transform: translateY(-4px); }
+        .feature-icon {
+            width: 52px;
+            height: 52px;
+            background: var(--terra);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            font-size: 1.4rem;
+            color: white;
+        }
+        .feature-card h3 {
+            font-family: 'Fraunces', serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--bark);
+        }
+        .feature-card p {
+            color: var(--bark-mid);
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+
+        /* CONTENT / TV SECTION */
+        .content-section {
+            background: var(--bark);
+            padding: 96px 40px;
+            text-align: center;
+        }
+        .content-section .section-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--terra-light);
+            margin-bottom: 16px;
+            display: block;
+        }
+        .content-section h2 {
+            font-family: 'Fraunces', serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            color: var(--cream);
+            margin-bottom: 20px;
+        }
+        .content-section p {
+            color: rgba(253,250,245,0.65);
+            max-width: 520px;
+            margin: 0 auto 40px;
+            line-height: 1.7;
+            font-size: 1.05rem;
+        }
+        .platform-links {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .platform-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        .platform-btn:hover { transform: translateY(-2px); opacity: 0.9; }
+        .platform-btn.tiktok { background: #010101; color: white; }
+        .platform-btn.youtube { background: #FF0000; color: white; }
+        .platform-btn.instagram { background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045); color: white; }
+
+        /* NEWSLETTER */
+        .newsletter {
+            background: var(--sage);
+            padding: 96px 40px;
+            text-align: center;
+        }
+        .newsletter h2 {
+            font-family: 'Fraunces', serif;
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-weight: 700;
+            color: var(--cream);
+            margin-bottom: 16px;
+        }
+        .newsletter p {
+            color: rgba(253,250,245,0.72);
+            margin-bottom: 40px;
+            font-size: 1.05rem;
+            max-width: 420px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.7;
+        }
+        .newsletter-form {
+            display: flex;
+            gap: 12px;
+            max-width: 460px;
+            margin: 0 auto 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .newsletter-form input {
+            flex: 1;
+            min-width: 220px;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 100px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            background: rgba(253,250,245,0.15);
+            color: var(--cream);
+            outline: none;
+            transition: background 0.2s;
+        }
+        .newsletter-form input::placeholder { color: rgba(253,250,245,0.45); }
+        .newsletter-form input:focus { background: rgba(253,250,245,0.22); }
+        .newsletter-form button {
+            padding: 16px 32px;
+            background: var(--terra);
+            color: white;
+            border: none;
+            border-radius: 100px;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .newsletter-form button:hover { background: var(--terra-light); }
+        .newsletter-note {
+            font-size: 0.78rem;
+            color: rgba(253,250,245,0.4);
+            letter-spacing: 0.02em;
+        }
+
+        /* FOOTER */
+        footer {
+            background: var(--bark);
+            padding: 64px 40px 32px;
+            color: rgba(253,250,245,0.5);
+        }
+        .footer-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 48px;
+            margin-bottom: 48px;
+        }
+        .footer-brand .logo-text {
+            font-family: 'Fraunces', serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--cream);
+            margin-bottom: 12px;
+            display: block;
+        }
+        .footer-brand p {
+            font-size: 0.88rem;
+            line-height: 1.7;
+            max-width: 220px;
+        }
+        .footer-col h4 {
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--cream);
+            margin-bottom: 16px;
+        }
+        .footer-col ul { list-style: none; }
+        .footer-col ul li { margin-bottom: 10px; }
+        .footer-col ul a {
+            color: rgba(253,250,245,0.5);
+            text-decoration: none;
+            font-size: 0.88rem;
+            transition: color 0.2s;
+        }
+        .footer-col ul a:hover { color: var(--terra-light); }
+        .footer-social {
+            display: flex;
+            gap: 16px;
+            margin-top: 4px;
+        }
+        .footer-social a {
+            color: rgba(253,250,245,0.5);
+            font-size: 1.15rem;
+            transition: color 0.2s;
+            text-decoration: none;
+        }
+        .footer-social a:hover { color: var(--terra-light); }
+        .footer-bottom {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding-top: 24px;
+            border-top: 1px solid rgba(253,250,245,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* MOBILE */
+        @media (max-width: 768px) {
+            nav { padding: 16px 20px; }
+            .nav-links { display: none; }
+            .about-inner { grid-template-columns: 1fr; gap: 32px; }
+            .features-grid { grid-template-columns: 1fr; }
+            .footer-inner { grid-template-columns: 1fr 1fr; gap: 32px; }
+            .footer-brand { grid-column: 1 / -1; }
+            .hero { padding: 100px 24px 80px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .scroll-hint { animation: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav id="mainNav">
+        <a href="index.html" class="nav-logo">Nomadic Paws</a>
+        <ul class="nav-links">
+            <li><a href="blog.html">Trail Journal</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#watch">Watch</a></li>
+            <li><a href="#newsletter" class="nav-cta">Join the Pack</a></li>
+        </ul>
+    </nav>
+
+    <!-- HERO -->
+    <header class="hero">
+        <svg class="paw-trail" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+            <!-- Scattered paw prints across hero -->
+            <g fill="#FDFAF5">
+                <ellipse cx="120" cy="150" rx="18" ry="22"/><ellipse cx="100" cy="120" rx="8" ry="10"/><ellipse cx="140" cy="118" rx="8" ry="10"/><ellipse cx="95" cy="105" rx="6" ry="7"/><ellipse cx="145" cy="103" rx="6" ry="7"/>
+                <ellipse cx="340" cy="420" rx="18" ry="22"/><ellipse cx="320" cy="390" rx="8" ry="10"/><ellipse cx="360" cy="388" rx="8" ry="10"/><ellipse cx="315" cy="375" rx="6" ry="7"/><ellipse cx="365" cy="373" rx="6" ry="7"/>
+                <ellipse cx="900" cy="200" rx="18" ry="22"/><ellipse cx="880" cy="170" rx="8" ry="10"/><ellipse cx="920" cy="168" rx="8" ry="10"/><ellipse cx="875" cy="155" rx="6" ry="7"/><ellipse cx="925" cy="153" rx="6" ry="7"/>
+                <ellipse cx="1050" cy="600" rx="18" ry="22"/><ellipse cx="1030" cy="570" rx="8" ry="10"/><ellipse cx="1070" cy="568" rx="8" ry="10"/><ellipse cx="1025" cy="555" rx="6" ry="7"/><ellipse cx="1075" cy="553" rx="6" ry="7"/>
+                <ellipse cx="600" cy="680" rx="18" ry="22"/><ellipse cx="580" cy="650" rx="8" ry="10"/><ellipse cx="620" cy="648" rx="8" ry="10"/><ellipse cx="575" cy="635" rx="6" ry="7"/><ellipse cx="625" cy="633" rx="6" ry="7"/>
+                <ellipse cx="200" cy="650" rx="14" ry="17"/><ellipse cx="184" cy="626" rx="6" ry="8"/><ellipse cx="216" cy="624" rx="6" ry="8"/>
+                <ellipse cx="800" cy="480" rx="14" ry="17"/><ellipse cx="784" cy="456" rx="6" ry="8"/><ellipse cx="816" cy="454" rx="6" ry="8"/>
+            </g>
+        </svg>
+
+        <div class="hero-content">
+            <span class="hero-eyebrow">🐾 Life on the trail with a cat</span>
+            <h1>Every trail is better with <em>paws</em> on it.</h1>
+            <p class="hero-sub">Join Cheeto and me as we explore the desert, find adventure in unexpected places, and prove that cats belong outside too.</p>
+            <div class="hero-actions">
+                <a href="blog.html" class="btn-primary">Read the Trail Journal <i class="fas fa-arrow-right"></i></a>
+                <a href="#watch" class="btn-ghost">Watch Our Videos</a>
+            </div>
+        </div>
+
+        <div class="scroll-hint">
+            <span>Explore</span>
+            <i class="fas fa-chevron-down"></i>
+        </div>
+    </header>
+
+    <!-- ABOUT -->
+    <section id="about" class="about-strip">
+        <div class="about-inner">
+            <div>
+                <p class="about-label">Who we are</p>
+                <h2>A woman, a cat, and a whole lot of desert to cover.</h2>
+                <p>Nomadic Paws started with one question: what if Cheeto came on the hike? Turns out, cats are braver than anyone gives them credit for.</p>
+                <p>We're based in Tucson, Arizona — saguaro country, golden hour country, Catalina Mountains country. These trails are our backyard and we're learning them together, one paw at a time.</p>
+            </div>
+            <div class="about-paw">🐱🌵</div>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="features">
+        <div class="features-inner">
+            <div class="section-header">
+                <h2>What you'll find here</h2>
+                <p>Trail reports, cat adventures, gear reviews, and honest stories from the desert.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🥾</div>
+                    <h3>Trail Reports</h3>
+                    <p>Honest, first-paw accounts of Tucson's trails — what's dog-friendly, cat-friendly, and worth the drive.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎥</div>
+                    <h3>Adventure Content</h3>
+                    <p>Watch Cheeto conquer new terrain on Nomadic Paws TV — real moments, real desert, no filter needed.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🐾</div>
+                    <h3>Life with Cheeto</h3>
+                    <p>Training tips, gear we actually use, and what it really looks like to adventure with a cat on a leash.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- WATCH / TV SECTION -->
+    <section id="watch" class="content-section">
+        <span class="section-label">Nomadic Paws TV</span>
+        <h2>Come watch us out there.</h2>
+        <p>Follow along on TikTok, YouTube, and Instagram for trail footage, trick training, and Cheeto being his whole dramatic self.</p>
+        <div class="platform-links">
+            <a href="https://tiktok.com/@nomadicpawstv" target="_blank" class="platform-btn tiktok">
+                <i class="fab fa-tiktok"></i> @NomadicPawsTV
+            </a>
+            <a href="https://youtube.com/@nomadicpawstv" target="_blank" class="platform-btn youtube">
+                <i class="fab fa-youtube"></i> @NomadicPawsTV
+            </a>
+            <a href="https://instagram.com/@nomadicpawstv" target="_blank" class="platform-btn instagram">
+                <i class="fab fa-instagram"></i> @NomadicPawsTV
+            </a>
+        </div>
+    </section>
+
+    <!-- NEWSLETTER -->
+    <section id="newsletter" class="newsletter">
+        <h2>Join the pack.</h2>
+        <p>Trail updates, Cheeto moments, and what we're exploring next — straight to your inbox. No spam, just desert dispatches.</p>
+        <form class="newsletter-form" onsubmit="handleSignup(event)">
+            <input type="email" placeholder="your@email.com" required>
+            <button type="submit">I'm in</button>
+        </form>
+        <p class="newsletter-note">Unsubscribe anytime. We respect your inbox like we respect the trail — leave it better than you found it.</p>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <span class="logo-text">Nomadic Paws</span>
+                <p>Exploring the Sonoran Desert one trail at a time, with a cat who thinks he owns it.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Explore</h4>
+                <ul>
+                    <li><a href="blog.html">Trail Journal</a></li>
+                    <li><a href="#about">About</a></li>
+                    <li><a href="#watch">Watch</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Follow</h4>
+                <div class="footer-social">
+                    <a href="https://tiktok.com/@nomadicpawstv" target="_blank"><i class="fab fa-tiktok"></i></a>
+                    <a href="https://youtube.com/@nomadicpawstv" target="_blank"><i class="fab fa-youtube"></i></a>
+                    <a href="https://instagram.com/@nomadicpawstv" target="_blank"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-col">
+                <h4>Contact</h4>
+                <ul>
+                    <li><a href="mailto:hello@nomadicpaws.com">hello@nomadicpaws.com</a></li>
+                    <li><a href="#newsletter">Newsletter</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>© 2026 Nomadic Paws. All rights reserved.</span>
+            <span>Made with 🐾 in Tucson, AZ</span>
+        </div>
+    </footer>
+
+    <script>
+        // Nav scroll effect
+        const nav = document.getElementById('mainNav');
+        window.addEventListener('scroll', () => {
+            nav.classList.toggle('scrolled', window.scrollY > 60);
+        });
+
+        function handleSignup(e) {
+            e.preventDefault();
+            const input = e.target.querySelector('input');
+            input.value = '';
+            input.placeholder = 'You\'re in the pack! 🐾';
+            setTimeout(() => input.placeholder = 'your@email.com', 3000);
+        }
+    </script>
+</body>
+</html>
