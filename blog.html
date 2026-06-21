@@ -610,6 +610,67 @@
     </footer>
 
     <script>
+        // Each blog category maps to a filter key plus a colored cover used
+        // when a post has no uploaded cover image.
+        const CATEGORY_META = {
+            'Trail Reports':  { key: 'trail-report', thumb: 'desert',   emoji: '🌵' },
+            'Cheeto Diaries': { key: 'cheeto',       thumb: 'mountain', emoji: '🐱' },
+            'Gear':           { key: 'gear',         thumb: 'sunset',   emoji: '🎒' },
+            'Tips':           { key: 'tips',         thumb: 'night',    emoji: '🌙' },
+        };
+
+        function formatDate(value) {
+            const d = new Date(value);
+            if (isNaN(d)) return '';
+            return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/[&<>"']/g, c => (
+                { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+            ));
+        }
+
+        function renderCard(post, featured) {
+            const meta = CATEGORY_META[post.category] || { key: '', thumb: 'desert', emoji: '🐾' };
+            const thumb = post.image
+                ? `<div class="post-thumb" style="background-image:url('${escapeHtml(post.image)}');background-size:cover;background-position:center;"></div>`
+                : `<div class="post-thumb ${meta.thumb}">${meta.emoji}</div>`;
+            return `
+                <a href="post.html?slug=${encodeURIComponent(post.slug)}" class="post-card${featured ? ' featured' : ''}" data-category="${meta.key}">
+                    ${thumb}
+                    <div class="post-body">
+                        <div class="post-meta">
+                            <span class="post-tag">${escapeHtml(post.category)}</span>
+                            <span class="post-date">${formatDate(post.date)}</span>
+                        </div>
+                        <h2>${escapeHtml(post.title)}</h2>
+                        <p>${escapeHtml(post.excerpt)}</p>
+                        <div class="post-footer">
+                            <span class="post-read-time"><i class="fas fa-clock"></i> ${post.readTime} min read</span>
+                            <span class="post-link">Read it <i class="fas fa-arrow-right"></i></span>
+                        </div>
+                    </div>
+                </a>`;
+        }
+
+        // Load published posts and replace the sample grid with real content.
+        // If nothing is published yet (or the request fails), the sample posts
+        // already in the page stay visible so the journal never looks empty.
+        async function loadPosts() {
+            try {
+                const res = await fetch('/api/posts');
+                if (!res.ok) return;
+                const posts = await res.json();
+                if (!Array.isArray(posts) || posts.length === 0) return;
+                const grid = document.getElementById('journalGrid');
+                grid.innerHTML = posts.map((p, i) => renderCard(p, i === 0)).join('');
+            } catch (err) {
+                // Keep the sample posts on any error.
+            }
+        }
+        loadPosts();
+
         function filterPosts(category, btn) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
