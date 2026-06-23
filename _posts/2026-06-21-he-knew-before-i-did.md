@@ -2,6 +2,7 @@
 title: He Knew Before I Did
 category: Cheeto Diaries
 date: 2026-06-21T15:11:00.000-07:00
+image: /images/cheeto-saved-us.png
 ---
 I really thought it was going to be a normal walk in the wash.
 
