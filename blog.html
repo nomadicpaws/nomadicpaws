@@ -310,47 +310,56 @@
     </footer>
 
     <script>
-        // Add future blog posts to this array.
-        // Example:
-        // {
-        //   featured: true,
-        //   tag: "Category",
-        //   title: "Post title",
-        //   excerpt: "Short description",
-        //   date: "June 2026",
-        //   readTime: "5 min read",
-        //   image: "image-url"
-        // }
-        const posts = [];
+    function formatDate(value) {
+        const d = new Date(value);
+        if (isNaN(d)) return '';
+        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
 
-        function renderPosts() {
-            const grid = document.getElementById('postsGrid');
-            grid.innerHTML = posts.map(post => `
-                <article class="post-card ${post.featured ? 'featured' : ''}">
-                    <img class="post-img" src="${post.image}" alt="${post.title}" loading="lazy">
-                    <div class="post-body">
-                        <div class="post-tag">${post.tag}</div>
-                        <h2>${post.title}</h2>
-                        <p>${post.excerpt}</p>
-                        <div class="post-meta">
-                            <span><i class="far fa-calendar"></i> ${post.date}</span>
-                            <span><i class="far fa-clock"></i> ${post.readTime}</span>
-                        </div>
-                        <a href="#" class="read-more">Read on the trail <i class="fas fa-arrow-right"></i></a>
+    async function renderPosts() {
+        const grid = document.getElementById('postsGrid');
+        grid.innerHTML = '<p style="text-align:center;color:var(--bark-mid);padding:40px">Loading…</p>';
+
+        let posts;
+        try {
+            const res = await fetch('/api/posts');
+            posts = await res.json();
+        } catch {
+            grid.innerHTML = '<p style="text-align:center;color:var(--bark-mid);padding:40px">Could not load posts.</p>';
+            return;
+        }
+
+        if (!posts.length) {
+            grid.innerHTML = '<p style="text-align:center;color:var(--bark-mid);padding:40px">No posts yet — check back soon.</p>';
+            return;
+        }
+
+        grid.innerHTML = posts.map((post, i) => `
+            <article class="post-card ${i === 0 ? 'featured' : ''}" onclick="location.href='post.html?slug=${post.slug}'">
+                ${post.image ? `<img class="post-img" src="${post.image}" alt="${post.title}" loading="lazy">` : `<div class="post-img"></div>`}
+                <div class="post-body">
+                    <div class="post-tag">${post.category || ''}</div>
+                    <h2>${post.title}</h2>
+                    <p>${post.excerpt}</p>
+                    <div class="post-meta">
+                        <span><i class="far fa-calendar"></i> ${formatDate(post.date)}</span>
+                        <span><i class="far fa-clock"></i> ${post.readTime} min read</span>
                     </div>
-                </article>
-            `).join('');
-        }
+                    <a href="post.html?slug=${post.slug}" class="read-more">Read on the trail <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </article>
+        `).join('');
+    }
 
-        function handleSignup(e) {
-            e.preventDefault();
-            const input = e.target.querySelector('input');
-            input.value = '';
-            input.placeholder = "You're in the pack! 🐾";
-            setTimeout(() => input.placeholder = 'your@email.com', 3000);
-        }
+    function handleSignup(e) {
+        e.preventDefault();
+        const input = e.target.querySelector('input');
+        input.value = '';
+        input.placeholder = "You're in the pack! 🐾";
+        setTimeout(() => input.placeholder = 'your@email.com', 3000);
+    }
 
-        renderPosts();
-    </script>
+    renderPosts();
+</script>
 </body>
 </html>
