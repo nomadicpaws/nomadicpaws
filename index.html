@@ -97,7 +97,6 @@
             padding: 120px 40px 80px;
         }
 
-        /* Paw trail SVG background */
         .paw-trail {
             position: absolute;
             inset: 0;
@@ -361,7 +360,7 @@
             color: var(--cream);
             margin-bottom: 16px;
         }
-        .newsletter p {
+        .newsletter > .newsletter-inner > .newsletter-sub {
             color: rgba(253,250,245,0.72);
             margin-bottom: 40px;
             font-size: 1.05rem;
@@ -370,31 +369,48 @@
             margin-right: auto;
             line-height: 1.7;
         }
+
+        /* Updated form — stacked with name, email, note */
         .newsletter-form {
             display: flex;
-            gap: 12px;
+            flex-direction: column;
+            gap: 14px;
             max-width: 460px;
-            margin: 0 auto 40px;
-            flex-wrap: wrap;
-            justify-content: center;
+            margin: 0 auto 32px;
+            align-items: center;
         }
-        .newsletter-form input {
-            flex: 1;
-            min-width: 220px;
-            padding: 16px 24px;
-            border: none;
-            border-radius: 100px;
+        .newsletter-form input,
+        .newsletter-form textarea {
+            width: 100%;
             font-family: 'DM Sans', sans-serif;
             font-size: 0.95rem;
             background: rgba(253,250,245,0.15);
             color: var(--cream);
+            border: 1.5px solid rgba(253,250,245,0.2);
             outline: none;
-            transition: background 0.2s;
+            transition: background 0.2s, border-color 0.2s;
+            -webkit-appearance: none;
         }
-        .newsletter-form input::placeholder { color: rgba(253,250,245,0.45); }
-        .newsletter-form input:focus { background: rgba(253,250,245,0.22); }
+        .newsletter-form input::placeholder,
+        .newsletter-form textarea::placeholder { color: rgba(253,250,245,0.45); }
+        .newsletter-form input:focus,
+        .newsletter-form textarea:focus {
+            background: rgba(253,250,245,0.22);
+            border-color: rgba(253,250,245,0.5);
+        }
+        .newsletter-form input {
+            padding: 16px 24px;
+            border-radius: 100px;
+        }
+        .newsletter-form textarea {
+            padding: 18px 24px;
+            border-radius: 24px;
+            resize: vertical;
+            min-height: 120px;
+            line-height: 1.6;
+        }
         .newsletter-form button {
-            padding: 16px 32px;
+            padding: 16px 48px;
             background: var(--terra);
             color: white;
             border: none;
@@ -403,13 +419,33 @@
             font-weight: 600;
             font-size: 0.95rem;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.2s, transform 0.15s;
         }
-        .newsletter-form button:hover { background: var(--terra-light); }
+        .newsletter-form button:hover { background: var(--terra-light); transform: translateY(-1px); }
         .newsletter-note {
             font-size: 0.78rem;
             color: rgba(253,250,245,0.4);
             letter-spacing: 0.02em;
+            max-width: 360px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        .newsletter-success {
+            display: none;
+            padding: 16px 0;
+        }
+        .newsletter-success h3 {
+            font-family: 'Fraunces', serif;
+            font-size: 1.8rem;
+            font-weight: 400;
+            font-style: italic;
+            color: var(--cream);
+            margin-bottom: 10px;
+        }
+        .newsletter-success p {
+            color: rgba(253,250,245,0.65);
+            font-size: 1rem;
+            line-height: 1.7;
         }
 
         /* FOOTER */
@@ -494,6 +530,7 @@
 
         @media (prefers-reduced-motion: reduce) {
             .scroll-hint { animation: none; }
+            .newsletter-form button { transition: none; }
         }
     </style>
     <script>
@@ -523,7 +560,6 @@
     <!-- HERO -->
     <header class="hero">
         <svg class="paw-trail" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
-            <!-- Scattered paw prints across hero -->
             <g fill="#FDFAF5">
                 <ellipse cx="120" cy="150" rx="18" ry="22"/><ellipse cx="100" cy="120" rx="8" ry="10"/><ellipse cx="140" cy="118" rx="8" ry="10"/><ellipse cx="95" cy="105" rx="6" ry="7"/><ellipse cx="145" cy="103" rx="6" ry="7"/>
                 <ellipse cx="340" cy="420" rx="18" ry="22"/><ellipse cx="320" cy="390" rx="8" ry="10"/><ellipse cx="360" cy="388" rx="8" ry="10"/><ellipse cx="315" cy="375" rx="6" ry="7"/><ellipse cx="365" cy="373" rx="6" ry="7"/>
@@ -609,15 +645,51 @@
         </div>
     </section>
 
-    <!-- NEWSLETTER -->
+    <!-- NEWSLETTER — now a real Netlify form with name + note -->
     <section id="newsletter" class="newsletter">
-        <h2>Join the pack.</h2>
-        <p>Trail updates, Cheeto moments, and what we're exploring next — straight to your inbox. No spam, just desert dispatches.</p>
-        <form class="newsletter-form" onsubmit="handleSignup(event)">
-            <input type="email" placeholder="your@email.com" required>
-            <button type="submit">I'm in</button>
-        </form>
-        <p class="newsletter-note">Unsubscribe anytime. We respect your inbox like we respect the trail — leave it better than you found it.</p>
+        <div class="newsletter-inner">
+            <h2>Join the pack.</h2>
+            <p class="newsletter-sub">Trail updates, Cheeto moments, and what we're exploring next — straight to your inbox. No spam, just desert dispatches.</p>
+
+            <form
+                class="newsletter-form"
+                name="trail-journal-signup"
+                method="POST"
+                data-netlify="true"
+                netlify-honeypot="bot-field"
+                id="np-form"
+            >
+                <input type="hidden" name="form-name" value="trail-journal-signup" />
+                <p style="display:none;"><label>Leave blank: <input name="bot-field" /></label></p>
+
+                <input
+                    type="text"
+                    name="first_name"
+                    placeholder="Your first name"
+                    required
+                    autocomplete="given-name"
+                />
+                <input
+                    type="email"
+                    name="email"
+                    placeholder="your@email.com"
+                    required
+                    autocomplete="email"
+                />
+                <textarea
+                    name="note"
+                    placeholder="I'd love to know who you are and who you're adventuring with — and if you're carrying something heavy or just need a little love sent your way, this is a safe place for that too."
+                ></textarea>
+                <button type="submit">I'm in</button>
+            </form>
+
+            <p class="newsletter-note">Unsubscribe anytime. We respect your inbox like we respect the trail — leave it better than you found it.</p>
+
+            <div class="newsletter-success" id="np-success" role="status" aria-live="polite">
+                <h3>You're in the pack.</h3>
+                <p>I'll be in touch — and I'm already looking forward to your note.</p>
+            </div>
+        </div>
     </section>
 
     <!-- FOOTER -->
@@ -646,7 +718,7 @@
             <div class="footer-col">
                 <h4>Contact</h4>
                 <ul>
-                    <li><a href="mailto:hello@nomadicpaws.com">hello@nomadicpaws.co</a></li>
+                    <li><a href="mailto:hello@nomadicpaws.co">hello@nomadicpaws.co</a></li>
                     <li><a href="#newsletter">Newsletter</a></li>
                 </ul>
             </div>
@@ -664,12 +736,24 @@
             nav.classList.toggle('scrolled', window.scrollY > 60);
         });
 
-        function handleSignup(e) {
-            e.preventDefault();
-            const input = e.target.querySelector('input');
-            input.value = '';
-            input.placeholder = 'You\'re in the pack! 🐾';
-            setTimeout(() => input.placeholder = 'your@email.com', 3000);
+        // Netlify form — swap to success message without page reload
+        const form = document.getElementById('np-form');
+        const success = document.getElementById('np-success');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                try {
+                    await fetch('/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams(new FormData(form)).toString(),
+                    });
+                    form.style.display = 'none';
+                    success.style.display = 'block';
+                } catch {
+                    form.submit();
+                }
+            });
         }
     </script>
 </body>
