@@ -16,6 +16,8 @@ Which I now do. Literally.
 
 But before we got there, there were a lot of sleepless nights.
 
+![Rescued orange tabby cat yowling indoors when he doesn't get his evening walk](/images/img_0894.png "Cheeto-yowling-no-walk")
+
 **When the toys stopped working**
 
 I did everything right. I read the articles. I watched the videos. I took Jackson Galaxy's advice on the nighttime routine — the play-before-bed sequence designed to simulate a hunt and wind cats down. And it worked. For other cats, probably. For Cheeto? Not so much.
