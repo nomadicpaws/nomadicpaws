@@ -16,7 +16,9 @@ Which I now do. Literally.
 
 But before we got there, there were a lot of sleepless nights.
 
-![Rescued orange tabby cat yowling indoors when he doesn't get his evening walk](/images/img_0894.png "Cheeto-yowling-no-walk")
+
+
+![Rescued orange tabby cat that yowls when walks are skipped](/images/img_0894.png "Cheeto-yowl-no-walk")
 
 **When the toys stopped working**
 
