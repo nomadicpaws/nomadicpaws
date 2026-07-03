@@ -497,7 +497,19 @@
         }
 
         async function loadPost() {
-            const slug = new URLSearchParams(location.search).get('slug');
+            let slug = new URLSearchParams(location.search).get('slug');
+
+            // Fallback: pull slug from a clean URL like /trail-journal/2026-06-21-he-knew-before-i-did
+            // (Netlify rewrites these to post.html?slug=... server-side, but the browser's
+            // address bar still shows the clean path, so client-side JS won't see the query string.)
+            if (!slug) {
+                const pathParts = location.pathname.split('/').filter(Boolean);
+                const journalIndex = pathParts.indexOf('trail-journal');
+                if (journalIndex !== -1 && pathParts[journalIndex + 1]) {
+                    slug = decodeURIComponent(pathParts[journalIndex + 1]);
+                }
+            }
+
             if (!slug) { showState('Post not found. <a href="blog.html">Back to the journal</a>.'); return; }
 
             let posts;
