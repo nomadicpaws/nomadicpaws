@@ -7,6 +7,11 @@
 // crawlers don't run JavaScript, so the client-side fetch() in
 // post-template.html never runs for them. This runs on Netlify's edge
 // instead, so the HTML is already correct by the time it leaves the server.
+//
+// HTMLRewriter isn't a built-in global in Netlify's edge runtime (unlike
+// Cloudflare Workers), so it has to be imported explicitly.
+import { HTMLRewriter } from "https://ghuc.cc/worker-tools/html-rewriter/index.ts";
+
 export default async (request, context) => {
   const url = new URL(request.url);
   const slug = context.params.slug;
