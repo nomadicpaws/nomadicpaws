@@ -19,12 +19,19 @@ export default async (request, context) => {
   let post;
   try {
     const apiUrl = new URL("/api/posts", url.origin);
-    const postsRes = await fetch(apiUrl.toString());
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    let postsRes;
+    try {
+      postsRes = await fetch(apiUrl.toString(), { signal: controller.signal });
+    } finally {
+      clearTimeout(timeout);
+    }
     if (!postsRes.ok) return response;
     const posts = await postsRes.json();
     post = Array.isArray(posts) ? posts.find((p) => p.slug === slug) : null;
   } catch (err) {
-    // If the posts API is unreachable, just serve the page as-is
+    // If the posts API is unreachable or times out, just serve the page as-is
     // (it'll fall back to the static default tags already in the HTML).
     return response;
   }
