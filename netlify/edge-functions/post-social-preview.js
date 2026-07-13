@@ -7,20 +7,15 @@
 // crawlers don't run JavaScript, so the client-side fetch() in
 // post-template.html never runs for them. This runs on Netlify's edge
 // instead, so the HTML is already correct by the time it leaves the server.
-
 export default async (request, context) => {
   const url = new URL(request.url);
   const slug = context.params.slug;
-
   // Let the normal request chain run first (this resolves to post-template.html
   // via your existing redirect rule).
   const response = await context.next();
-
   if (!slug) return response;
-
   const contentType = response.headers.get("content-type") || "";
   if (!contentType.includes("text/html")) return response;
-
   let post;
   try {
     const apiUrl = new URL("/api/posts", url.origin);
@@ -33,9 +28,7 @@ export default async (request, context) => {
     // (it'll fall back to the static default tags already in the HTML).
     return response;
   }
-
   if (!post) return response;
-
   const title = `${post.title} — Nomadic Paws`;
   const rawDescription =
     post.excerpt || post.description || stripMarkdown(post.body || "");
@@ -48,6 +41,21 @@ export default async (request, context) => {
   class TitleRewriter {
     element(element) {
       element.setInnerContent(title);
+    }
+  }
+
+  // Strips the static fallback og:*/twitter:* tags from post-template.html
+  // so crawlers don't grab the generic "Trail Journal" tag instead of the
+  // post-specific one appended below. og:site_name is left alone since the
+  // HeadRewriter below doesn't re-add it.
+  class MetaStripper {
+    element(element) {
+      const prop = element.getAttribute("property") || element.getAttribute("name");
+      if (!prop) return;
+      if (prop === "og:site_name") return;
+      if (prop.startsWith("og:") || prop.startsWith("twitter:")) {
+        element.remove();
+      }
     }
   }
 
@@ -70,6 +78,7 @@ export default async (request, context) => {
 
   return new HTMLRewriter()
     .on("title", new TitleRewriter())
+    .on("meta", new MetaStripper())
     .on("head", new HeadRewriter())
     .transform(response);
 };
