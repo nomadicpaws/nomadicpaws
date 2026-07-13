@@ -351,7 +351,7 @@
         }
 
         grid.innerHTML = posts.map((post, i) => `
-            <article class="post-card ${i === 0 ? 'featured' : ''}" onclick="location.href='post.html?slug=${post.slug}'">
+            <article class="post-card ${i === 0 ? 'featured' : ''}" onclick="location.href='/trail-journal/${post.slug}'">
                 ${post.image ? `<img class="post-img" src="${post.image}" alt="${post.title}" loading="lazy">` : `<div class="post-img"></div>`}
                 <div class="post-body">
                     <div class="post-tag">${post.category || ''}</div>
@@ -361,7 +361,7 @@
                         <span><i class="far fa-calendar"></i> ${formatDate(post.date)}</span>
                         <span><i class="far fa-clock"></i> ${post.readTime} min read</span>
                     </div>
-                    <a href="post.html?slug=${post.slug}" class="read-more">Read on the trail <i class="fas fa-arrow-right"></i></a>
+                    <a href="/trail-journal/${post.slug}" class="read-more">Read on the trail <i class="fas fa-arrow-right"></i></a>
                 </div>
             </article>
         `).join('');
