@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cheeto's Trail-Ready Checklist — Nomadic Paws</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+ :root{
+ --sand:#F4EEE1;
+ --sand-deep:#E9DFC8;
+ --terracotta:#C1734B;
+ --terracotta-deep:#A85C39;
+ --sage:#8B9A7C;
+ --sage-deep:#6F7E62;
+ --bark:#3F352A;
+ --bark-soft:#6B5D4C;
+ --paw:#C1734B;
+ }
+ *{box-sizing:border-box;}
+ body{
+ margin:0;
+ background:var(--sand);
+ color:var(--bark);
+ font-family:'DM Sans', sans-serif;
+ -webkit-font-smoothing:antialiased;
+ }
+ .wrap{max-width:1040px;margin:0 auto;padding:0 24px 80px;}
+
+ header{
+ padding:64px 24px 48px;
+ text-align:center;
+ position:relative;
+ border-bottom:1px solid var(--sand-deep);
+ margin-bottom:56px;
+ }
+ .eyebrow{
+ font-size:12px;
+ letter-spacing:0.18em;
+ text-transform:uppercase;
+ color:var(--sage-deep);
+ font-weight:700;
+ margin-bottom:18px;
+ }
+ h1{
+ font-family:'Fraunces', serif;
+ font-weight:500;
+ font-size:clamp(38px, 6vw, 64px);
+ line-height:1.05;
+ margin:0 0 18px;
+ color:var(--bark);
+ }
+ h1 em{
+ font-style:italic;
+ color:var(--terracotta-deep);
+ }
+ .sub{
+ font-size:17px;
+ color:var(--bark-soft);
+ max-width:520px;
+ margin:0 auto;
+ line-height:1.6;
+ }
+ .trail-line{
+ width:64px;
+ height:2px;
+ background:var(--terracotta);
+ margin:28px auto 0;
+ position:relative;
+ }
+ .trail-line::before, .trail-line::after{
+ content:'';
+ position:absolute;
+ width:6px;height:6px;
+ border-radius:50%;
+ background:var(--sage);
+ top:-2px;
+ }
+ .trail-line::before{left:-16px;}
+ .trail-line::after{right:-16px;}
+
+ .note{
+ background:#fff;
+ border:1px solid var(--sand-deep);
+ border-radius:14px;
+ padding:22px 26px;
+ margin-bottom:48px;
+ font-size:14.5px;
+ line-height:1.65;
+ color:var(--bark-soft);
+ }
+ .note strong{color:var(--bark);}
+
+ .grid{
+ display:grid;
+ grid-template-columns:repeat(3, 1fr);
+ gap:22px;
+ }
+ @media (max-width:860px){ .grid{grid-template-columns:repeat(2, 1fr);} }
+ @media (max-width:600px){ .grid{grid-template-columns:1fr;} }
+
+ .card{
+ background:#fff;
+ border:1px solid var(--sand-deep);
+ border-radius:16px;
+ padding:26px 24px 22px;
+ display:flex;
+ flex-direction:column;
+ transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+ }
+ .card:hover{
+ transform:translateY(-3px);
+ box-shadow:0 14px 28px -18px rgba(63,53,42,0.35);
+ border-color:var(--terracotta);
+ }
+
+ .card-top{
+ display:flex;
+ align-items:flex-start;
+ justify-content:space-between;
+ margin-bottom:14px;
+ }
+ .icon{
+ width:44px;height:44px;
+ border-radius:11px;
+ background:var(--sand);
+ display:flex;align-items:center;justify-content:center;
+ flex-shrink:0;
+ }
+ .icon svg{width:23px;height:23px;stroke:var(--terracotta-deep);fill:none;stroke-width:1.6;}
+
+ .product-photo{
+ width:100%;
+ height:160px;
+ object-fit:cover;
+ border-radius:12px;
+ background:var(--sand);
+ margin-bottom:16px;
+ border:1px solid var(--sand-deep);
+ }
+
+ .cat-name{
+ font-family:'Fraunces', serif;
+ font-size:19px;
+ font-weight:500;
+ margin:0 0 8px;
+ color:var(--bark);
+ }
+ .cat-desc{
+ font-size:13.5px;
+ line-height:1.55;
+ color:var(--bark-soft);
+ margin:0 0 20px;
+ flex-grow:1;
+ }
+ .tag{
+ display:inline-block;
+ font-size:10.5px;
+ letter-spacing:0.06em;
+ text-transform:uppercase;
+ font-weight:700;
+ color:var(--sage-deep);
+ background:rgba(139,154,124,0.14);
+ padding:4px 9px;
+ border-radius:20px;
+ margin-bottom:14px;
+ width:fit-content;
+ }
+
+ .btn{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ gap:7px;
+ background:var(--terracotta);
+ color:#fff;
+ text-decoration:none;
+ font-family:'DM Sans', sans-serif;
+ font-weight:700;
+ font-size:13.5px;
+ padding:11px 16px;
+ border-radius:10px;
+ transition:background .15s ease;
+ }
+ .btn:hover{background:var(--terracotta-deep);}
+ .btn svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:2.2;}
+
+ /* Distinct styling for the Pezzy Treats / Cheeto's Store card */
+ .card.store-card{
+ background:var(--sage);
+ border-color:var(--sage-deep);
+ }
+ .card.store-card .cat-name,
+ .card.store-card .cat-desc{color:#fff;}
+ .card.store-card .tag{
+ background:rgba(255,255,255,0.22);
+ color:#fff;
+ }
+ .card.store-card .btn{
+ background:#fff;
+ color:var(--sage-deep);
+ }
+ .card.store-card .btn:hover{background:var(--sand);}
+ .card.store-card .btn svg{stroke:var(--sage-deep);}
+
+ footer{
+ text-align:center;
+ margin-top:60px;
+ padding-top:32px;
+ border-top:1px solid var(--sand-deep);
+ font-size:12.5px;
+ color:var(--bark-soft);
+ line-height:1.7;
+ }
+ footer .brand{
+ font-family:'Fraunces', serif;
+ font-style:italic;
+ font-size:15px;
+ color:var(--terracotta-deep);
+ margin-bottom:6px;
+ }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+ <header>
+ <div class="eyebrow">Nomadic Paws · Trail Journal</div>
+ <h1>Cheeto's <em>Trail-Ready</em><br>Checklist</h1>
+ <p class="sub">The gear we actually reach for before a Catalina State Park loop — tested on one very opinionated orange tabby.</p>
+ <div class="trail-line"></div>
+ </header>
+
+ <div class="note">
+ <strong>Heads up:</strong> the buttons below are Amazon affiliate links — Nomadic Paws earns a small commission on qualifying purchases at no extra cost to you.
+ </div>
+
+ <div class="grid">
+
+ <!-- 1: Complete Leash & Harness Set (merged) -->
+ <div class="card">
+ <div class="card-top">
+ <div class="icon"><svg viewBox="0 0 24 24"><path d="M12 3c-3 0-5 2-5 5 0 3 2 6 5 10 3-4 5-7 5-10 0-3-2-5-5-5z"/><circle cx="12" cy="8" r="1.5"/></svg></div>
+ </div>
+ <span class="tag">Essential</span>
+ <h3 class="cat-name">Complete Leash & Harness Set</h3>
+ <p class="cat-desc">Escape-proof Y-shape harness paired with a matching adjustable leash — anti-choke, quick-release buckle, padded for comfort. Shown in olive green, the same set Cheeto wears on trail.</p>
+ <a class="btn" href="https://amzn.to/4vIIPER" target="_blank" rel="noopener sponsored">
+ Shop on Amazon
+ <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
+ </a>
+ </div>
+
+ <!-- 2: Apollo Walker Pet Carrier Backpack — PHOTO -->
+ <div class="card">
+ <img class="product-photo" src="PASTE-BACKPACK-PHOTO-URL-HERE.jpg" alt="Apollo Walker Pet Carrier Backpack">
+ <span class="tag">Essential</span>
+ <h3 class="cat-name">Apollo Walker Backpack Carrier</h3>
+ <p class="cat-desc">For the ride out, the midday rest, or when four paws decide they're done for the day. Fits 4–18lb cats and dogs with safety features and cushioned back support.</p>
+ <a class="btn" href="https://amzn.to/4yaPoCz" target="_blank" rel="noopener sponsored">
+ Shop on Amazon
+ <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
+ </a>
+  </div>
+  <!-- 4: Trail Collar -->
+ <div class="card">
+ <div class="card-top">
+ <div class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></div>
+ </div>
+ <span class="tag">Peace of Mind</span>
+ <h3 class="cat-name">Trail Collar</h3>
+ <p class="cat-desc">Adjustable, comfortable everyday collar — shown in olive green, the exact color Cheeto wears. Pairs well with the leash & harness set above for a matching trail look.</p>
+ <a class="btn" href="https://amzn.to/4hnsTEx" target="_blank" rel="noopener sponsored">
+ Shop on Amazon
+ <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
+ </a>
+ </div>
+ <!-- 3: Dog Travel Water Bottle Collapsible Bowls -->
+ <div class="card">
+ <div class="card-top">
+ <div class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 8v4l2.5 2.5"/></svg></div>
+ </div>
+ <span class="tag">Hydration</span>
+ <h3 class="cat-name">Collapsible Trail Water Bottle + Bowls</h3>
+ <p class="cat-desc">2-in-1 pet water bottle with collapsible bowls — clips to the pack for quick sips between climbing spots, no bowl to dig out.</p>
+ <a class="btn" href="https://amzn.to/4peNDjV" target="_blank" rel="noopener sponsored">
+ Shop on Amazon
+ <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
+ </a>
+ </div>
+ <!-- 5: Lick-Safe Daily Pet Wipes -->
+ <div class="card">
+ <div class="card-top">
+ <div class="icon"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M4 10h16"/></svg></div>
+ </div>
+ <span class="tag">Paw Care</span>
+ <h3 class="cat-name">Lick-Safe Daily Pet Wipes</h3>
+ <p class="cat-desc">Vet-approved, hypoallergenic wipes for paws, face, and coat — cleans mud, odor, and dander after a dusty trail loop. Earth-friendly and unscented.</p>
+ <a class="btn" href="https://amzn.to/4vjKP6s" target="_blank" rel="noopener sponsored">
+ Shop on Amazon
+ <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
+ </a>
+ </div>
+
+ <!-- 6: Pet Slicker Brush -->
+ <div class="card">
+ <div class="card-top">
+ <div class="icon"><svg viewBox="0 0 24 24"><path d="M9 3h6l-1 5h2l-7 13 1-8H8l1-10z"/></svg></div>
+ </div>
+ <span class="tag">Grooming</span>
+ <h3 class="cat-name">Self-Cleaning Slicker Brush</h3>
+ <p class="cat-desc">A quick-release button clears trapped fur in seconds — safe for all coat types, keeps shedding down between trail days.</p>
+ <a class="btn" href="https://amzn.to/4wwvWyA" target="_blank" rel="noopener sponsored">
+ Shop on Amazon
+ <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
+ </a>
+ </div>
+
+ <!-- 7: EasyGroomer Deshedding Brush — PHOTO -->
+ <div class="card">
+ <img class="product-photo" src="PASTE-EQUIGROOMER-BRUSH-PHOTO-URL-HERE.jpg" alt="EasyGroomer Deshedding Brush">
+ <span class="tag">Grooming</span>
+ <h3 class="cat-name">EasyGroomer Deshedding Brush</h3>
+ <p class="cat-desc">An undercoat tool for short and long hair alike — removes loose fur and dirt at the root, cutting down shedding after a rough trail day.</p>
+ <a class="btn" href="https://a.co/d/02EElmjR" target="_blank" rel="noopener sponsored">
+ Shop on Amazon
+ <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
+ </a>
+ </div>
+
+ <!-- 8: Inspire Black Nitrile Disposable Gloves -->
+ <div class="card">
+ <div class="card-top">
+ <div class="icon"><svg viewBox="0 0 24 24"><path d="M12 21c4-3 8-6.5 8-11a5 5 0 00-8-4 5 5 0 00-8 4c0 4.5 4 8 8 11z"/></svg></div>
+ </div>
+ <span class="tag">Trail Clean-Up</span>
+ <h3 class="cat-name">Disposable Nitrile Gloves</h3>
+ <p class="cat-desc">Sturdy black nitrile gloves for grooming, clean-up, and anything trail-related that calls for a barrier between you and the mess.</p>
+ <a class="btn" href="https://amzn.to/44OGa1L" target="_blank" rel="noopener sponsored">
+ Shop on Amazon
+ <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
+ </a>
+ </div>
+
+ <!-- 9: NABA Churu Cat Treats -->
+ <div class="card">
+ <div class="card-top">
+ <div class="icon"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/></svg></div>
+ </div>
+ <span class="tag">Trail Rewards</span>
+ <h3 class="cat-name">Lickable Churu Treats</h3>
+ <p class="cat-desc">Creamy, squeezable purée with Vitamin E — a mess-free high-value reward for longer training sessions.</p>
+ <a class="btn" href="https://amzn.to/3RnLVQI" target="_blank" rel="noopener sponsored">
+ Shop on Amazon
+ <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
+ </a>
+ </div>
+
+ <!-- 10: Tiki Cat Born Carnivore Dry Cat Food — PHOTO -->
+ <div class="card">
+ <img class="product-photo" src="PASTE-CAT-FOOD-PHOTO-URL-HERE.jpg" alt="Tiki Cat Born Carnivore Dry Cat Food">
+ <span class="tag">Nutrition</span>
+ <h3 class="cat-name">Tiki Cat Born Carnivore</h3>
+ <p class="cat-desc">High-protein dry food with chicken, herring, and salmon meal — the everyday fuel behind Cheeto's trail conditioning.</p>
+ <a class="btn" href="https://amzn.to/4aJXckS" target="_blank" rel="noopener sponsored">
+ Shop on Amazon
+ <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
+ </a>
+ </div>
+
+ <!-- 11: TUG Monochrome Retractable Dog Leash -->
+ <div class="card">
+ <div class="card-top">
+ <div class="icon"><svg viewBox="0 0 24 24"><path d="M4 8a3 3 0 013-3h10a3 3 0 013 3v9a3 3 0 01-3 3H7a3 3 0 01-3-3V8z"/><circle cx="16" cy="11" r="2.4"/></svg></div>
+ </div>
+ <span class="tag">Essential</span>
+ <h3 class="cat-name">360° Tangle-Free Retractable Leash</h3>
+ <p class="cat-desc">16ft strong nylon tape leash — for the dog-owning crowd in your audience, or multi-pet households on trail days.</p>
+ <a class="btn" href="https://amzn.to/4aHqikX" target="_blank" rel="noopener sponsored">
+ Shop on Amazon
+ <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
+ </a>
+ </div>
+
+ <!-- 12: Pezzy Treats — links to Cheeto's Store coming-soon page -->
+ <div class="card store-card">
+ <div class="card-top">
+ <div class="icon" style="background:rgba(255,255,255,0.25);"><svg viewBox="0 0 24 24" style="stroke:#fff;"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/></svg></div>
+ </div>
+ <span class="tag">Trail Rewards</span>
+ <h3 class="cat-name">Pezzy Treats</h3>
+ <p class="cat-desc">Environmentally friendly and great for pets? Count me in! Single-ingredient, wild-caught treats with free shipping and great quality — your pet will thank you.</p>
+ <a class="btn" href="/cheetos-store" rel="noopener">
+ Shop at Cheeto's Store
+ <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
+ </a>
+ </div>
+
+ </div>
+
+ <footer>
+ <div class="brand">Nomadic Paws</div>
+ Trail-tested by Cheeto Mac and Cheese · @NomadicPawsTV<br>
+ As an Amazon Associate, Nomadic Paws earns from qualifying purchases.
+ </footer>
+
+</div>
+</body>
+</html>
