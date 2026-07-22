@@ -268,12 +268,22 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 32px;
+            align-items: stretch;
+        }
+        .feature-card-link {
+            text-decoration: none;
+            color: inherit;
+            display: flex;
         }
         .feature-card {
             background: var(--sand);
             border-radius: 20px;
             padding: 40px 32px;
             transition: transform 0.2s;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
         }
         .feature-card:hover { transform: translateY(-4px); }
         .feature-icon {
@@ -284,8 +294,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 2px;
             margin-bottom: 24px;
             font-size: 1.4rem;
+            line-height: 1;
+            letter-spacing: -2px;
             color: white;
         }
         .feature-card h3 {
@@ -299,12 +312,6 @@
             color: var(--bark-mid);
             line-height: 1.7;
             font-size: 0.95rem;
-        }
-
-        .feature-card-link {
-            text-decoration: none;
-            color: inherit;
-            display: block;
         }
 
         /* CONTENT / TV SECTION */
@@ -621,21 +628,25 @@
                 <p>Trail reports, cat adventures, gear reviews, and honest stories from the desert.</p>
             </div>
             <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">🥾</div>
-                    <h3>Trail Reports</h3>
-                    <p>Honest, first-paw accounts of Tucson's trails — what's dog-friendly, cat-friendly, and worth the drive.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🐱🛒</div>
-                    <h3>Cheeto's Store</h3>
-                    <p>Only products approved by the CEO himself. Help the environment by supplying single ingredient pet treats from wild caught invasive species and Cheeto inspired cat furniture to come.</p>
-                </div>
+                <a href="blog.html" class="feature-card-link">
+                    <div class="feature-card">
+                        <div class="feature-icon">🥾</div>
+                        <h3>Trail Reports</h3>
+                        <p>First-paw accounts of Tucson's trails — dog-friendly, cat-friendly, and worth the drive. Read the Trail Journal.</p>
+                    </div>
+                </a>
+                <a href="/cheetos-store/" class="feature-card-link">
+                    <div class="feature-card">
+                        <div class="feature-icon">🐱🛒</div>
+                        <h3>Cheeto's Store</h3>
+                        <p>Only products approved by the CEO himself — single-ingredient treats from wild-caught invasive species, with Cheeto-inspired cat furniture on the way.</p>
+                    </div>
+                </a>
                 <a href="/checklist/" class="feature-card-link">
                     <div class="feature-card">
                         <div class="feature-icon">🐾</div>
                         <h3>Cheeto's Trail Ready Checklist</h3>
-                        <p>Cheeto's Checklist contains gear we actually use, and what it really looks like to adventure with a cat on a leash.</p>
+                        <p>The gear we actually use out there — a real look at what it takes to adventure with a cat on a leash.</p>
                     </div>
                 </a>
             </div>
