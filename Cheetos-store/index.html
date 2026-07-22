@@ -17,12 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-  <link rel="preconnect" href="https://app.snipcart.com">
-  <link rel="preconnect" href="https://cdn.snipcart.com">
-  <link rel="stylesheet" href="https://cdn.snipcart.com/themes/v3.7.1/default/snipcart.css">
-
-  <style>
+<style>
 
   :root {
     --np-sand: #F5EFE6;
@@ -390,7 +385,7 @@
         "brand": { "@type": "Brand", "name": "Pezzy" },
         "offers": {
           "@type": "Offer",
-          "price": "19.99",
+          "price": "21.00",
           "priceCurrency": "USD",
           "availability": "https://schema.org/InStock",
           "url": "https://nomadicpaws.co/cheetos-store/"
@@ -402,7 +397,7 @@
         "brand": { "@type": "Brand", "name": "Pezzy" },
         "offers": {
           "@type": "Offer",
-          "price": "17.99",
+          "price": "18.00",
           "priceCurrency": "USD",
           "availability": "https://schema.org/InStock",
           "url": "https://nomadicpaws.co/cheetos-store/"
@@ -414,7 +409,7 @@
         "brand": { "@type": "Brand", "name": "Pezzy" },
         "offers": {
           "@type": "Offer",
-          "price": "16.99",
+          "price": "17.00",
           "priceCurrency": "USD",
           "availability": "https://schema.org/InStock",
           "url": "https://nomadicpaws.co/cheetos-store/"
@@ -426,7 +421,7 @@
         "brand": { "@type": "Brand", "name": "Pezzy" },
         "offers": {
           "@type": "Offer",
-          "price": "16.99",
+          "price": "17.00",
           "priceCurrency": "USD",
           "availability": "https://schema.org/PreOrder",
           "url": "https://nomadicpaws.co/cheetos-store/"
@@ -439,6 +434,18 @@
 
 <body>
 
+  
+  <script>
+    window.SnipcartSettings = {
+        publicApiKey: 'YjE2MzBjY2YtZGE1MS00MzQ5LWE5MmQtMDdjNDlhNDc5M2I2NjM5MjAwMjIxNjY2NTI0Nzcw',
+        loadStrategy: 'on-user-interaction',
+        modalStyle: 'side',
+        currency: 'usd'
+    };
+
+    (()=>{var c,d;(d=(c=window.SnipcartSettings).version)!=null||(c.version="3.0");var s,S;(S=(s=window.SnipcartSettings).timeoutDuration)!=null||(s.timeoutDuration=2750);var l,p;(p=(l=window.SnipcartSettings).domain)!=null||(l.domain="cdn.snipcart.com");var w,u;(u=(w=window.SnipcartSettings).protocol)!=null||(w.protocol="https");var f=window.SnipcartSettings.version.includes("v3.0.0-ci")||window.SnipcartSettings.version!="3.0"&&window.SnipcartSettings.version.localeCompare("3.4.0",void 0,{numeric:!0,sensitivity:"base"})===-1,m=["focus","mouseover","touchmove","scroll","keydown"];window.LoadSnipcart=o;document.readyState==="loading"?document.addEventListener("DOMContentLoaded",r):r();function r(){window.SnipcartSettings.loadStrategy?window.SnipcartSettings.loadStrategy==="on-user-interaction"&&(m.forEach(t=>document.addEventListener(t,o)),setTimeout(o,window.SnipcartSettings.timeoutDuration)):o()}var a=!1;function o(){if(a)return;a=!0;let t=document.getElementsByTagName("head")[0],e=document.querySelector("#snipcart"),i=document.querySelector(`src[src^="${window.SnipcartSettings.protocol}://${window.SnipcartSettings.domain}"][src$="snipcart.js"]`),n=document.querySelector(`link[href^="${window.SnipcartSettings.protocol}://${window.SnipcartSettings.domain}"][href$="snipcart.css"]`);e||(e=document.createElement("div"),e.id="snipcart",e.setAttribute("hidden","true"),document.body.appendChild(e)),v(e),i||(i=document.createElement("script"),i.src=`${window.SnipcartSettings.protocol}://${window.SnipcartSettings.domain}/themes/v${window.SnipcartSettings.version}/default/snipcart.js`,i.async=!0,t.appendChild(i)),n||(n=document.createElement("link"),n.rel="stylesheet",n.type="text/css",n.href=`${window.SnipcartSettings.protocol}://${window.SnipcartSettings.domain}/themes/v${window.SnipcartSettings.version}/default/snipcart.css`,t.prepend(n)),m.forEach(g=>document.removeEventListener(g,o))}function v(t){!f||(t.dataset.apiKey=window.SnipcartSettings.publicApiKey,window.SnipcartSettings.addProductBehavior&&(t.dataset.configAddProductBehavior=window.SnipcartSettings.addProductBehavior),window.SnipcartSettings.modalStyle&&(t.dataset.configModalStyle=window.SnipcartSettings.modalStyle),window.SnipcartSettings.currency&&(t.dataset.currency=window.SnipcartSettings.currency),window.SnipcartSettings.templatesUrl&&(t.dataset.templatesUrl=window.SnipcartSettings.templatesUrl))}})();
+  </script>
+
 <nav class="np-site-nav" aria-label="Main navigation">
   <a href="/" class="np-nav-logo">Nomadic Paws</a>
   <ul class="np-nav-links">
@@ -449,11 +456,6 @@
     <li><a href="/#newsletter" class="np-nav-cta">Join the Pack</a></li>
   </ul>
 </nav>
-
-
-  <!-- Replace YOUR_PUBLIC_API_KEY with the public key from your Snipcart dashboard before accepting orders. -->
-  <div hidden id="snipcart" data-api-key="YOUR_PUBLIC_API_KEY" data-config-modal-style="side"></div>
-
 <div class="np-shop-page">
 
   <!-- Simple cart icon, fixed top-right. Snipcart auto-wires any element with class="snipcart-checkout" -->
@@ -471,7 +473,7 @@
     </div>
 
     <div class="np-bundle-hero">
-      <span class="np-bundle-hero-ribbon">Save $5 · Best value</span>
+      <span class="np-bundle-hero-ribbon">Save $6 · Best value</span>
       <img class="np-bundle-hero-img" src="/images/products/pezzy-trail-pack-bundle.jpg" alt="Nomadic Paws Trail Pack bundle, all three Pezzy treat flavors">
       <div class="np-bundle-hero-body">
         <div class="np-bundle-hero-eyebrow">The Trail Pack</div>
@@ -479,13 +481,13 @@
         <p class="np-bundle-hero-desc">One bag each of Lionfish Sticks, Nilgai Antelope Heart, and Silver Carp Chips — the full invasive-species lineup, Cheeto-tested and free-shipped straight to your door.</p>
         <div class="np-bundle-hero-footer">
           <span>
-            <span class="np-bundle-hero-was">$54.97</span>
-            <span class="np-bundle-hero-price">$49.99</span>
+            <span class="np-bundle-hero-was">$56.00</span>
+            <span class="np-bundle-hero-price">$50.00</span>
           </span>
           <button
             class="np-bundle-hero-cta snipcart-add-item"
             data-item-id="pezzy-trail-pack-bundle"
-            data-item-price="49.99"
+            data-item-price="50.00"
             data-item-url="/cheetos-store/"
             data-item-name="Nomadic Paws Trail Pack (3-Flavor Bundle)"
             data-item-description="One bag each of Lionfish Sticks, Nilgai Antelope Heart, and Silver Carp Chips"
@@ -505,11 +507,11 @@
           <h3 class="np-treat-name">Lionfish Sticks</h3>
           <p class="np-treat-desc">100% wild-caught lionfish, an invasive predator devastating reef ecosystems. Firm, chewy texture Cheeto goes wild for.</p>
           <div class="np-treat-footer">
-            <span class="np-treat-price">$19.99</span>
+            <span class="np-treat-price">$21.00</span>
             <button
               class="np-treat-cta snipcart-add-item"
               data-item-id="pezzy-lionfish-sticks"
-              data-item-price="19.99"
+              data-item-price="21.00"
               data-item-url="/cheetos-store/"
               data-item-name="Pezzy Lionfish Sticks"
               data-item-description="Single ingredient dog & cat treats, 100% wild-caught invasive lionfish"
@@ -528,11 +530,11 @@
           <h3 class="np-treat-name">Nilgai Antelope Heart</h3>
           <p class="np-treat-desc">Rich, protein-dense jerky from nilgai antelope, an invasive species in South Texas. A hearty reward for trail days.</p>
           <div class="np-treat-footer">
-            <span class="np-treat-price">$17.99</span>
+            <span class="np-treat-price">$18.00</span>
             <button
               class="np-treat-cta snipcart-add-item"
               data-item-id="pezzy-nilgai-antelope-heart"
-              data-item-price="17.99"
+              data-item-price="18.00"
               data-item-url="/cheetos-store/"
               data-item-name="Pezzy Nilgai Antelope Heart"
               data-item-description="Single ingredient jerky, wild-caught invasive nilgai antelope"
@@ -551,11 +553,11 @@
           <h3 class="np-treat-name">Silver Carp Chips</h3>
           <p class="np-treat-desc">Light, crispy chips from silver carp, pulled straight from waterways where they crowd out native fish.</p>
           <div class="np-treat-footer">
-            <span class="np-treat-price">$16.99</span>
+            <span class="np-treat-price">$17.00</span>
             <button
               class="np-treat-cta snipcart-add-item"
               data-item-id="pezzy-silver-carp-chips"
-              data-item-price="16.99"
+              data-item-price="17.00"
               data-item-url="/cheetos-store/"
               data-item-name="Pezzy Silver Carp Chips"
               data-item-description="Single ingredient dog & cat treats, wild-caught invasive silver carp"
@@ -574,11 +576,11 @@
           <p class="np-treat-desc">100% wild-caught Mexican devil fish, another invasive species we're proud to turn into something Cheeto loves.</p>
           <p class="np-treat-preorder-note">You'll be charged now; treats ship as soon as they arrive.</p>
           <div class="np-treat-footer">
-            <span class="np-treat-price">$16.99</span>
+            <span class="np-treat-price">$17.00</span>
             <button
               class="np-treat-cta snipcart-add-item"
               data-item-id="pezzy-devil-fish-strips-preorder"
-              data-item-price="16.99"
+              data-item-price="17.00"
               data-item-url="/cheetos-store/"
               data-item-name="Pezzy Devil Fish Strips (Preorder — Ships August 2026)"
               data-item-description="Single ingredient dog & cat treats, wild-caught invasive devil fish. Preorder, ships August 2026."
@@ -656,8 +658,5 @@
     <span>Made with 🐾 in Tucson, AZ</span>
   </div>
 </footer>
-
-
-  <script async src="https://cdn.snipcart.com/themes/v3.7.1/default/snipcart.js"></script>
 </body>
 </html>
