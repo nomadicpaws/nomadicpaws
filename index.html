@@ -314,7 +314,19 @@
             color: var(--bark-mid);
             line-height: 1.7;
             font-size: 0.95rem;
+            margin-bottom: 18px;
         }
+        .feature-arrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--terra);
+            margin-top: auto;
+            transition: gap 0.2s;
+        }
+        .feature-card:hover .feature-arrow { gap: 10px; }
 
         /* CONTENT / TV SECTION */
         .content-section {
@@ -635,6 +647,7 @@
                         <div class="feature-icon">🥾</div>
                         <h3>Trail Reports</h3>
                         <p>First-paw accounts of Tucson's trails — dog-friendly, cat-friendly, and worth the drive. Read the Trail Journal.</p>
+                        <span class="feature-arrow">Read the Journal <i class="fas fa-arrow-right"></i></span>
                     </div>
                 </a>
                 <a href="/cheetos-store/" class="feature-card-link">
@@ -642,6 +655,7 @@
                         <div class="feature-icon">🐱🛒</div>
                         <h3>Cheeto's Store</h3>
                         <p>Only products approved by the CEO himself — single-ingredient treats from wild-caught invasive species, with Cheeto-inspired cat furniture on the way.</p>
+                        <span class="feature-arrow">Shop now <i class="fas fa-arrow-right"></i></span>
                     </div>
                 </a>
                 <a href="/checklist/" class="feature-card-link">
@@ -649,6 +663,7 @@
                         <div class="feature-icon">🐾</div>
                         <h3>Cheeto's Trail Ready Checklist</h3>
                         <p>The gear we actually use out there — a real look at what it takes to adventure with a cat on a leash.</p>
+                        <span class="feature-arrow">See the checklist <i class="fas fa-arrow-right"></i></span>
                     </div>
                 </a>
             </div>
