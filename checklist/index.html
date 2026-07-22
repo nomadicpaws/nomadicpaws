@@ -320,6 +320,23 @@
         padding: 0;
     }
 
+    #np-shared-footer .footer-cta {
+        display: inline-block;
+        margin-top: 4px;
+        padding: 9px 18px;
+        border-radius: 100px;
+        background: #C4622D;
+        color: #FDFAF5 !important;
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: background 0.2s, transform 0.2s;
+    }
+    #np-shared-footer .footer-cta:hover {
+        background: #E8845A;
+        transform: translateY(-1px);
+    }
+
     @media (max-width: 768px) {
         nav#mainNav { padding: 16px 20px; }
         #mainNav .nav-links { display: none; }
@@ -338,12 +355,12 @@
 <nav id="mainNav">
     <a href="/" class="nav-logo">Nomadic Paws</a>
     <ul class="nav-links">
-             <li><a href="blog.html">Trail Journal</a></li>
+             <li><a href="/blog.html">Trail Journal</a></li>
            
             <li><a href="/cheetos-store/">Cheeto's Store</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="#watch">Watch</a></li>
-            <li><a href="#newsletter" class="nav-cta">Join the Pack</a></li>
+            <li><a href="/#about">About</a></li>
+            <li><a href="/#watch">Watch</a></li>
+            <li><a href="/#newsletter" class="nav-cta">Join the Pack</a></li>
     </ul>
 </nav>
 <div class="wrap">
@@ -395,10 +412,13 @@
  </a>
  </div>
 
- <!-- 3: Trail Collar (moved up — pairs with leash/harness + backpack) -->
+ <!-- 3: Trail Collar — now with media slot -->
  <div class="card">
- <div class="card-top">
- <div class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></div>
+ <div class="media" data-video="PASTE-TRAILCOLLAR-VIDEO-URL-HERE.mp4">
+ <img class="product-photo" src="PASTE-TRAILCOLLAR-PHOTO-URL-HERE.jpg" alt="Trail Collar">
+ <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
+ <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+ </button>
  </div>
  <span class="tag">Peace of Mind</span>
  <h3 class="cat-name">Trail Collar</h3>
@@ -522,10 +542,13 @@
  </a>
  </div>
 
- <!-- 11: 360° Retractable Leash -->
+ <!-- 11: 360° Retractable Leash — now with media slot -->
  <div class="card">
- <div class="card-top">
- <div class="icon"><svg viewBox="0 0 24 24"><path d="M4 8a3 3 0 013-3h10a3 3 0 013 3v9a3 3 0 01-3 3H7a3 3 0 01-3-3V8z"/><circle cx="16" cy="11" r="2.4"/></svg></div>
+ <div class="media" data-video="PASTE-RETRACTABLELEASH-VIDEO-URL-HERE.mp4">
+ <img class="product-photo" src="PASTE-RETRACTABLELEASH-PHOTO-URL-HERE.jpg" alt="360° Tangle-Free Retractable Leash">
+ <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
+ <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+ </button>
  </div>
  <span class="tag">Essential</span>
  <h3 class="cat-name">360° Tangle-Free Retractable Leash</h3>
@@ -536,7 +559,21 @@
  </a>
  </div>
 
- <!-- 12: Pezzy Treats — closing CTA to Cheeto's Store -->
+ <!-- 12: Apple AirTag — sold separately, new card -->
+ <div class="card">
+ <div class="card-top">
+ <div class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/></svg></div>
+ </div>
+ <span class="tag">Sold Separately</span>
+ <h3 class="cat-name">Apple AirTag</h3>
+ <p class="cat-desc">Clips into the harness or backpack for real-time location tracking on trail. Not included with the harness set — pick one up on its own.</p>
+ <a class="btn" href="PASTE-AIRTAG-AMAZON-LINK-HERE" target="_blank" rel="noopener sponsored">
+ Shop on Amazon
+ <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
+ </a>
+ </div>
+
+ <!-- 13: Pezzy Treats — closing CTA to Cheeto's Store -->
  <div class="card store-card">
  <div class="card-top">
  <div class="icon" style="background:rgba(255,255,255,0.25);"><svg viewBox="0 0 24 24" style="stroke:#fff;"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/></svg></div>
@@ -564,8 +601,10 @@
             <h4 style="font-size:0.78rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#FDFAF5;margin-bottom:16px;">Explore</h4>
             <ul style="list-style:none;">
                 <li style="margin-bottom:10px;"><a href="/blog.html" style="color:rgba(253,250,245,0.5);text-decoration:none;font-size:0.88rem;">Trail Journal</a></li>
+                <li style="margin-bottom:10px;"><a href="/cheetos-store/" style="color:rgba(253,250,245,0.5);text-decoration:none;font-size:0.88rem;">Cheeto's Store</a></li>
                 <li style="margin-bottom:10px;"><a href="/#about" style="color:rgba(253,250,245,0.5);text-decoration:none;font-size:0.88rem;">About</a></li>
                 <li style="margin-bottom:10px;"><a href="/#watch" style="color:rgba(253,250,245,0.5);text-decoration:none;font-size:0.88rem;">Watch</a></li>
+                <li><a href="/#newsletter" class="footer-cta">Join the Pack</a></li>
             </ul>
         </div>
         <div>
