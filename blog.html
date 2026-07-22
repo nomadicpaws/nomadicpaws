@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -256,25 +257,70 @@
         /* FOOTER */
         footer {
             background: var(--bark);
-            padding: 48px 40px 28px;
+            padding: 64px 40px 32px;
             color: rgba(253,250,245,0.5);
         }
+        .footer-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 48px;
+            margin-bottom: 48px;
+        }
+        .footer-brand .logo-text {
+            font-family: 'Fraunces', serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--cream);
+            margin-bottom: 12px;
+            display: block;
+        }
+        .footer-brand p {
+            font-size: 0.88rem;
+            line-height: 1.7;
+            max-width: 220px;
+        }
+        .footer-col h4 {
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--cream);
+            margin-bottom: 16px;
+        }
+        .footer-col ul { list-style: none; }
+        .footer-col ul li { margin-bottom: 10px; }
+        .footer-col ul a {
+            color: rgba(253,250,245,0.5);
+            text-decoration: none;
+            font-size: 0.88rem;
+            transition: color 0.2s;
+        }
+        .footer-col ul a:hover { color: var(--terra-light); }
+        .footer-social {
+            display: flex;
+            gap: 16px;
+            margin-top: 4px;
+        }
+        .footer-social a {
+            color: rgba(253,250,245,0.5);
+            font-size: 1.15rem;
+            transition: color 0.2s;
+            text-decoration: none;
+        }
+        .footer-social a:hover { color: var(--terra-light); }
         .footer-bottom {
             max-width: 1100px;
             margin: 0 auto;
+            padding-top: 24px;
+            border-top: 1px solid rgba(253,250,245,0.08);
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-size: 0.78rem;
             flex-wrap: wrap;
             gap: 8px;
-        }
-        .footer-bottom a {
-            font-family: 'Fraunces', serif;
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--cream);
-            text-decoration: none;
         }
 
         @media (max-width: 768px) {
@@ -284,6 +330,8 @@
             .post-card.featured { grid-template-columns: 1fr; }
             .post-card.featured .post-img { height: 240px; }
             main { padding: 48px 20px; }
+            .footer-inner { grid-template-columns: 1fr 1fr; gap: 32px; }
+            .footer-brand { grid-column: 1 / -1; }
         }
     </style>
 </head>
@@ -294,9 +342,9 @@
         <ul class="nav-links">
             <li><a href="/checklist/">Cheeto's Checklist</a></li>
             <li><a href="/cheetos-store/">Cheeto's Store</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="#watch">Watch</a></li>
-            <li><a href="#newsletter" class="nav-cta">Join the Pack</a></li>
+            <li><a href="/#about">About</a></li>
+            <li><a href="/#watch">Watch</a></li>
+            <li><a href="/#newsletter" class="nav-cta">Join the Pack</a></li>
         </ul>
     </nav>
 
@@ -319,10 +367,43 @@
         </form>
     </div>
 
+    <!-- FOOTER -->
     <footer>
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <span class="logo-text">Nomadic Paws</span>
+                <p>Exploring the Sonoran Desert one trail at a time, with a cat who thinks he owns it.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Explore</h4>
+                <ul>
+                    <li><a href="/blog.html">Trail Journal</a></li>
+                    <li><a href="/checklist/">Cheeto's Checklist</a></li>
+                    <li><a href="/cheetos-store/">Cheeto's Store</a></li>
+                    <li><a href="/#about">About</a></li>
+                    <li><a href="/#watch">Watch</a></li>
+                    <li><a href="/#newsletter" class="nav-cta">Join the Pack</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Follow</h4>
+                <div class="footer-social">
+                    <a href="https://tiktok.com/@nomadicpawstv" target="_blank"><i class="fab fa-tiktok"></i></a>
+                    <a href="https://youtube.com/@nomadicpawstv" target="_blank"><i class="fab fa-youtube"></i></a>
+                    <a href="https://instagram.com/nomadicpawstv" target="_blank"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="footer-col">
+                <h4>Contact</h4>
+                <ul>
+                    <li><a href="mailto:hello@nomadicpaws.co">hello@nomadicpaws.co</a></li>
+                    <li><a href="/#newsletter">Newsletter</a></li>
+                </ul>
+            </div>
+        </div>
         <div class="footer-bottom">
-            <a href="index.html">Nomadic Paws</a>
-            <span>Made with 🐾 in Tucson, AZ &nbsp;·&nbsp; © 2026</span>
+            <span>© 2026 Nomadic Paws. All rights reserved.</span>
+            <span>Made with 🐾 in Tucson, AZ</span>
         </div>
     </footer>
 
