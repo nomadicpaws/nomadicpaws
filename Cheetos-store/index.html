@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Pezzy Pets Store & Coming Soon | Nomadic Paws</title>
+  <meta name="description" content="Shop Cheeto-approved Pezzy single-ingredient treats and join the waitlist for the Nomadic Paws window-mounted cat scratcher.">
+  <meta property="og:title" content="Pezzy Pets Store & Coming Soon | Nomadic Paws">
+  <meta property="og:description" content="Single-ingredient Pezzy treats, free shipping, and a first look at the Nomadic Paws window-mounted cat scratcher.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nomadicpaws.co/cheetos-store/">
+  <meta property="og:image" content="https://nomadicpaws.co/images/products/pezzy-trail-pack-bundle.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <link rel="preconnect" href="https://app.snipcart.com">
+  <link rel="preconnect" href="https://cdn.snipcart.com">
+  <link rel="stylesheet" href="https://cdn.snipcart.com/themes/v3.7.1/default/snipcart.css">
+
+  <style>
+
+  :root {
+    --np-sand: #F5EFE6;
+    --np-cream: #FFFDF9;
+    --np-terracotta: #C1652F;
+    --np-sage: #8A9A5B;
+    --np-bark: #4A3728;
+    --np-bark-soft: #6B5D4F;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--np-sand);
+    color: var(--np-bark);
+    font-family: 'DM Sans', sans-serif;
+    padding-top: 76px;
+  }
+
+  .np-site-nav {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 100;
+    min-height: 76px;
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #FDFAF5;
+    box-shadow: 0 1px 20px rgba(44,24,16,0.08);
+  }
+
+  .np-nav-logo {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #2C1810;
+    text-decoration: none;
+  }
+
+  .np-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .np-nav-links a {
+    color: #5C3D2E;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+
+  .np-nav-links a:hover,
+  .np-nav-links a[aria-current="page"] {
+    color: #C4622D;
+  }
+
+  .np-nav-links .np-nav-cta {
+    padding: 10px 20px;
+    border-radius: 999px;
+    background: #C4622D;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .np-site-footer {
+    background: #2C1810;
+    color: rgba(253,250,245,0.58);
+    padding: 64px 40px 32px;
+  }
+
+  .np-footer-grid {
+    max-width: 1100px;
+    margin: 0 auto 48px;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 48px;
+  }
+
+  .np-footer-brand {
+    display: block;
+    margin-bottom: 12px;
+    color: #FDFAF5;
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+
+  .np-footer-copy {
+    max-width: 240px;
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.7;
+  }
+
+  .np-site-footer h4 {
+    margin: 0 0 16px;
+    color: #FDFAF5;
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .np-site-footer ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .np-site-footer li { margin-bottom: 10px; }
+
+  .np-site-footer a {
+    color: rgba(253,250,245,0.58);
+    text-decoration: none;
+    font-size: 0.88rem;
+  }
+
+  .np-site-footer a:hover { color: #FDFAF5; }
+
+  .np-social-links {
+    display: flex;
+    gap: 16px;
+  }
+
+  .np-footer-bottom {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding-top: 24px;
+    border-top: 1px solid rgba(253,250,245,0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+  }
+
+  @media (max-width: 768px) {
+    body { padding-top: 68px; }
+
+    .np-site-nav {
+      min-height: 68px;
+      padding: 14px 20px;
+    }
+
+    .np-nav-links {
+      gap: 14px;
+    }
+
+    .np-nav-links li:nth-child(2),
+    .np-nav-links li:nth-child(3),
+    .np-nav-links li:nth-child(4) {
+      display: none;
+    }
+
+    .np-footer-grid {
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+
+    .np-site-footer {
+      padding: 52px 24px 28px;
+    }
+  }
+
+
+.np-shop-page {
+    background: #F5EFE6;
+    font-family: 'DM Sans', sans-serif;
+    color: #4A3728;
+  }
+
+  /* ---------- Treats section ---------- */
+  .np-treats-section { padding: 3rem 1.5rem 2rem; }
+  .np-treats-intro { max-width: 640px; margin: 0 auto 2.5rem; text-align: center; }
+  .np-treats-eyebrow {
+    font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: #8A9A5B; font-weight: 600; margin-bottom: 0.5rem;
+  }
+  .np-treats-headline {
+    font-family: 'Fraunces', serif; font-size: 2rem; color: #4A3728;
+    margin: 0 0 0.75rem; line-height: 1.15;
+  }
+  .np-treats-sub { color: #6B5D4F; font-size: 1rem; line-height: 1.6; }
+  .np-shipping-badge {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    font-size: 0.8rem; font-weight: 700; color: #8A9A5B;
+    margin-top: 0.9rem;
+  }
+  .np-treat-card--bundle {
+    border: 2px solid #C1652F; position: relative;
+  }
+  .np-bundle-ribbon {
+    position: absolute; top: 0.9rem; right: -0.5rem;
+    background: #C1652F; color: #FFFDF9; font-size: 0.68rem; font-weight: 700;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 0.3rem 0.7rem 0.3rem 0.9rem; border-radius: 20px 0 0 20px;
+  }
+  .np-treat-price-was {
+    font-size: 0.82rem; color: #A79680; text-decoration: line-through; margin-right: 0.4rem;
+  }
+  .np-bundle-hero {
+    max-width: 1000px; margin: 0 auto 3rem; background: #FFFDF9;
+    border: 2px solid #C1652F; border-radius: 18px; overflow: hidden;
+    display: grid; grid-template-columns: 1fr 1.2fr; position: relative;
+  }
+  @media (max-width: 720px) { .np-bundle-hero { grid-template-columns: 1fr; } }
+  .np-bundle-hero-ribbon {
+    position: absolute; top: 1.25rem; left: -0.5rem;
+    background: #C1652F; color: #FFFDF9; font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 0.35rem 0.9rem 0.35rem 0.7rem; border-radius: 0 20px 20px 0;
+    z-index: 2;
+  }
+  .np-bundle-hero-img { width: 100%; height: 100%; min-height: 260px; object-fit: cover; background: #EDE3D3; }
+  .np-bundle-hero-body { padding: 1.75rem 2rem; display: flex; flex-direction: column; justify-content: center; }
+  .np-bundle-hero-eyebrow {
+    font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #8A9A5B; font-weight: 700; margin-bottom: 0.5rem;
+  }
+  .np-bundle-hero-title {
+    font-family: 'Fraunces', serif; font-size: 1.7rem; color: #4A3728; margin: 0 0 0.6rem; line-height: 1.15;
+  }
+  .np-bundle-hero-desc { font-size: 0.95rem; color: #6B5D4F; line-height: 1.6; margin-bottom: 1.25rem; }
+  .np-bundle-hero-footer { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .np-bundle-hero-price { font-weight: 700; color: #C1652F; font-size: 1.35rem; }
+  .np-bundle-hero-was { font-size: 0.9rem; color: #A79680; text-decoration: line-through; margin-right: 0.3rem; }
+  .np-bundle-hero-cta {
+    font-size: 0.92rem; font-weight: 700; color: #FFFDF9; background: #C1652F;
+    border: none; border-radius: 8px; padding: 0.75rem 1.5rem; cursor: pointer;
+  }
+  .np-treats-grid-label {
+    font-family: 'Fraunces', serif; font-size: 1.15rem; color: #4A3728;
+    max-width: 1000px; margin: 0 auto 1rem; text-align: left;
+  }
+  .np-treats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem; max-width: 1000px; margin: 0 auto;
+  }
+  .np-treat-card {
+    background: #FFFDF9; border: 1px solid #E4D9C8; border-radius: 14px;
+    overflow: hidden; display: flex; flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .np-treat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(74,55,40,0.1); }
+  .np-treat-img { width: 100%; aspect-ratio: 4/3; object-fit: cover; background: #EDE3D3; }
+  .np-treat-body { padding: 1.25rem; display: flex; flex-direction: column; flex: 1; }
+  .np-treat-badge {
+    display: inline-block; font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #8A9A5B; background: rgba(138,154,91,0.12); border-radius: 20px;
+    padding: 0.25rem 0.6rem; margin-bottom: 0.6rem; width: fit-content; font-weight: 600;
+  }
+  .np-treat-name { font-family: 'Fraunces', serif; font-size: 1.15rem; margin: 0 0 0.35rem; }
+  .np-treat-desc { font-size: 0.88rem; color: #6B5D4F; line-height: 1.5; margin-bottom: 1rem; flex: 1; }
+  .np-treat-footer { display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
+  .np-treat-price { font-weight: 700; color: #C1652F; font-size: 1.1rem; }
+  .np-treat-cta {
+    font-size: 0.85rem; font-weight: 600; color: #FFFDF9; background: #C1652F;
+    border: none; border-radius: 8px; padding: 0.5rem 1rem; cursor: pointer;
+  }
+  .np-treat-cta:disabled {
+    background: #C9B89A; cursor: not-allowed;
+  }
+  .np-treat-qty {
+    font-size: 0.78rem; color: #8A6A4F; margin-top: 0.4rem;
+  }
+  .np-treat-preorder-badge {
+    display: inline-block; font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #C1652F; background: rgba(193,101,47,0.12); border-radius: 20px;
+    padding: 0.25rem 0.6rem; margin-bottom: 0.6rem; width: fit-content; font-weight: 600;
+  }
+  .np-treat-preorder-note {
+    font-size: 0.8rem; color: #8A6A4F; margin-bottom: 0.75rem;
+  }
+
+  /* ---------- Transition: Cheeto's voice ---------- */
+  .np-transition {
+    max-width: 700px; margin: 3.5rem auto; padding: 0 1.5rem;
+    text-align: center; position: relative;
+  }
+  .np-transition::before {
+    content: ""; display: block; width: 48px; height: 2px; background: #C1652F;
+    margin: 0 auto 1.5rem;
+  }
+  .np-transition-quote {
+    font-family: 'Fraunces', serif; font-style: italic; font-size: 1.35rem;
+    color: #4A3728; line-height: 1.5; margin: 0 0 0.5rem;
+  }
+  .np-transition-attribution {
+    font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #8A9A5B; font-weight: 600;
+  }
+
+  /* ---------- Coming soon: scratcher ---------- */
+  .np-scratcher-section {
+    background: #4A3728; color: #F5EFE6; padding: 4rem 1.5rem;
+    margin-top: 1rem;
+  }
+  .np-scratcher-inner {
+    max-width: 900px; margin: 0 auto; display: grid;
+    grid-template-columns: 1.1fr 1fr; gap: 2.5rem; align-items: center;
+  }
+  @media (max-width: 720px) { .np-scratcher-inner { grid-template-columns: 1fr; } }
+  .np-scratcher-eyebrow {
+    font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: #C1652F; font-weight: 700; margin-bottom: 0.75rem;
+  }
+  .np-scratcher-headline {
+    font-family: 'Fraunces', serif; font-size: 2rem; line-height: 1.2; margin: 0 0 1rem;
+  }
+  .np-scratcher-desc {
+    font-size: 0.95rem; line-height: 1.6; color: #DCD0BE; margin-bottom: 1.5rem;
+  }
+  .np-scratcher-form { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+  .np-scratcher-input {
+    flex: 1; min-width: 200px; padding: 0.75rem 1rem; border-radius: 8px;
+    border: 1px solid #6B5D4F; background: #F5EFE6; color: #4A3728; font-family: 'DM Sans', sans-serif;
+  }
+  .np-scratcher-submit {
+    background: #C1652F; color: #FFFDF9; border: none; border-radius: 8px;
+    padding: 0.75rem 1.25rem; font-weight: 600; font-size: 0.9rem; cursor: pointer;
+  }
+  .np-scratcher-note { font-size: 0.78rem; color: #A79680; margin-top: 0.75rem; }
+  .np-scratcher-img {
+    width: 100%; aspect-ratio: 4/5; object-fit: cover; border-radius: 14px;
+    background: #6B5D4F;
+  }
+  .np-cart-button {
+    position: fixed; top: 92px; right: 1rem; z-index: 90;
+    background: #4A3728; color: #F5EFE6; border: none; border-radius: 30px;
+    padding: 0.6rem 1rem; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .snipcart-items-count { font-weight: 700; }
+  @media (max-width: 768px) {
+    .np-cart-button {
+      top: 76px;
+      right: 0.75rem;
+      padding: 0.55rem 0.85rem;
+    }
+    .np-treats-section {
+      padding-top: 4.5rem;
+    }
+  }
+
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "itemListElement": [
+      {
+        "@type": "Product",
+        "name": "Pezzy Lionfish Sticks",
+        "brand": { "@type": "Brand", "name": "Pezzy" },
+        "offers": {
+          "@type": "Offer",
+          "price": "19.99",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock",
+          "url": "https://nomadicpaws.co/cheetos-store/"
+        }
+      },
+      {
+        "@type": "Product",
+        "name": "Pezzy Nilgai Antelope Heart",
+        "brand": { "@type": "Brand", "name": "Pezzy" },
+        "offers": {
+          "@type": "Offer",
+          "price": "17.99",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock",
+          "url": "https://nomadicpaws.co/cheetos-store/"
+        }
+      },
+      {
+        "@type": "Product",
+        "name": "Pezzy Silver Carp Chips",
+        "brand": { "@type": "Brand", "name": "Pezzy" },
+        "offers": {
+          "@type": "Offer",
+          "price": "16.99",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock",
+          "url": "https://nomadicpaws.co/cheetos-store/"
+        }
+      },
+      {
+        "@type": "Product",
+        "name": "Pezzy Devil Fish Strips",
+        "brand": { "@type": "Brand", "name": "Pezzy" },
+        "offers": {
+          "@type": "Offer",
+          "price": "16.99",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/PreOrder",
+          "url": "https://nomadicpaws.co/cheetos-store/"
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+
+<nav class="np-site-nav" aria-label="Main navigation">
+  <a href="/" class="np-nav-logo">Nomadic Paws</a>
+  <ul class="np-nav-links">
+    <li><a href="/blog.html">Trail Journal</a></li>
+    <li><a href="/#about">About</a></li>
+    <li><a href="/#watch">Watch</a></li>
+    <li><a href="/cheetos-store/" aria-current="page">Shop</a></li>
+    <li><a href="/#newsletter" class="np-nav-cta">Join the Pack</a></li>
+  </ul>
+</nav>
+
+
+  <!-- Replace YOUR_PUBLIC_API_KEY with the public key from your Snipcart dashboard before accepting orders. -->
+  <div hidden id="snipcart" data-api-key="YOUR_PUBLIC_API_KEY" data-config-modal-style="side"></div>
+
+<div class="np-shop-page">
+
+  <!-- Simple cart icon, fixed top-right. Snipcart auto-wires any element with class="snipcart-checkout" -->
+  <button class="snipcart-checkout np-cart-button" aria-label="View cart">
+    🛒 <span class="snipcart-items-count"></span>
+  </button>
+
+  <!-- TREATS: live shop section -->
+  <section class="np-treats-section">
+    <div class="np-treats-intro">
+      <div class="np-treats-eyebrow">New in the shop</div>
+      <h2 class="np-treats-headline">Treats that fight back against invasive species</h2>
+      <p class="np-treats-sub">Cheeto-approved, single-ingredient jerky made from wild-caught invasive species — lionfish, nilgai antelope, and silver carp. Every bag supports habitat balance instead of straining it.</p>
+      <div class="np-shipping-badge">📦 Free shipping, always — no minimum</div>
+    </div>
+
+    <div class="np-bundle-hero">
+      <span class="np-bundle-hero-ribbon">Save $5 · Best value</span>
+      <img class="np-bundle-hero-img" src="/images/products/pezzy-trail-pack-bundle.jpg" alt="Nomadic Paws Trail Pack bundle, all three Pezzy treat flavors">
+      <div class="np-bundle-hero-body">
+        <div class="np-bundle-hero-eyebrow">The Trail Pack</div>
+        <h3 class="np-bundle-hero-title">All 3 flavors, one order</h3>
+        <p class="np-bundle-hero-desc">One bag each of Lionfish Sticks, Nilgai Antelope Heart, and Silver Carp Chips — the full invasive-species lineup, Cheeto-tested and free-shipped straight to your door.</p>
+        <div class="np-bundle-hero-footer">
+          <span>
+            <span class="np-bundle-hero-was">$54.97</span>
+            <span class="np-bundle-hero-price">$49.99</span>
+          </span>
+          <button
+            class="np-bundle-hero-cta snipcart-add-item"
+            data-item-id="pezzy-trail-pack-bundle"
+            data-item-price="49.99"
+            data-item-url="/cheetos-store/"
+            data-item-name="Nomadic Paws Trail Pack (3-Flavor Bundle)"
+            data-item-description="One bag each of Lionfish Sticks, Nilgai Antelope Heart, and Silver Carp Chips"
+            data-item-image="/images/products/pezzy-trail-pack-bundle.jpg"
+          >Add bundle to cart</button>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="np-treats-grid-label">Or shop flavors individually</h3>
+
+    <div class="np-treats-grid">
+      <div class="np-treat-card">
+        <img class="np-treat-img" src="/images/products/pezzy-lionfish-sticks.jpg" alt="Pezzy Lionfish Sticks single ingredient dog and cat treats">
+        <div class="np-treat-body">
+          <span class="np-treat-badge">Single Ingredient</span>
+          <h3 class="np-treat-name">Lionfish Sticks</h3>
+          <p class="np-treat-desc">100% wild-caught lionfish, an invasive predator devastating reef ecosystems. Firm, chewy texture Cheeto goes wild for.</p>
+          <div class="np-treat-footer">
+            <span class="np-treat-price">$19.99</span>
+            <button
+              class="np-treat-cta snipcart-add-item"
+              data-item-id="pezzy-lionfish-sticks"
+              data-item-price="19.99"
+              data-item-url="/cheetos-store/"
+              data-item-name="Pezzy Lionfish Sticks"
+              data-item-description="Single ingredient dog & cat treats, 100% wild-caught invasive lionfish"
+              data-item-image="/images/products/pezzy-lionfish-sticks.jpg"
+              data-item-max-quantity="11"
+            >Add to cart</button>
+          </div>
+          <p class="np-treat-qty">11 left</p>
+        </div>
+      </div>
+
+      <div class="np-treat-card">
+        <img class="np-treat-img" src="/images/products/pezzy-nilgai-heart.jpg" alt="Pezzy Nilgai Antelope Heart single ingredient treats">
+        <div class="np-treat-body">
+          <span class="np-treat-badge">Single Ingredient</span>
+          <h3 class="np-treat-name">Nilgai Antelope Heart</h3>
+          <p class="np-treat-desc">Rich, protein-dense jerky from nilgai antelope, an invasive species in South Texas. A hearty reward for trail days.</p>
+          <div class="np-treat-footer">
+            <span class="np-treat-price">$17.99</span>
+            <button
+              class="np-treat-cta snipcart-add-item"
+              data-item-id="pezzy-nilgai-antelope-heart"
+              data-item-price="17.99"
+              data-item-url="/cheetos-store/"
+              data-item-name="Pezzy Nilgai Antelope Heart"
+              data-item-description="Single ingredient jerky, wild-caught invasive nilgai antelope"
+              data-item-image="/images/products/pezzy-nilgai-heart.jpg"
+              data-item-max-quantity="12"
+            >Add to cart</button>
+          </div>
+          <p class="np-treat-qty">12 left</p>
+        </div>
+      </div>
+
+      <div class="np-treat-card">
+        <img class="np-treat-img" src="/images/products/pezzy-silver-carp-chips.jpg" alt="Pezzy Silver Carp Chips single ingredient dog and cat treats">
+        <div class="np-treat-body">
+          <span class="np-treat-badge">Single Ingredient</span>
+          <h3 class="np-treat-name">Silver Carp Chips</h3>
+          <p class="np-treat-desc">Light, crispy chips from silver carp, pulled straight from waterways where they crowd out native fish.</p>
+          <div class="np-treat-footer">
+            <span class="np-treat-price">$16.99</span>
+            <button
+              class="np-treat-cta snipcart-add-item"
+              data-item-id="pezzy-silver-carp-chips"
+              data-item-price="16.99"
+              data-item-url="/cheetos-store/"
+              data-item-name="Pezzy Silver Carp Chips"
+              data-item-description="Single ingredient dog & cat treats, wild-caught invasive silver carp"
+              data-item-image="/images/products/pezzy-silver-carp-chips.jpg"
+              data-item-max-quantity="29"
+            >Add to cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="np-treat-card">
+        <img class="np-treat-img" src="/images/products/pezzy-devil-fish-strips.jpg" alt="Pezzy Devil Fish Strips single ingredient dog and cat treats">
+        <div class="np-treat-body">
+          <span class="np-treat-preorder-badge">Preorder — Ships August 2026</span>
+          <h3 class="np-treat-name">Devil Fish Strips</h3>
+          <p class="np-treat-desc">100% wild-caught Mexican devil fish, another invasive species we're proud to turn into something Cheeto loves.</p>
+          <p class="np-treat-preorder-note">You'll be charged now; treats ship as soon as they arrive.</p>
+          <div class="np-treat-footer">
+            <span class="np-treat-price">$16.99</span>
+            <button
+              class="np-treat-cta snipcart-add-item"
+              data-item-id="pezzy-devil-fish-strips-preorder"
+              data-item-price="16.99"
+              data-item-url="/cheetos-store/"
+              data-item-name="Pezzy Devil Fish Strips (Preorder — Ships August 2026)"
+              data-item-description="Single ingredient dog & cat treats, wild-caught invasive devil fish. Preorder, ships August 2026."
+              data-item-image="/images/products/pezzy-devil-fish-strips.jpg"
+              data-item-max-quantity="19"
+            >Preorder</button>
+          </div>
+          <p class="np-treat-qty">19 available for preorder</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRANSITION: Cheeto's voice -->
+  <div class="np-transition">
+    <p class="np-transition-quote">"Treats keep me going on the trail. Next up: somewhere to actually put my paws when we're home."</p>
+    <div class="np-transition-attribution">— Cheeto Mac and Cheese</div>
+  </div>
+
+  <!-- SCRATCHER: coming soon -->
+  <section class="np-scratcher-section">
+    <div class="np-scratcher-inner">
+      <div>
+        <div class="np-scratcher-eyebrow">Coming this October</div>
+        <h2 class="np-scratcher-headline">Cheeto has a solution.</h2>
+        <p class="np-scratcher-desc">A window-mounted scratcher built for small apartments and tiny homes — no floor space required. Designed and tested with one very particular orange tabby. First run is limited to 54 units.</p>
+
+        <form class="np-scratcher-form" name="scratcher-waitlist" method="POST" data-netlify="true">
+          <input type="hidden" name="form-name" value="scratcher-waitlist">
+          <input class="np-scratcher-input" type="email" name="email" placeholder="Your email" required>
+          <button class="np-scratcher-submit" type="submit">Join the waitlist</button>
+        </form>
+        <p class="np-scratcher-note">First 54 people on the list get early access before public launch.</p>
+      </div>
+
+      <img class="np-scratcher-img" src="/images/products/window-scratcher-teaser.jpg" alt="Nomadic Paws window-mounted cat scratcher, coming soon">
+    </div>
+  </section>
+
+</div>
+
+
+<footer class="np-site-footer">
+  <div class="np-footer-grid">
+    <div>
+      <span class="np-footer-brand">Nomadic Paws</span>
+      <p class="np-footer-copy">Exploring the Sonoran Desert one trail at a time, with a cat who thinks he owns it.</p>
+    </div>
+    <div>
+      <h4>Explore</h4>
+      <ul>
+        <li><a href="/blog.html">Trail Journal</a></li>
+        <li><a href="/checklist/">Trail Checklist</a></li>
+        <li><a href="/#about">About</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Follow</h4>
+      <div class="np-social-links">
+        <a href="https://tiktok.com/@nomadicpawstv" target="_blank" rel="noopener noreferrer" aria-label="Nomadic Paws on TikTok"><i class="fab fa-tiktok"></i></a>
+        <a href="https://youtube.com/@nomadicpawstv" target="_blank" rel="noopener noreferrer" aria-label="Nomadic Paws on YouTube"><i class="fab fa-youtube"></i></a>
+        <a href="https://instagram.com/nomadicpawstv" target="_blank" rel="noopener noreferrer" aria-label="Nomadic Paws on Instagram"><i class="fab fa-instagram"></i></a>
+      </div>
+    </div>
+    <div>
+      <h4>Contact</h4>
+      <ul>
+        <li><a href="mailto:hello@nomadicpaws.co">hello@nomadicpaws.co</a></li>
+        <li><a href="/#newsletter">Newsletter</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="np-footer-bottom">
+    <span>© 2026 Nomadic Paws. All rights reserved.</span>
+    <span>Made with 🐾 in Tucson, AZ</span>
+  </div>
+</footer>
+
+
+  <script async src="https://cdn.snipcart.com/themes/v3.7.1/default/snipcart.js"></script>
+</body>
+</html>
