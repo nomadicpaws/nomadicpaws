@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +7,7 @@
 <title>Cheeto's Trail-Ready Checklist — Nomadic Paws</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
  :root{
  --sand:#F4EEE1;
@@ -140,6 +142,52 @@
  border:1px solid var(--sand-deep);
  }
 
+ .media{
+ position:relative;
+ width:100%;
+ height:160px;
+ border-radius:12px;
+ overflow:hidden;
+ background:var(--sand);
+ margin-bottom:16px;
+ border:1px solid var(--sand-deep);
+ }
+ .media .product-photo,
+ .media video{
+ width:100%;
+ height:100%;
+ object-fit:cover;
+ border:none;
+ margin:0;
+ display:block;
+ }
+ .play-btn{
+ position:absolute;
+ top:50%;
+ left:20px;
+ transform:translateY(-50%);
+ width:44px;
+ height:44px;
+ border-radius:50%;
+ background:rgba(255,255,255,0.92);
+ border:none;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ cursor:pointer;
+ box-shadow:0 4px 14px rgba(63,53,42,0.25);
+ transition:transform .15s ease, background .15s ease;
+ }
+ .play-btn:hover{
+ transform:translateY(-50%) scale(1.06);
+ background:#fff;
+ }
+ .play-btn svg{
+ width:16px;height:16px;
+ fill:var(--terracotta-deep);
+ margin-left:2px;
+ }
+
  .cat-name{
  font-family:'Fraunces', serif;
  font-size:19px;
@@ -186,7 +234,6 @@
  .btn:hover{background:var(--terracotta-deep);}
  .btn svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:2.2;}
 
- /* Distinct styling for the Pezzy Treats / Cheeto's Store card */
  .card.store-card{
  background:var(--sage);
  border-color:var(--sage-deep);
@@ -203,26 +250,10 @@
  }
  .card.store-card .btn:hover{background:var(--sand);}
  .card.store-card .btn svg{stroke:var(--sage-deep);}
-
- footer{
- text-align:center;
- margin-top:60px;
- padding-top:32px;
- border-top:1px solid var(--sand-deep);
- font-size:12.5px;
- color:var(--bark-soft);
- line-height:1.7;
- }
- footer .brand{
- font-family:'Fraunces', serif;
- font-style:italic;
- font-size:15px;
- color:var(--terracotta-deep);
- margin-bottom:6px;
- }
 </style>
 </head>
 <body>
+<div id="nav-slot"></div>
 <div class="wrap">
 
  <header>
@@ -238,10 +269,13 @@
 
  <div class="grid">
 
- <!-- 1: Complete Leash & Harness Set (merged) -->
+ <!-- 1: Complete Leash & Harness Set -->
  <div class="card">
- <div class="card-top">
- <div class="icon"><svg viewBox="0 0 24 24"><path d="M12 3c-3 0-5 2-5 5 0 3 2 6 5 10 3-4 5-7 5-10 0-3-2-5-5-5z"/><circle cx="12" cy="8" r="1.5"/></svg></div>
+ <div class="media" data-video="PASTE-LEASH-HARNESS-VIDEO-URL-HERE.mp4">
+ <img class="product-photo" src="PASTE-LEASH-HARNESS-PHOTO-URL-HERE.jpg" alt="Complete Leash & Harness Set">
+ <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
+ <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+ </button>
  </div>
  <span class="tag">Essential</span>
  <h3 class="cat-name">Complete Leash & Harness Set</h3>
@@ -252,9 +286,14 @@
  </a>
  </div>
 
- <!-- 2: Apollo Walker Pet Carrier Backpack — PHOTO -->
+ <!-- 2: Apollo Walker Backpack Carrier — VIDEO -->
  <div class="card">
+ <div class="media" data-video="PASTE-BACKPACK-VIDEO-URL-HERE.mp4">
  <img class="product-photo" src="PASTE-BACKPACK-PHOTO-URL-HERE.jpg" alt="Apollo Walker Pet Carrier Backpack">
+ <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
+ <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+ </button>
+ </div>
  <span class="tag">Essential</span>
  <h3 class="cat-name">Apollo Walker Backpack Carrier</h3>
  <p class="cat-desc">For the ride out, the midday rest, or when four paws decide they're done for the day. Fits 4–18lb cats and dogs with safety features and cushioned back support.</p>
@@ -262,8 +301,9 @@
  Shop on Amazon
  <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
  </a>
-  </div>
-  <!-- 4: Trail Collar -->
+ </div>
+
+ <!-- 3: Trail Collar (moved up — pairs with leash/harness + backpack) -->
  <div class="card">
  <div class="card-top">
  <div class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></div>
@@ -276,10 +316,14 @@
  <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
  </a>
  </div>
- <!-- 3: Dog Travel Water Bottle Collapsible Bowls -->
+
+ <!-- 4: Water Bottle + Bowls -->
  <div class="card">
- <div class="card-top">
- <div class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 8v4l2.5 2.5"/></svg></div>
+ <div class="media" data-video="PASTE-WATERBOTTLE-VIDEO-URL-HERE.mp4">
+ <img class="product-photo" src="PASTE-WATERBOTTLE-PHOTO-URL-HERE.jpg" alt="Collapsible Trail Water Bottle + Bowls">
+ <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
+ <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+ </button>
  </div>
  <span class="tag">Hydration</span>
  <h3 class="cat-name">Collapsible Trail Water Bottle + Bowls</h3>
@@ -289,6 +333,7 @@
  <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
  </a>
  </div>
+
  <!-- 5: Lick-Safe Daily Pet Wipes -->
  <div class="card">
  <div class="card-top">
@@ -303,10 +348,13 @@
  </a>
  </div>
 
- <!-- 6: Pet Slicker Brush -->
+ <!-- 6: Self-Cleaning Slicker Brush — VIDEO -->
  <div class="card">
- <div class="card-top">
- <div class="icon"><svg viewBox="0 0 24 24"><path d="M9 3h6l-1 5h2l-7 13 1-8H8l1-10z"/></svg></div>
+ <div class="media" data-video="PASTE-SLICKERBRUSH-VIDEO-URL-HERE.mp4">
+ <img class="product-photo" src="PASTE-SLICKERBRUSH-PHOTO-URL-HERE.jpg" alt="Self-Cleaning Slicker Brush">
+ <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
+ <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+ </button>
  </div>
  <span class="tag">Grooming</span>
  <h3 class="cat-name">Self-Cleaning Slicker Brush</h3>
@@ -317,9 +365,14 @@
  </a>
  </div>
 
- <!-- 7: EasyGroomer Deshedding Brush — PHOTO -->
+ <!-- 7: EasyGroomer Deshedding Brush — VIDEO -->
  <div class="card">
+ <div class="media" data-video="PASTE-EQUIGROOMER-VIDEO-URL-HERE.mp4">
  <img class="product-photo" src="PASTE-EQUIGROOMER-BRUSH-PHOTO-URL-HERE.jpg" alt="EasyGroomer Deshedding Brush">
+ <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
+ <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+ </button>
+ </div>
  <span class="tag">Grooming</span>
  <h3 class="cat-name">EasyGroomer Deshedding Brush</h3>
  <p class="cat-desc">An undercoat tool for short and long hair alike — removes loose fur and dirt at the root, cutting down shedding after a rough trail day.</p>
@@ -329,7 +382,7 @@
  </a>
  </div>
 
- <!-- 8: Inspire Black Nitrile Disposable Gloves -->
+ <!-- 8: Disposable Nitrile Gloves -->
  <div class="card">
  <div class="card-top">
  <div class="icon"><svg viewBox="0 0 24 24"><path d="M12 21c4-3 8-6.5 8-11a5 5 0 00-8-4 5 5 0 00-8 4c0 4.5 4 8 8 11z"/></svg></div>
@@ -343,10 +396,13 @@
  </a>
  </div>
 
- <!-- 9: NABA Churu Cat Treats -->
+ <!-- 9: Lickable Churu Treats — VIDEO -->
  <div class="card">
- <div class="card-top">
- <div class="icon"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/></svg></div>
+ <div class="media" data-video="PASTE-CHURU-VIDEO-URL-HERE.mp4">
+ <img class="product-photo" src="PASTE-CHURU-PHOTO-URL-HERE.jpg" alt="Lickable Churu Treats">
+ <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
+ <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+ </button>
  </div>
  <span class="tag">Trail Rewards</span>
  <h3 class="cat-name">Lickable Churu Treats</h3>
@@ -357,9 +413,14 @@
  </a>
  </div>
 
- <!-- 10: Tiki Cat Born Carnivore Dry Cat Food — PHOTO -->
+ <!-- 10: Tiki Cat Born Carnivore — VIDEO -->
  <div class="card">
+ <div class="media" data-video="PASTE-TIKICAT-VIDEO-URL-HERE.mp4">
  <img class="product-photo" src="PASTE-CAT-FOOD-PHOTO-URL-HERE.jpg" alt="Tiki Cat Born Carnivore Dry Cat Food">
+ <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
+ <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+ </button>
+ </div>
  <span class="tag">Nutrition</span>
  <h3 class="cat-name">Tiki Cat Born Carnivore</h3>
  <p class="cat-desc">High-protein dry food with chicken, herring, and salmon meal — the everyday fuel behind Cheeto's trail conditioning.</p>
@@ -369,7 +430,7 @@
  </a>
  </div>
 
- <!-- 11: TUG Monochrome Retractable Dog Leash -->
+ <!-- 11: 360° Retractable Leash -->
  <div class="card">
  <div class="card-top">
  <div class="icon"><svg viewBox="0 0 24 24"><path d="M4 8a3 3 0 013-3h10a3 3 0 013 3v9a3 3 0 01-3 3H7a3 3 0 01-3-3V8z"/><circle cx="16" cy="11" r="2.4"/></svg></div>
@@ -383,7 +444,7 @@
  </a>
  </div>
 
- <!-- 12: Pezzy Treats — links to Cheeto's Store coming-soon page -->
+ <!-- 12: Pezzy Treats — closing CTA to Cheeto's Store -->
  <div class="card store-card">
  <div class="card-top">
  <div class="icon" style="background:rgba(255,255,255,0.25);"><svg viewBox="0 0 24 24" style="stroke:#fff;"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/></svg></div>
@@ -399,12 +460,33 @@
 
  </div>
 
- <footer>
- <div class="brand">Nomadic Paws</div>
- Trail-tested by Cheeto Mac and Cheese · @NomadicPawsTV<br>
- As an Amazon Associate, Nomadic Paws earns from qualifying purchases.
- </footer>
+ <div id="footer-slot"></div>
 
 </div>
+
+<script>
+(function(){
+  document.querySelectorAll('.media[data-video]').forEach(function(media){
+    var videoSrc = media.getAttribute('data-video');
+    var btn = media.querySelector('.play-btn');
+    // Only show the play button once a real video URL has been added
+    // (i.e. the placeholder text has been replaced).
+    if (!videoSrc || videoSrc.indexOf('PASTE-') === 0) return;
+    btn.style.display = 'flex';
+    btn.addEventListener('click', function(){
+      var img = media.querySelector('.product-photo');
+      var video = document.createElement('video');
+      video.src = videoSrc;
+      video.poster = img ? img.src : '';
+      video.controls = true;
+      video.playsInline = true;
+      media.innerHTML = '';
+      media.appendChild(video);
+      video.play();
+    });
+  });
+})();
+</script>
+
 </body>
 </html>
