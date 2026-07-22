@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -146,6 +147,21 @@
 
   .np-site-footer a:hover { color: #FDFAF5; }
 
+  .np-footer-cta {
+    display: inline-block;
+    margin-top: 2px;
+    padding: 9px 18px;
+    border-radius: 100px;
+    background: #C4622D;
+    color: #FDFAF5 !important;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+  .np-footer-cta:hover {
+    background: #E8845A;
+    color: #FDFAF5 !important;
+  }
+
   .np-social-links {
     display: flex;
     gap: 16px;
@@ -265,6 +281,7 @@
   .np-treats-grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 1.5rem; max-width: 1000px; margin: 0 auto;
+    align-items: stretch;
   }
   .np-treat-card {
     background: #FFFDF9; border: 1px solid #E4D9C8; border-radius: 14px;
@@ -302,58 +319,47 @@
     font-size: 0.8rem; color: #8A6A4F; margin-bottom: 0.75rem;
   }
 
-  /* ---------- Transition: Cheeto's voice ---------- */
-  .np-transition {
-    max-width: 700px; margin: 3.5rem auto; padding: 0 1.5rem;
-    text-align: center; position: relative;
+  /* ---------- Quote card (sits in the grid) ---------- */
+  .np-quote-card {
+    background: #4A3728;
+    border: none;
+    justify-content: center;
   }
-  .np-transition::before {
-    content: ""; display: block; width: 48px; height: 2px; background: #C1652F;
-    margin: 0 auto 1.5rem;
+  .np-quote-card .np-treat-body {
+    justify-content: center;
+    align-items: flex-start;
+    padding: 1.75rem 1.5rem;
   }
-  .np-transition-quote {
-    font-family: 'Fraunces', serif; font-style: italic; font-size: 1.35rem;
-    color: #4A3728; line-height: 1.5; margin: 0 0 0.5rem;
+  .np-quote-mark {
+    font-family: 'Fraunces', serif;
+    font-size: 2.75rem;
+    line-height: 1;
+    color: #C1652F;
+    margin-bottom: 0.25rem;
   }
-  .np-transition-attribution {
-    font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase;
-    color: #8A9A5B; font-weight: 600;
+  .np-quote-text {
+    font-family: 'Fraunces', serif; font-style: italic; font-size: 1.05rem;
+    color: #F5EFE6; line-height: 1.5; margin: 0 0 0.9rem;
+  }
+  .np-quote-attribution {
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #C1652F; font-weight: 700;
   }
 
-  /* ---------- Coming soon: scratcher ---------- */
-  .np-scratcher-section {
-    background: #4A3728; color: #F5EFE6; padding: 4rem 1.5rem;
-    margin-top: 1rem;
+  /* ---------- Scratcher card (sits in the grid) ---------- */
+  .np-scratcher-card { background: #FFFDF9; }
+  .np-scratcher-card .np-treat-img { background: #EDE3D3; }
+  .np-scratcher-form-inline { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.25rem; }
+  .np-scratcher-form-inline input {
+    padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid #E4D9C8;
+    background: #F5EFE6; color: #4A3728; font-family: 'DM Sans', sans-serif; font-size: 0.85rem;
   }
-  .np-scratcher-inner {
-    max-width: 900px; margin: 0 auto; display: grid;
-    grid-template-columns: 1.1fr 1fr; gap: 2.5rem; align-items: center;
+  .np-scratcher-form-inline button {
+    font-size: 0.85rem; font-weight: 600; color: #FFFDF9; background: #C1652F;
+    border: none; border-radius: 8px; padding: 0.6rem 1rem; cursor: pointer;
   }
-  @media (max-width: 720px) { .np-scratcher-inner { grid-template-columns: 1fr; } }
-  .np-scratcher-eyebrow {
-    font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase;
-    color: #C1652F; font-weight: 700; margin-bottom: 0.75rem;
-  }
-  .np-scratcher-headline {
-    font-family: 'Fraunces', serif; font-size: 2rem; line-height: 1.2; margin: 0 0 1rem;
-  }
-  .np-scratcher-desc {
-    font-size: 0.95rem; line-height: 1.6; color: #DCD0BE; margin-bottom: 1.5rem;
-  }
-  .np-scratcher-form { display: flex; gap: 0.6rem; flex-wrap: wrap; }
-  .np-scratcher-input {
-    flex: 1; min-width: 200px; padding: 0.75rem 1rem; border-radius: 8px;
-    border: 1px solid #6B5D4F; background: #F5EFE6; color: #4A3728; font-family: 'DM Sans', sans-serif;
-  }
-  .np-scratcher-submit {
-    background: #C1652F; color: #FFFDF9; border: none; border-radius: 8px;
-    padding: 0.75rem 1.25rem; font-weight: 600; font-size: 0.9rem; cursor: pointer;
-  }
-  .np-scratcher-note { font-size: 0.78rem; color: #A79680; margin-top: 0.75rem; }
-  .np-scratcher-img {
-    width: 100%; aspect-ratio: 4/5; object-fit: cover; border-radius: 14px;
-    background: #6B5D4F;
-  }
+  .np-scratcher-note-inline { font-size: 0.74rem; color: #8A6A4F; margin-top: 0.5rem; }
+
   .np-cart-button {
     position: fixed; top: 92px; right: 1rem; z-index: 90;
     background: #4A3728; color: #F5EFE6; border: none; border-radius: 30px;
@@ -452,7 +458,7 @@
     <li><a href="/blog.html">Trail Journal</a></li>
     <li><a href="/#about">About</a></li>
     <li><a href="/#watch">Watch</a></li>
-    <li><a href="/cheetos-store/" aria-current="page">Shop</a></li>
+    <li><a href="/checklist/">Cheeto's Checklist</a></li>
     <li><a href="/#newsletter" class="np-nav-cta">Join the Pack</a></li>
   </ul>
 </nav>
@@ -591,32 +597,31 @@
           <p class="np-treat-qty">19 available for preorder</p>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- TRANSITION: Cheeto's voice -->
-  <div class="np-transition">
-    <p class="np-transition-quote">"Treats keep me going on the trail. Next up: somewhere to actually put my paws when we're home."</p>
-    <div class="np-transition-attribution">— Cheeto Mac and Cheese</div>
-  </div>
-
-  <!-- SCRATCHER: coming soon -->
-  <section class="np-scratcher-section">
-    <div class="np-scratcher-inner">
-      <div>
-        <div class="np-scratcher-eyebrow">Coming this October</div>
-        <h2 class="np-scratcher-headline">Cheeto has a solution.</h2>
-        <p class="np-scratcher-desc">A window-mounted scratcher built for small apartments and tiny homes — no floor space required. Designed and tested with one very particular orange tabby. First run is limited to 54 units.</p>
-
-        <form class="np-scratcher-form" name="scratcher-waitlist" method="POST" data-netlify="true">
-          <input type="hidden" name="form-name" value="scratcher-waitlist">
-          <input class="np-scratcher-input" type="email" name="email" placeholder="Your email" required>
-          <button class="np-scratcher-submit" type="submit">Join the waitlist</button>
-        </form>
-        <p class="np-scratcher-note">First 54 people on the list get early access before public launch.</p>
+      <!-- Quote card — sits between the products and the scratcher card -->
+      <div class="np-treat-card np-quote-card">
+        <div class="np-treat-body">
+          <div class="np-quote-mark">"</div>
+          <p class="np-quote-text">Treats keep me going on the trail. Next up: somewhere to actually put my paws when we're home.</p>
+          <div class="np-quote-attribution">— Cheeto Mac and Cheese</div>
+        </div>
       </div>
 
-      <img class="np-scratcher-img" src="/images/products/window-scratcher-teaser.jpg" alt="Nomadic Paws window-mounted cat scratcher, coming soon">
+      <!-- Scratcher card — Cheeto's solution, its own card -->
+      <div class="np-treat-card np-scratcher-card">
+        <img class="np-treat-img" src="/images/products/window-scratcher-teaser.jpg" alt="Nomadic Paws window-mounted cat scratcher, coming soon">
+        <div class="np-treat-body">
+          <span class="np-treat-preorder-badge">Coming This October</span>
+          <h3 class="np-treat-name">The Window Scratcher</h3>
+          <p class="np-treat-desc">A window-mounted scratcher built for small apartments and tiny homes — no floor space required. First run limited to 54 units.</p>
+          <form class="np-scratcher-form-inline" name="scratcher-waitlist" method="POST" data-netlify="true">
+            <input type="hidden" name="form-name" value="scratcher-waitlist">
+            <input type="email" name="email" placeholder="Your email" required>
+            <button type="submit">Join the waitlist</button>
+          </form>
+          <p class="np-scratcher-note-inline">First 54 people on the list get early access.</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -632,12 +637,11 @@
     <div>
       <h4>Explore</h4>
       <ul>
-             <li><a href="blog.html">Trail Journal</a></li>
-            <li><a href="/checklist/">Cheeto's Checklist</a></li>
-       
-            <li><a href="#about">About</a></li>
-            <li><a href="#watch">Watch</a></li>
-            <li><a href="#newsletter" class="nav-cta">Join the Pack</a></li>
+        <li><a href="/blog.html">Trail Journal</a></li>
+        <li><a href="/checklist/">Cheeto's Checklist</a></li>
+        <li><a href="/#about">About</a></li>
+        <li><a href="/#watch">Watch</a></li>
+        <li><a href="/#newsletter" class="np-footer-cta">Join the Pack</a></li>
       </ul>
     </div>
     <div>
