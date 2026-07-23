@@ -118,6 +118,48 @@
  border-color:var(--terracotta);
  }
 
+ .checklist-card{
+ background:#fff;
+ border:1px solid var(--sand-deep);
+ border-radius:16px;
+ padding:26px 24px 22px;
+ display:flex;
+ flex-direction:column;
+ transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+ }
+ .checklist-card:hover{
+ transform:translateY(-3px);
+ box-shadow:0 14px 28px -18px rgba(63,53,42,0.35);
+ border-color:var(--terracotta);
+ }
+ .checklist-card h3{
+ font-family:'Fraunces', serif;
+ font-size:19px;
+ font-weight:500;
+ margin:0 0 8px;
+ color:var(--bark);
+ }
+ .checklist-card p:not(.category){
+ font-size:13.5px;
+ line-height:1.55;
+ color:var(--bark-soft);
+ margin:0;
+ }
+ .checklist-card .category{
+ display:inline-block;
+ order:-1;
+ font-size:10.5px;
+ letter-spacing:0.06em;
+ text-transform:uppercase;
+ font-weight:700;
+ color:var(--sage-deep);
+ background:rgba(139,154,124,0.14);
+ padding:4px 9px;
+ border-radius:20px;
+ margin:0 0 14px;
+ width:fit-content;
+ }
+
  .card-top{
  display:flex;
  align-items:flex-start;
@@ -430,52 +472,25 @@
  </a>
  </div>
 
- <!-- 4: Water Bottle + Bowls -->
- <div class="card">
- <div class="media" data-video="PASTE-WATERBOTTLE-VIDEO-URL-HERE.mp4">
- <img class="product-photo" src="PASTE-WATERBOTTLE-PHOTO-URL-HERE.jpg" alt="Collapsible Trail Water Bottle + Bowls">
- <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
- <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
- </button>
- </div>
- <span class="tag">Hydration</span>
- <h3 class="cat-name">Collapsible Trail Water Bottle + Bowls</h3>
- <p class="cat-desc">2-in-1 pet water bottle with collapsible bowls — clips to the pack for quick sips between climbing spots, no bowl to dig out.</p>
- <a class="btn" href="https://amzn.to/4peNDjV" target="_blank" rel="noopener sponsored">
- Shop on Amazon
- <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
- </a>
+ <!-- Water Bottle + Bowl - no button -->
+ <div class="checklist-card">
+ <h3>Collapsible Water Bottle &amp; Bowl</h3>
+ <p class="category">Hydration</p>
+ <p>A 2-in-1 collapsible bottle-and-bowl combo is genuinely useful on trail — clips to a pack, no bowl to dig out. Plenty of solid options out there; pick one that fits your pack's clip style.</p>
  </div>
 
- <!-- 5: Lick-Safe Daily Pet Wipes -->
- <div class="card">
- <div class="card-top">
- <div class="icon"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M4 10h16"/></svg></div>
- </div>
- <span class="tag">Paw Care</span>
- <h3 class="cat-name">Lick-Safe Daily Pet Wipes</h3>
- <p class="cat-desc">Vet-approved, hypoallergenic wipes for paws, face, and coat — cleans mud, odor, and dander after a dusty trail loop. Earth-friendly and unscented.</p>
- <a class="btn" href="https://amzn.to/4vjKP6s" target="_blank" rel="noopener sponsored">
- Shop on Amazon
- <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
- </a>
+ <!-- Pet Wipes - no button -->
+ <div class="checklist-card">
+ <h3>Paw &amp; Coat Wipes</h3>
+ <p class="category">Paw Care</p>
+ <p>Any decent hypoallergenic, unscented wipe works well here — look for vet-approved and earth-friendly if you can. Great for a quick mud/dust wipedown after a trail loop.</p>
  </div>
 
- <!-- 6: Self-Cleaning Slicker Brush — VIDEO -->
- <div class="card">
- <div class="media" data-video="PASTE-SLICKERBRUSH-VIDEO-URL-HERE.mp4">
- <img class="product-photo" src="PASTE-SLICKERBRUSH-PHOTO-URL-HERE.jpg" alt="Self-Cleaning Slicker Brush">
- <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
- <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
- </button>
- </div>
- <span class="tag">Grooming</span>
- <h3 class="cat-name">Self-Cleaning Slicker Brush</h3>
- <p class="cat-desc">A quick-release button clears trapped fur in seconds — safe for all coat types, keeps shedding down between trail days.</p>
- <a class="btn" href="https://amzn.to/4wwvWyA" target="_blank" rel="noopener sponsored">
- Shop on Amazon
- <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
- </a>
+ <!-- Slicker Brush - no button, with quality note -->
+ <div class="checklist-card">
+ <h3>Self-Cleaning Slicker Brush</h3>
+ <p class="category">Grooming</p>
+ <p>Worth spending a bit more here — cheap slicker brushes tend to bend or break fast. Look for one with a sturdy quick-release button and pins that don't wiggle loose after a few uses.</p>
  </div>
 
  <!-- 7: EasyGroomer Deshedding Brush — VIDEO -->
@@ -495,21 +510,11 @@
  </a>
  </div>
 
- <!-- 9: Lickable Churu Treats — VIDEO -->
- <div class="card">
- <div class="media" data-video="PASTE-CHURU-VIDEO-URL-HERE.mp4">
- <img class="product-photo" src="PASTE-CHURU-PHOTO-URL-HERE.jpg" alt="Lickable Churu Treats">
- <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
- <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
- </button>
- </div>
- <span class="tag">Trail Rewards</span>
- <h3 class="cat-name">Lickable Churu Treats</h3>
- <p class="cat-desc">Creamy, squeezable purée with Vitamin E — a mess-free high-value reward for longer training sessions.</p>
- <a class="btn" href="https://amzn.to/3RnLVQI" target="_blank" rel="noopener sponsored">
- Shop on Amazon
- <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
- </a>
+ <!-- Churu Treats - no button -->
+ <div class="checklist-card">
+ <h3>Lickable Purée Treats</h3>
+ <p class="category">Trail Rewards</p>
+ <p>A creamy, squeezable purée treat is a great mess-free high-value reward for training sessions. Most major pet brands make a solid version — go with whatever your cat goes wild for.</p>
  </div>
 
  <!-- 10: Tiki Cat Born Carnivore — VIDEO -->
