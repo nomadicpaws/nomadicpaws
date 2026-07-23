@@ -33,6 +33,7 @@
  --paw:#C1734B;
  }
  *{box-sizing:border-box;}
+ html{scroll-behavior:smooth;}
  body{
  margin:0;
  background:var(--sand);
@@ -72,9 +73,28 @@
  .sub{
  font-size:17px;
  color:var(--bark-soft);
- max-width:520px;
+ max-width:760px;
  margin:0 auto;
  line-height:1.6;
+ }
+ .sub + .sub{margin-top:12px;}
+ .header-guide-link{
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ margin-top:26px;
+ padding:13px 24px;
+ border-radius:999px;
+ background:var(--terracotta);
+ color:#fff;
+ font-size:14px;
+ font-weight:700;
+ text-decoration:none;
+ transition:background .2s ease, transform .2s ease;
+ }
+ .header-guide-link:hover{
+ background:var(--terracotta-deep);
+ transform:translateY(-1px);
  }
  .trail-line{
  width:64px;
@@ -111,7 +131,7 @@
  border:1px solid var(--sand-deep);
  border-radius:22px;
  padding:clamp(28px, 5vw, 48px);
- margin:0 0 32px;
+ margin:56px 0 32px;
  display:grid;
  grid-template-columns:minmax(0, 1.15fr) minmax(280px, .85fr);
  gap:42px;
@@ -134,8 +154,9 @@
  .guide-form button:disabled{opacity:.68;cursor:wait;}
  .guide-privacy,.guide-status{font-size:11.5px;line-height:1.5;color:rgba(255,255,255,.72);margin:11px 0 0;}
  .guide-status{color:#fff;min-height:18px;}
- .guide-download{display:none;margin-top:12px;color:#fff;font-weight:700;text-underline-offset:3px;}
- .guide-download.is-ready{display:inline-block;}
+ .guide-downloads{display:none;margin-top:12px;gap:8px;flex-direction:column;align-items:flex-start;}
+ .guide-downloads.is-ready{display:flex;}
+ .guide-download{color:#fff;font-weight:700;text-underline-offset:3px;}
  .guide-honeypot{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important;}
  @media (max-width:760px){.free-guide{grid-template-columns:1fr;gap:26px;padding:28px 22px;}}
 
@@ -471,7 +492,6 @@
     <ul class="nav-links">
         <li><a href="/trail-journal">Trail Journal</a></li>
         <li><a href="/cheetos-store/">Cheeto's Store</a></li>
-        <li><a href="#free-training-guide" class="nav-cta">Free Training Guide</a></li>
     </ul>
 </nav>
 <div class="wrap">
@@ -479,36 +499,12 @@
  <header>
  <div class="eyebrow">Nomadic Paws · Trail Journal</div>
  <h1>Cheeto's <em>Trail-Ready</em><br>Checklist</h1>
- <p class="sub">The gear we actually reach for before a Catalina State Park loop — tested on one very opinionated orange tabby.</p>
+ <p class="sub">If you've ever wondered whether your cat could enjoy a harness, a trail, or even a backpack ride, you're in the right place.</p>
+ <p class="sub">Trail walks were only where we started. Cheeto and I are training for car rides, camping, travel, and even the move to our next home—and we'll be sharing what we learn as we go. This is where we keep it honest: what worked for us, what we would do differently, and what we would choose again.</p>
+ <p class="sub">Below you'll find the gear Cheeto genuinely uses, the products we recommend, and the brands we trust. You don't need everything on this page to begin. Start wherever you and your cat feel comfortable, and come back whenever you're ready.</p>
+ <a class="header-guide-link" href="#free-training-guide">Free Training Guides ↓</a>
  <div class="trail-line"></div>
  </header>
-
- <section class="free-guide" id="free-training-guide" aria-labelledby="free-guide-title">
-   <div>
-     <p class="free-guide-kicker">A free place to begin</p>
-     <h2 id="free-guide-title">How to Leash Train Your Cat: <em>The Nomadic Paws Approach</em></h2>
-     <p class="free-guide-copy">You don't need to buy anything to get started. This free guide begins with relationship-building, then walks through harness practice, recall as a safety backup, backpack confidence, and your cat's first outdoor steps. Take what helps, move at your cat's pace, and come back whenever you're ready.</p>
-     <ul class="free-guide-points" aria-label="Guide topics">
-       <li>Trust first</li>
-       <li>Indoor practice</li>
-       <li>Safer first outings</li>
-     </ul>
-   </div>
-   <form class="guide-form" id="training-guide-form" action="/.netlify/functions/training-guide-signup" method="POST">
-     <label for="guide-first-name">First name <span aria-hidden="true">(optional)</span></label>
-     <input id="guide-first-name" name="firstName" type="text" autocomplete="given-name" placeholder="Your first name">
-     <label for="guide-email">Where should we send the guide?</label>
-     <input id="guide-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
-     <div class="guide-honeypot" aria-hidden="true">
-       <label for="guide-company">Company</label>
-       <input id="guide-company" name="company" type="text" tabindex="-1" autocomplete="off">
-     </div>
-     <button type="submit">Send me the free guide</button>
-     <p class="guide-privacy">You'll also join the Trail Journal for thoughtful cat-adventure notes. Unsubscribe anytime.</p>
-     <p class="guide-status" id="guide-status" role="status" aria-live="polite"></p>
-     <a class="guide-download" id="guide-download" href="/downloads/how-to-leash-train-your-cat.pdf" download>Download the guide now &rarr;</a>
-   </form>
- </section>
 
  <div class="note">
  <strong>Heads up:</strong> the buttons below are Amazon affiliate links — Nomadic Paws earns a small commission on qualifying purchases at no extra cost to you.
@@ -571,8 +567,8 @@
  <div class="checklist-card">
  <div class="icon-slot">💧</div>
  <p class="category">Hydration</p>
- <h3>Collapsible Water Bottle &amp; Bowl</h3>
- <p>A 2-in-1 collapsible bottle-and-bowl combo is genuinely useful on trail — clips to a pack, no bowl to dig out. Plenty of solid options out there; pick one that fits your pack's clip style.</p>
+ <h3>Collapsible Water Bowl for Cats</h3>
+ <p>How do you give a cat water while hiking? A lightweight collapsible bowl clips to your pack and gives your cat an easy place to drink without taking up much room. Carry water separately, and look for a bowl that's sturdy when open, simple to clean, and appropriately sized for your cat.</p>
  </div>
 
  <!-- Pet Wipes -->
@@ -686,6 +682,37 @@
 
  </div>
 
+ <section class="free-guide" id="free-training-guide" aria-labelledby="free-guide-title">
+   <div>
+     <p class="free-guide-kicker">A relationship-first place to begin</p>
+     <h2 id="free-guide-title">Ready to Begin <em>Your Own Adventure?</em></h2>
+     <p class="free-guide-copy">You don't need a cart full of equipment to start building confidence with your cat. The relationship comes first—and Cheeto and I created two training guides to help you begin there.</p>
+     <p class="free-guide-copy" style="margin-top:12px;">Join the Pack and we'll send both guides directly to your inbox. You'll also receive occasional stories, training discoveries, product news, and honest lessons from the adventures ahead.</p>
+     <ul class="free-guide-points" aria-label="Guide topics">
+       <li>Trust first</li>
+       <li>Indoor practice</li>
+       <li>Safer first outings</li>
+     </ul>
+   </div>
+   <form class="guide-form" id="training-guide-form" action="/.netlify/functions/training-guide-signup" method="POST">
+     <label for="guide-first-name">First name <span aria-hidden="true">(optional)</span></label>
+     <input id="guide-first-name" name="firstName" type="text" autocomplete="given-name" placeholder="Your first name">
+     <label for="guide-email">Where should we send the guides?</label>
+     <input id="guide-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+     <div class="guide-honeypot" aria-hidden="true">
+       <label for="guide-company">Company</label>
+       <input id="guide-company" name="company" type="text" tabindex="-1" autocomplete="off">
+     </div>
+     <button type="submit">Join the Pack &amp; Get the Guides</button>
+     <p class="guide-privacy">By joining, you'll receive the guides and occasional emails from Nomadic Paws about new stories, products, and adventures. Unsubscribe anytime.</p>
+     <p class="guide-status" id="guide-status" role="status" aria-live="polite"></p>
+     <div class="guide-downloads" id="guide-downloads">
+       <a class="guide-download" id="complete-guide-download" href="/downloads/nomadic-paws-complete-leash-training-guide.pdf" download>Download the complete guide &rarr;</a>
+       <a class="guide-download" id="quick-start-download" href="/downloads/nomadic-paws-leash-training-quick-start.pdf" download>Download the quick-start guide &rarr;</a>
+     </div>
+   </form>
+ </section>
+
 </div>
 
 <div id="site-footer"></div>
@@ -694,14 +721,16 @@
   (() => {
     const form = document.getElementById('training-guide-form');
     const status = document.getElementById('guide-status');
-    const download = document.getElementById('guide-download');
+    const downloads = document.getElementById('guide-downloads');
+    const completeGuide = document.getElementById('complete-guide-download');
+    const quickStart = document.getElementById('quick-start-download');
     if (!form) return;
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       const button = form.querySelector('button[type="submit"]');
       button.disabled = true;
       status.textContent = 'Preparing your guide...';
-      download.classList.remove('is-ready');
+      downloads.classList.remove('is-ready');
       try {
         const response = await fetch(form.action, {
           method: 'POST',
@@ -711,8 +740,9 @@
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Please try again.');
         status.textContent = result.message || 'Your guide is ready, and a copy is on its way.';
-        download.href = result.downloadUrl || download.href;
-        download.classList.add('is-ready');
+        completeGuide.href = result.completeGuideUrl || completeGuide.href;
+        quickStart.href = result.quickStartUrl || quickStart.href;
+        downloads.classList.add('is-ready');
         form.reset();
       } catch (error) {
         status.textContent = error.message || 'We could not send the guide just yet. Please try again.';

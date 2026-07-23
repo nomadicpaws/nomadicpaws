@@ -1,6 +1,9 @@
 import type { Handler } from "@netlify/functions";
 
-const DOWNLOAD_URL = "/downloads/how-to-leash-train-your-cat.pdf";
+const DOWNLOADS = {
+  completeGuideUrl: "/downloads/nomadic-paws-complete-leash-training-guide.pdf",
+  quickStartUrl: "/downloads/nomadic-paws-leash-training-quick-start.pdf",
+};
 
 function json(statusCode: number, body: Record<string, unknown>) {
   return {
@@ -28,7 +31,7 @@ export const handler: Handler = async (event) => {
     const firstName = String(body.firstName || "").trim().slice(0, 80);
     const honeypot = String(body.company || "").trim();
 
-    if (honeypot) return json(200, {message: "Your guide is ready.", downloadUrl: DOWNLOAD_URL});
+    if (honeypot) return json(200, {message: "Your guides are ready.", ...DOWNLOADS});
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return json(400, {error: "Please enter a valid email address."});
     }
@@ -85,8 +88,8 @@ export const handler: Handler = async (event) => {
     }
 
     return json(200, {
-      message: "Your guide is ready. Check your inbox for a copy from Nomadic Paws.",
-      downloadUrl: DOWNLOAD_URL,
+      message: "Your guides are ready. Check your inbox for copies from Nomadic Paws.",
+      ...DOWNLOADS,
     });
   } catch (error) {
     console.error("Training guide signup failed:", error);

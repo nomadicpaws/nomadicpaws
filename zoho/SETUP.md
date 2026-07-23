@@ -4,14 +4,15 @@ The website code is ready. Complete these account-level steps once so the form c
 
 ## 1. Create the mailing list and delivery workflow in Zoho Campaigns
 
-1. Create a mailing list named `Free Cat Training Guide`.
+1. Create a mailing list named `Free Cat Training Guides`.
 2. Copy its **List Key**.
 3. Under **Automation**, create a **Workflow** triggered when a contact joins that list.
 4. Add a **Send Email** action with no delay.
 5. Use the subject `Your free cat leash-training guide is ready`.
 6. Import or recreate the design in `zoho/training-guide-delivery.html`.
 7. Confirm the download button points to:
-   `https://nomadicpaws.co/downloads/how-to-leash-train-your-cat.pdf`
+   - Complete guide: `https://nomadicpaws.co/downloads/nomadic-paws-complete-leash-training-guide.pdf`
+   - Quick-start guide: `https://nomadicpaws.co/downloads/nomadic-paws-leash-training-quick-start.pdf`
 8. Activate the workflow.
 
 Zoho is retiring the older Autoresponder feature for new users, so use a Workflow when it is available.
