@@ -1,0 +1,151 @@
+<!--
+  Archived reusable Trail Journal email signup.
+  This is intentionally not loaded by the live site. Copy the style and
+  section into a future page when the signup is needed again.
+-->
+<style>
+  .np-blog-signup {
+    margin: 3.5rem 0 2rem;
+    padding: 2.75rem 2rem;
+    background-color: var(--sand);
+    border-top: 3px solid var(--terra);
+    border-radius: 6px;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .np-signup-inner {
+    max-width: 540px;
+    margin: 0 auto;
+  }
+  .np-signup-paw {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-size: 2rem;
+  }
+  .np-signup-headline {
+    margin: 0 0 0.85rem;
+    color: var(--bark);
+    font-family: 'Fraunces', serif;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  .np-signup-sub {
+    margin: 0 0 1.75rem;
+    color: var(--bark-mid);
+    font-size: 0.975rem;
+    line-height: 1.65;
+  }
+  .np-signup-form { width: 100%; }
+  .np-signup-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    align-items: stretch;
+  }
+  .np-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem 1rem;
+    border: 1.5px solid #C9B49A;
+    border-radius: 4px;
+    background: #fff;
+    color: var(--bark);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease;
+  }
+  .np-input::placeholder { color: #A0876C; }
+  .np-input:focus {
+    border-color: var(--terra);
+    outline: none;
+  }
+  .np-signup-note {
+    display: block;
+    margin-top: 0.65rem;
+    resize: vertical;
+  }
+  .np-signup-btn {
+    display: block;
+    width: 100%;
+    margin-top: 0.65rem;
+    padding: 0.85rem 1rem;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--terra);
+    color: #fff;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.975rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    transition: background-color 0.2s ease;
+  }
+  .np-signup-btn:hover { background-color: var(--terra-light); }
+  .np-signup-fine {
+    margin: 1rem 0 0;
+    color: #9A7E65;
+    font-size: 0.78rem;
+    font-style: italic;
+  }
+  @media (min-width: 480px) {
+    .np-signup-fields {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+    .np-input { flex: 1 1 180px; }
+  }
+</style>
+
+<section class="np-blog-signup">
+  <div class="np-signup-inner">
+    <div class="np-signup-paw">🐾</div>
+    <h2 class="np-signup-headline">Don't let Cheeto have all the adventure.</h2>
+    <p class="np-signup-sub">
+      New trail posts, honest gear picks, and the occasional CEO update from the cat himself —
+      straight to your inbox. No fluff. Just paws on the trail.
+    </p>
+
+    <form
+      name="trail-journal-signup"
+      method="POST"
+      data-netlify="true"
+      netlify-honeypot="bot-field"
+      class="np-signup-form"
+    >
+      <p style="display:none;">
+        <label>Don't fill this out: <input name="bot-field" /></label>
+      </p>
+      <input type="hidden" name="form-name" value="trail-journal-signup" />
+
+      <div class="np-signup-fields">
+        <input
+          type="text"
+          name="first-name"
+          placeholder="First name"
+          class="np-input"
+          aria-label="First name"
+        />
+        <input
+          type="email"
+          name="email"
+          placeholder="Your email"
+          class="np-input"
+          required
+          aria-label="Email address"
+        />
+      </div>
+
+      <textarea
+        name="note"
+        placeholder="Any trail journeys you'd like to share? (optional)"
+        class="np-input np-signup-note"
+        aria-label="Optional note"
+        rows="2"
+      ></textarea>
+
+      <button type="submit" class="np-signup-btn">Follow the paw prints →</button>
+      <p class="np-signup-fine">Cheeto approves this message. Unsubscribe anytime.</p>
+    </form>
+  </div>
+</section>

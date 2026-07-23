@@ -188,111 +188,104 @@
             font-size: 1.05rem;
         }
 
-        /* ░░ BLOG SIGNUP SECTION ░░ */
-        .np-blog-signup {
-            margin: 3.5rem 0 2rem;
-            padding: 2.75rem 2rem;
-            background-color: var(--sand);
-            border-top: 3px solid var(--terra);
-            border-radius: 6px;
-            text-align: center;
-            font-family: 'DM Sans', sans-serif;
+        /* CONTINUE THE JOURNEY */
+        .np-story-navigation {
+            margin: 3.75rem 0 1.25rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(92, 61, 46, 0.18);
         }
-
-        .np-signup-inner {
-            max-width: 540px;
-            margin: 0 auto;
-        }
-
-        .np-signup-paw {
-            font-size: 2rem;
-            margin-bottom: 0.75rem;
-            display: block;
-        }
-
-        .np-signup-headline {
+        .np-journey-label {
+            margin: 0 0 1rem;
             font-family: 'Fraunces', serif;
-            font-size: clamp(1.5rem, 4vw, 2rem);
+            font-size: 1.25rem;
             font-weight: 700;
             color: var(--bark);
-            margin: 0 0 0.85rem;
-            line-height: 1.25;
+            text-align: center;
         }
-
-        .np-signup-sub {
-            font-size: 0.975rem;
-            color: var(--bark-mid);
-            line-height: 1.65;
-            margin: 0 0 1.75rem;
+        .np-story-tabs {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.85rem;
         }
-
-        .np-signup-form { width: 100%; }
-
-        .np-signup-fields {
+        .np-story-tabs.is-single { grid-template-columns: 1fr; }
+        .np-story-navigation[hidden],
+        .np-story-tab[hidden] { display: none; }
+        .np-story-tab {
+            min-height: 92px;
+            padding: 1rem 1.1rem;
+            border: 1px solid rgba(92, 61, 46, 0.18);
+            border-radius: 8px;
+            background: var(--cream);
+            color: var(--bark);
+            text-decoration: none;
             display: flex;
             flex-direction: column;
-            gap: 0.65rem;
-            align-items: stretch;
+            justify-content: center;
+            transition: border-color 0.2s, transform 0.2s, background 0.2s;
         }
-
-        .np-input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1.5px solid #C9B49A;
-            border-radius: 4px;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.95rem;
-            background: #fff;
-            color: var(--bark);
-            box-sizing: border-box;
-            transition: border-color 0.2s ease;
-        }
-
-        .np-input::placeholder { color: #A0876C; }
-
-        .np-input:focus {
-            outline: none;
+        .np-story-tab:hover {
             border-color: var(--terra);
+            background: var(--sand);
+            transform: translateY(-2px);
         }
-
-        .np-signup-note {
+        .np-story-tab.next { text-align: right; }
+        .np-story-direction {
             display: block;
-            margin-top: 0.65rem;
-            resize: vertical;
-            font-family: 'DM Sans', sans-serif;
-        }
-
-        .np-signup-btn {
-            display: block;
-            width: 100%;
-            margin-top: 0.65rem;
-            padding: 0.85rem 1rem;
-            background-color: var(--terra);
-            color: #fff;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.975rem;
+            margin-bottom: 0.3rem;
+            color: var(--terra);
+            font-size: 0.76rem;
             font-weight: 600;
-            letter-spacing: 0.02em;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
-
-        .np-signup-btn:hover { background-color: var(--terra-light); }
-
-        .np-signup-fine {
-            margin: 1rem 0 0;
-            font-size: 0.78rem;
-            color: #9A7E65;
-            font-style: italic;
+        .np-story-title {
+            font-family: 'Fraunces', serif;
+            font-size: 0.98rem;
+            line-height: 1.35;
         }
-
-        @media (min-width: 480px) {
-            .np-signup-fields { flex-direction: row; flex-wrap: wrap; }
-            .np-input { flex: 1 1 180px; }
+        .np-journal-cta {
+            margin: 1.25rem 0 2rem;
+            padding: 2.75rem 2rem;
+            background: var(--sand);
+            border-top: 3px solid var(--terra);
+            border-radius: 8px;
+            text-align: center;
         }
-        /* ░░ END BLOG SIGNUP SECTION STYLES ░░ */
+        .np-journal-cta h2 {
+            margin: 0 0 0.8rem;
+            font-family: 'Fraunces', serif;
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            color: var(--bark);
+        }
+        .np-journal-cta p {
+            max-width: 590px;
+            margin: 0 auto 1.4rem;
+            color: var(--bark-mid);
+            font-size: 0.975rem;
+            line-height: 1.65;
+        }
+        .np-journal-cta-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.85rem 1.4rem;
+            border-radius: 999px;
+            background: var(--terra);
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.2s, transform 0.2s;
+        }
+        .np-journal-cta-link:hover {
+            background: var(--terra-light);
+            transform: translateY(-1px);
+        }
+        @media (max-width: 560px) {
+            .np-story-tabs { grid-template-columns: 1fr; }
+            .np-story-tab.next { text-align: left; }
+            .np-journal-cta { padding: 2.25rem 1.25rem; }
+        }
 
         /* FOOTER */
         footer {
@@ -391,74 +384,25 @@
             <p class="article-state">Loading post…</p>
         </div>
 
-        <!-- ░░ BLOG SIGNUP SECTION ░░ -->
-        <section class="np-blog-signup">
-            <div class="np-signup-inner">
-
-                <div class="np-signup-paw">🐾</div>
-
-                <h2 class="np-signup-headline">
-                    Don't let Cheeto have all the adventure.
-                </h2>
-
-                <p class="np-signup-sub">
-                    New trail posts, honest gear picks, and the occasional CEO update from the cat himself —
-                    straight to your inbox. No fluff. Just paws on the trail.
-                </p>
-
-                <form
-                    name="trail-journal-signup"
-                    method="POST"
-                    data-netlify="true"
-                    netlify-honeypot="bot-field"
-                    class="np-signup-form"
-                >
-                    <!-- Honeypot (hidden spam trap) -->
-                    <p style="display:none;">
-                        <label>Don't fill this out: <input name="bot-field" /></label>
-                    </p>
-
-                    <input type="hidden" name="form-name" value="trail-journal-signup" />
-
-                    <div class="np-signup-fields">
-                        <input
-                            type="text"
-                            name="first-name"
-                            placeholder="First name"
-                            class="np-input"
-                            aria-label="First name"
-                        />
-                        <input
-                            type="email"
-                            name="email"
-                            placeholder="Your email"
-                            class="np-input"
-                            required
-                            aria-label="Email address"
-                        />
-                    </div>
-
-                    <textarea
-                        name="note"
-                        placeholder="Any trail journeys you'd like to share? (optional)"
-                        class="np-input np-signup-note"
-                        aria-label="Optional note"
-                        rows="2"
-                    ></textarea>
-
-                    <button type="submit" class="np-signup-btn">
-                        Follow the paw prints →
-                    </button>
-
-                    <p class="np-signup-fine">
-                        Cheeto approves this message. Unsubscribe anytime.
-                    </p>
-                </form>
-
+        <section class="np-story-navigation" id="storyNavigation" aria-label="Continue the Journey" hidden>
+            <h2 class="np-journey-label">Continue the Journey</h2>
+            <div class="np-story-tabs" id="storyTabs">
+                <a class="np-story-tab previous" id="previousStory" href="#">
+                    <span class="np-story-direction">← Previous Story</span>
+                    <span class="np-story-title" id="previousStoryTitle"></span>
+                </a>
+                <a class="np-story-tab next" id="nextStory" href="#">
+                    <span class="np-story-direction">Next Story →</span>
+                    <span class="np-story-title" id="nextStoryTitle"></span>
+                </a>
             </div>
         </section>
-        <!-- ░░ END BLOG SIGNUP SECTION ░░ -->
 
+        <section class="np-journal-cta">
+            <h2>Come with us on the next adventure.</h2>
+            <p>Browse the Trail Journal and follow along as Cheeto continues exploring deserts, forests, mountain trails, and everything in between.</p>
+            <a href="/trail-journal" class="np-journal-cta-link">Explore the Trail Journal →</a>
+        </section>
     </article>
 
     <footer>
@@ -538,6 +482,29 @@
 
             const post = Array.isArray(posts) ? posts.find(p => p.slug === slug) : null;
             if (!post) { showState('Post not found. <a href="/trail-journal">Back to the journal</a>.'); return; }
+
+            const currentIndex = posts.findIndex(p => p.slug === slug);
+            const previousPost = currentIndex >= 0 ? posts[currentIndex + 1] : null;
+            const nextPost = currentIndex > 0 ? posts[currentIndex - 1] : null;
+            const storyNavigation = document.getElementById('storyNavigation');
+            const storyTabs = document.getElementById('storyTabs');
+
+            function setStoryLink(linkId, titleId, story) {
+                const link = document.getElementById(linkId);
+                if (!story) {
+                    link.hidden = true;
+                    return;
+                }
+                link.href = `/trail-journal/${encodeURIComponent(story.slug)}`;
+                document.getElementById(titleId).textContent = story.title;
+            }
+
+            setStoryLink('previousStory', 'previousStoryTitle', previousPost);
+            setStoryLink('nextStory', 'nextStoryTitle', nextPost);
+            if (previousPost || nextPost) {
+                storyTabs.classList.toggle('is-single', !previousPost || !nextPost);
+                storyNavigation.hidden = false;
+            }
 
             document.title = `${post.title} — Nomadic Paws`;
             document.getElementById('articleTag').textContent = post.category || '';
