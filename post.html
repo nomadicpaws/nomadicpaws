@@ -369,7 +369,7 @@
     <nav>
         <a href="index.html" class="nav-logo">Nomadic Paws</a>
         <ul class="nav-links">
-            <li><a href="blog.html" class="active">Trail Journal</a></li>
+            <li><a href="/trail-journal" class="active">Trail Journal</a></li>
             <li><a href="index.html#about">About</a></li>
             <li><a href="index.html#watch">Watch</a></li>
             <li><a href="index.html#newsletter" class="nav-cta">Join the Pack</a></li>
@@ -387,7 +387,7 @@
     <div class="article-cover" id="articleCover"></div>
 
     <article class="article-wrap">
-        <a href="blog.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to the Trail Journal</a>
+        <a href="/trail-journal" class="back-link"><i class="fas fa-arrow-left"></i> Back to the Trail Journal</a>
         <div class="article-body" id="articleBody">
             <p class="article-state">Loading post…</p>
         </div>
@@ -471,7 +471,7 @@
             <div class="footer-col">
                 <h4>Explore</h4>
                 <ul>
-                    <li><a href="blog.html">Trail Journal</a></li>
+                    <li><a href="/trail-journal">Trail Journal</a></li>
                     <li><a href="index.html#about">About</a></li>
                     <li><a href="index.html#watch">Watch</a></li>
                 </ul>
@@ -526,19 +526,19 @@
                 }
             }
 
-            if (!slug) { showState('Post not found. <a href="blog.html">Back to the journal</a>.'); return; }
+            if (!slug) { showState('Post not found. <a href="/trail-journal">Back to the journal</a>.'); return; }
 
             let posts;
             try {
                 const res = await fetch('/api/posts');
                 posts = await res.json();
             } catch (err) {
-                showState('Could not load this post. <a href="blog.html">Back to the journal</a>.');
+                showState('Could not load this post. <a href="/trail-journal">Back to the journal</a>.');
                 return;
             }
 
             const post = Array.isArray(posts) ? posts.find(p => p.slug === slug) : null;
-            if (!post) { showState('Post not found. <a href="blog.html">Back to the journal</a>.'); return; }
+            if (!post) { showState('Post not found. <a href="/trail-journal">Back to the journal</a>.'); return; }
 
             document.title = `${post.title} — Nomadic Paws`;
             document.getElementById('articleTag').textContent = post.category || '';
