@@ -1,6 +1,7 @@
 ---
 title: He Knew Before I Did
 category: Cheeto Diaries
+description: "Can cats sense danger before humans? On an Arizona desert walk, Cheeto detected a herd of javelinas before I did—and showed me when to trust him."
 date: 2026-06-21T15:11:00.000-07:00
 image: /images/cheeto-saved-us.png
 ---
