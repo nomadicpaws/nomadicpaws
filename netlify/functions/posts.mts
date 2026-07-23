@@ -65,6 +65,7 @@ export default async () => {
         slug: file.replace(/\.md$/, ''),
         title: data.title || 'Untitled',
         category: data.category || '',
+        description: data.description || excerpt(body),
         date: data.date || '',
         image: data.image || data.thumbnail || '',
         excerpt: excerpt(body),

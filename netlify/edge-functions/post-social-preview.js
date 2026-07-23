@@ -43,7 +43,7 @@ export default async (request, context) => {
   if (!post) return response;
   const title = `${post.title} — Nomadic Paws`;
   const rawDescription =
-    post.excerpt || post.description || stripMarkdown(post.body || "");
+    post.description || post.excerpt || stripMarkdown(post.body || "");
   const description = truncate(rawDescription, 200);
   const image = post.image
     ? new URL(post.image, url.origin).toString()
@@ -74,7 +74,9 @@ export default async (request, context) => {
   class HeadRewriter {
     element(element) {
       element.append(
-        `<meta property="og:type" content="article">
+        `<meta name="description" content="${escapeAttr(description)}">
+<link rel="canonical" href="${escapeAttr(pageUrl)}">
+<meta property="og:type" content="article">
 <meta property="og:title" content="${escapeAttr(title)}">
 <meta property="og:description" content="${escapeAttr(description)}">
 <meta property="og:image" content="${escapeAttr(image)}">
