@@ -98,6 +98,7 @@
  .grid{
  display:grid;
  grid-template-columns:repeat(3, 1fr);
+ grid-auto-rows:1fr;
  gap:22px;
  }
  @media (max-width:860px){ .grid{grid-template-columns:repeat(2, 1fr);} }
@@ -144,10 +145,24 @@
  line-height:1.55;
  color:var(--bark-soft);
  margin:0;
+ flex-grow:1;
+ }
+ .checklist-card .icon-slot{
+ width:100%;
+ height:160px;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ flex-shrink:0;
+ margin-bottom:16px;
+ border:1px solid var(--sand-deep);
+ border-radius:12px;
+ background:var(--sand);
+ font-size:48px;
+ line-height:1;
  }
  .checklist-card .category{
  display:inline-block;
- order:-1;
  font-size:10.5px;
  letter-spacing:0.06em;
  text-transform:uppercase;
@@ -472,24 +487,27 @@
  </a>
  </div>
 
- <!-- Water Bottle + Bowl - no button -->
+ <!-- Water Bottle + Bowl -->
  <div class="checklist-card">
- <h3>Collapsible Water Bottle &amp; Bowl</h3>
+ <div class="icon-slot">💧</div>
  <p class="category">Hydration</p>
+ <h3>Collapsible Water Bottle &amp; Bowl</h3>
  <p>A 2-in-1 collapsible bottle-and-bowl combo is genuinely useful on trail — clips to a pack, no bowl to dig out. Plenty of solid options out there; pick one that fits your pack's clip style.</p>
  </div>
 
- <!-- Pet Wipes - no button -->
+ <!-- Pet Wipes -->
  <div class="checklist-card">
- <h3>Paw &amp; Coat Wipes</h3>
+ <div class="icon-slot">🧼</div>
  <p class="category">Paw Care</p>
+ <h3>Paw &amp; Coat Wipes</h3>
  <p>Any decent hypoallergenic, unscented wipe works well here — look for vet-approved and earth-friendly if you can. Great for a quick mud/dust wipedown after a trail loop.</p>
  </div>
 
- <!-- Slicker Brush - no button, with quality note -->
+ <!-- Slicker Brush -->
  <div class="checklist-card">
- <h3>Self-Cleaning Slicker Brush</h3>
+ <div class="icon-slot">🪮</div>
  <p class="category">Grooming</p>
+ <h3>Self-Cleaning Slicker Brush</h3>
  <p>Worth spending a bit more here — cheap slicker brushes tend to bend or break fast. Look for one with a sturdy quick-release button and pins that don't wiggle loose after a few uses.</p>
  </div>
 
@@ -510,10 +528,11 @@
  </a>
  </div>
 
- <!-- Churu Treats - no button -->
+ <!-- Churu Treats -->
  <div class="checklist-card">
- <h3>Lickable Purée Treats</h3>
+ <div class="icon-slot">🍯</div>
  <p class="category">Trail Rewards</p>
+ <h3>Lickable Purée Treats</h3>
  <p>A creamy, squeezable purée treat is a great mess-free high-value reward for training sessions. Most major pet brands make a solid version — go with whatever your cat goes wild for.</p>
  </div>
 
