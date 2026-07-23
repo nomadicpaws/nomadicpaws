@@ -77,7 +77,13 @@ export default async () => {
     }),
   )
 
-  const publishedPosts = posts.filter((post) => !post.draft)
+  const now = Date.now()
+  const publishedPosts = posts.filter((post) => {
+    if (post.draft) return false
+    if (!post.date) return true
+    const publishTime = Date.parse(post.date)
+    return Number.isNaN(publishTime) || publishTime <= now
+  })
 
   // Newest first.
   publishedPosts.sort((a, b) => (a.date < b.date ? 1 : -1))

@@ -8,6 +8,12 @@
   included_files = ["_posts/**"]
 
 [[redirects]]
+  from = "/sitemap.xml"
+  to = "/.netlify/functions/sitemap"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/trail-journal/:slug"
   to = "/post.html?slug=:slug"
   status = 200
