@@ -16,6 +16,7 @@ collections:
     slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
     fields:
       - { label: Title, name: title, widget: string }
+      - { label: Search description, name: description, widget: text, required: false, hint: "Optional but recommended. Write one natural sentence of about 140–160 characters describing what the post answers or explores." }
       - { label: Category, name: category, widget: select, options: [Trail Reports, Cheeto Diaries, Gear, Tips] }
       - { label: Date, name: date, widget: datetime }
       - { label: Cover image, name: image, widget: image, required: false, hint: "Optional. Leave blank to use a colored cover." }
