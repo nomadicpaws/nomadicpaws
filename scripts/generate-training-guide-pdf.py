@@ -9,7 +9,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     BaseDocTemplate, Frame, Image, KeepTogether, NextPageTemplate, PageBreak,
-    PageTemplate, Paragraph, Spacer
+    PageTemplate, Paragraph, Spacer, Table, TableStyle
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,12 +33,12 @@ LINE = colors.HexColor("#E9DFC8")
 
 styles = getSampleStyleSheet()
 body = ParagraphStyle(
-    "Body", fontName="NPSans", fontSize=9.4, leading=14.2,
-    textColor=SOFT, spaceAfter=8.5, allowWidows=0, allowOrphans=0,
+    "Body", fontName="NPSans", fontSize=9.1, leading=13.4,
+    textColor=SOFT, spaceAfter=6.5, allowWidows=0, allowOrphans=0,
 )
 section = ParagraphStyle(
     "Section", fontName="NPSerif", fontSize=17, leading=21,
-    textColor=BARK, spaceBefore=14, spaceAfter=8, keepWithNext=True,
+    textColor=BARK, spaceBefore=11, spaceAfter=6, keepWithNext=True,
 )
 intro_head = ParagraphStyle(
     "IntroHead", parent=section, fontSize=20, leading=24, textColor=TERRACOTTA,
@@ -56,11 +56,11 @@ bullet = ParagraphStyle(
     bulletIndent=0, spaceAfter=5,
 )
 cta = ParagraphStyle(
-    "CTA", fontName="NPSerif", fontSize=17, leading=22, textColor=CREAM,
-    alignment=TA_CENTER, spaceAfter=8,
+    "CTA", fontName="NPSerif", fontSize=16, leading=20, textColor=CREAM,
+    alignment=TA_CENTER, spaceAfter=5,
 )
 cta_body = ParagraphStyle(
-    "CTABody", fontName="NPSans", fontSize=9.3, leading=14,
+    "CTABody", fontName="NPSans", fontSize=8.7, leading=12.5,
     textColor=CREAM, alignment=TA_CENTER,
 )
 
@@ -220,8 +220,29 @@ for index, (heading, paragraphs) in enumerate(SECTIONS):
         story.append(Paragraph(paragraph, body))
 
 story.append(Paragraph("A simple place to start", section))
-for item in QUICK_START:
-    story.append(Paragraph(item, bullet, bulletText="•"))
+quick_style = ParagraphStyle(
+    "Quick", parent=body, fontSize=8.2, leading=11.2,
+    leftIndent=10, firstLineIndent=-7, spaceAfter=0,
+)
+quick_items = [Paragraph(item, quick_style, bulletText="•") for item in QUICK_START]
+quick_rows = []
+half = (len(quick_items) + 1) // 2
+for row in range(half):
+    left = quick_items[row]
+    right = quick_items[row + half] if row + half < len(quick_items) else ""
+    quick_rows.append([left, right])
+story.append(Table(
+    quick_rows,
+    colWidths=[2.95 * inch, 2.95 * inch],
+    hAlign="LEFT",
+    style=TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+        ("TOPPADDING", (0, 0), (-1, -1), 2),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]),
+))
 
 story.append(Paragraph("Trust over tricks", section))
 story.append(Paragraph(
@@ -241,7 +262,6 @@ story.append(Paragraph(
     body,
 ))
 
-story.append(PageBreak())
 story.append(Paragraph("A note about your cat", section))
 story.append(Paragraph(
     "I have made an effort to generalize this advice so it can help more people, but this guide began with one relationship: mine and Cheeto's. What works for us may look different from what works for you and your cat. Your cat may need more time, different rewards, fewer steps in one session, or a completely different kind of adventure. That is okay. Take video when your cat displays unfamiliar behavior so others can help you on your journey. No house is built alone.",
@@ -260,14 +280,13 @@ cta_box = [
         cta_body,
     ),
 ]
-from reportlab.platypus import Table, TableStyle
 box = Table([[cta_box]], colWidths=[6.0 * inch], style=[
     ("BACKGROUND", (0, 0), (-1, -1), BARK),
     ("BOX", (0, 0), (-1, -1), 0, BARK),
     ("LEFTPADDING", (0, 0), (-1, -1), 28),
     ("RIGHTPADDING", (0, 0), (-1, -1), 28),
-    ("TOPPADDING", (0, 0), (-1, -1), 25),
-    ("BOTTOMPADDING", (0, 0), (-1, -1), 25),
+    ("TOPPADDING", (0, 0), (-1, -1), 16),
+    ("BOTTOMPADDING", (0, 0), (-1, -1), 16),
 ])
 story.append(KeepTogether(box))
 
