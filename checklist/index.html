@@ -301,6 +301,19 @@
  background:rgba(255,255,255,0.22);
  color:#fff;
  }
+ .card.store-card .store-icon{
+ background:rgba(255,255,255,0.18);
+ border:1px solid rgba(255,255,255,0.28);
+ }
+ .card.store-card .store-icon svg{
+ width:25px;
+ height:25px;
+ stroke:#fff;
+ fill:none;
+ stroke-width:1.7;
+ stroke-linecap:round;
+ stroke-linejoin:round;
+ }
  .card.store-card .btn{
  background:#fff;
  color:var(--sage-deep);
@@ -586,7 +599,13 @@
  <!-- 13: Pezzy Treats — closing CTA to Cheeto's Store -->
  <div class="card store-card">
  <div class="card-top">
- <div class="icon" style="background:rgba(255,255,255,0.25);"><svg viewBox="0 0 24 24" style="stroke:#fff;"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/></svg></div>
+ <div class="icon store-icon" aria-hidden="true">
+ <svg viewBox="0 0 24 24">
+ <path d="M15.5 7.5c-3.8 0-6.8 1.8-8.5 4.5 1.7 2.7 4.7 4.5 8.5 4.5 1.2 0 2.3-.2 3.3-.6L22 18v-4l-3.2-2 3.2-2V6l-3.2 2.1c-1-.4-2.1-.6-3.3-.6Z"/>
+ <circle cx="14.5" cy="11" r=".8"/>
+ <path d="M7 12H3M5 10l2 2-2 2"/>
+ </svg>
+ </div>
  </div>
  <span class="tag">Trail Rewards</span>
  <h3 class="cat-name">Pezzy Treats</h3>
