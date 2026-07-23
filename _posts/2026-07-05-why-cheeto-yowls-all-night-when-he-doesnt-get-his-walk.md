@@ -1,6 +1,7 @@
 ---
 title: Why Cheeto Yowls all Night When he Doesn't get his Walk
 category: Cheeto Diaries
+description: "Why does my cat yowl at night? Cheeto's story explores missed walks, enrichment needs, and what nighttime vocalizing can teach us about our cats."
 date: 2026-07-05T06:55:00.000-04:00
 image: /images/img_0893.jpg
 ---
