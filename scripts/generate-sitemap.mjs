@@ -18,6 +18,11 @@ function parseDate(markdown, filename) {
   return frontmatterDate || filename.match(/^(\d{4}-\d{2}-\d{2})/)?.[1] || ''
 }
 
+function isDraft(markdown) {
+  const frontmatter = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] || ''
+  return /^draft:\s*true\s*$/mi.test(frontmatter)
+}
+
 function escapeXml(value) {
   return value
     .replace(/&/g, '&amp;')
@@ -48,6 +53,7 @@ try {
 const postPages = await Promise.all(
   postFiles.map(async (filename) => {
     const markdown = await readFile(join(postsDirectory, filename), 'utf8')
+    if (isDraft(markdown)) return null
     return {
       path: `/trail-journal/${filename.replace(/\.md$/, '')}`,
       changefreq: 'monthly',
@@ -57,11 +63,13 @@ const postPages = await Promise.all(
   }),
 )
 
+const publishedPostPages = postPages.filter(Boolean)
+
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${[...staticPages, ...postPages].map(urlEntry).join('\n')}
+${[...staticPages, ...publishedPostPages].map(urlEntry).join('\n')}
 </urlset>
 `
 
 await writeFile(join(root, 'sitemap.xml'), sitemap, 'utf8')
-console.log(`Generated sitemap.xml with ${postPages.length} Trail Journal posts.`)
+console.log(`Generated sitemap.xml with ${publishedPostPages.length} Trail Journal posts.`)

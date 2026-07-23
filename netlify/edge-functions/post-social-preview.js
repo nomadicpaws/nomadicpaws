@@ -80,11 +80,13 @@ export default async (request, context) => {
 <meta property="og:title" content="${escapeAttr(title)}">
 <meta property="og:description" content="${escapeAttr(description)}">
 <meta property="og:image" content="${escapeAttr(image)}">
+<meta property="og:image:alt" content="${escapeAttr(post.imageAlt || post.title)}">
 <meta property="og:url" content="${escapeAttr(pageUrl)}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${escapeAttr(title)}">
 <meta name="twitter:description" content="${escapeAttr(description)}">
-<meta name="twitter:image" content="${escapeAttr(image)}">`,
+<meta name="twitter:image" content="${escapeAttr(image)}">
+<meta name="twitter:image:alt" content="${escapeAttr(post.imageAlt || post.title)}">`,
         { html: true }
       );
     }

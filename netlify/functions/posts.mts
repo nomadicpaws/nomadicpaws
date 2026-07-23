@@ -68,6 +68,8 @@ export default async () => {
         description: data.description || excerpt(body),
         date: data.date || '',
         image: data.image || data.thumbnail || '',
+        imageAlt: data.image_alt || data.title || 'Trail Journal cover image',
+        draft: data.draft === 'true',
         excerpt: excerpt(body),
         readTime: readTime(body),
         body,
@@ -75,10 +77,12 @@ export default async () => {
     }),
   )
 
-  // Newest first.
-  posts.sort((a, b) => (a.date < b.date ? 1 : -1))
+  const publishedPosts = posts.filter((post) => !post.draft)
 
-  return Response.json(posts)
+  // Newest first.
+  publishedPosts.sort((a, b) => (a.date < b.date ? 1 : -1))
+
+  return Response.json(publishedPosts)
 }
 
 export const config: Config = {
