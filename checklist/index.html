@@ -106,6 +106,39 @@
  }
  .note strong{color:var(--bark);}
 
+ .free-guide{
+ background:linear-gradient(135deg, #fff 0%, #F7F1E6 100%);
+ border:1px solid var(--sand-deep);
+ border-radius:22px;
+ padding:clamp(28px, 5vw, 48px);
+ margin:0 0 32px;
+ display:grid;
+ grid-template-columns:minmax(0, 1.15fr) minmax(280px, .85fr);
+ gap:42px;
+ align-items:center;
+ box-shadow:0 18px 42px -32px rgba(63,53,42,.45);
+ scroll-margin-top:110px;
+ }
+ .free-guide-kicker{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--terracotta-deep);font-weight:700;margin:0 0 12px;}
+ .free-guide h2{font-family:'Fraunces',serif;font-size:clamp(30px,4vw,43px);line-height:1.08;font-weight:500;margin:0 0 16px;}
+ .free-guide h2 em{color:var(--terracotta-deep);font-weight:500;}
+ .free-guide-copy{font-size:15.5px;line-height:1.7;color:var(--bark-soft);margin:0;}
+ .free-guide-points{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:20px 0 0;}
+ .free-guide-points li{background:rgba(139,154,124,.14);color:var(--sage-deep);border-radius:999px;padding:7px 11px;font-size:11.5px;font-weight:700;}
+ .guide-form{background:var(--bark);color:#fff;border-radius:16px;padding:24px;}
+ .guide-form label{display:block;font-size:12px;font-weight:700;margin:0 0 7px;}
+ .guide-form input{width:100%;border:1px solid rgba(255,255,255,.22);border-radius:10px;background:rgba(255,255,255,.1);color:#fff;font:inherit;padding:12px 13px;margin:0 0 13px;}
+ .guide-form input::placeholder{color:rgba(255,255,255,.62);}
+ .guide-form button{width:100%;border:0;border-radius:10px;background:var(--terracotta);color:#fff;font:700 14px 'DM Sans',sans-serif;padding:12px 16px;cursor:pointer;}
+ .guide-form button:hover{background:var(--terracotta-deep);}
+ .guide-form button:disabled{opacity:.68;cursor:wait;}
+ .guide-privacy,.guide-status{font-size:11.5px;line-height:1.5;color:rgba(255,255,255,.72);margin:11px 0 0;}
+ .guide-status{color:#fff;min-height:18px;}
+ .guide-download{display:none;margin-top:12px;color:#fff;font-weight:700;text-underline-offset:3px;}
+ .guide-download.is-ready{display:inline-block;}
+ .guide-honeypot{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important;}
+ @media (max-width:760px){.free-guide{grid-template-columns:1fr;gap:26px;padding:28px 22px;}}
+
  .grid{
  display:grid;
  grid-template-columns:repeat(3, 1fr);
@@ -438,7 +471,7 @@
     <ul class="nav-links">
         <li><a href="/trail-journal">Trail Journal</a></li>
         <li><a href="/cheetos-store/">Cheeto's Store</a></li>
-        <li><a href="/" class="nav-cta">Follow the Trail</a></li>
+        <li><a href="#free-training-guide" class="nav-cta">Free Training Guide</a></li>
     </ul>
 </nav>
 <div class="wrap">
@@ -449,6 +482,33 @@
  <p class="sub">The gear we actually reach for before a Catalina State Park loop — tested on one very opinionated orange tabby.</p>
  <div class="trail-line"></div>
  </header>
+
+ <section class="free-guide" id="free-training-guide" aria-labelledby="free-guide-title">
+   <div>
+     <p class="free-guide-kicker">A free place to begin</p>
+     <h2 id="free-guide-title">How to Leash Train Your Cat: <em>The Nomadic Paws Approach</em></h2>
+     <p class="free-guide-copy">You don't need to buy anything to get started. This free guide begins with relationship-building, then walks through harness practice, recall as a safety backup, backpack confidence, and your cat's first outdoor steps. Take what helps, move at your cat's pace, and come back whenever you're ready.</p>
+     <ul class="free-guide-points" aria-label="Guide topics">
+       <li>Trust first</li>
+       <li>Indoor practice</li>
+       <li>Safer first outings</li>
+     </ul>
+   </div>
+   <form class="guide-form" id="training-guide-form" action="/.netlify/functions/training-guide-signup" method="POST">
+     <label for="guide-first-name">First name <span aria-hidden="true">(optional)</span></label>
+     <input id="guide-first-name" name="firstName" type="text" autocomplete="given-name" placeholder="Your first name">
+     <label for="guide-email">Where should we send the guide?</label>
+     <input id="guide-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+     <div class="guide-honeypot" aria-hidden="true">
+       <label for="guide-company">Company</label>
+       <input id="guide-company" name="company" type="text" tabindex="-1" autocomplete="off">
+     </div>
+     <button type="submit">Send me the free guide</button>
+     <p class="guide-privacy">You'll also join the Trail Journal for thoughtful cat-adventure notes. Unsubscribe anytime.</p>
+     <p class="guide-status" id="guide-status" role="status" aria-live="polite"></p>
+     <a class="guide-download" id="guide-download" href="/downloads/how-to-leash-train-your-cat.pdf" download>Download the guide now &rarr;</a>
+   </form>
+ </section>
 
  <div class="note">
  <strong>Heads up:</strong> the buttons below are Amazon affiliate links — Nomadic Paws earns a small commission on qualifying purchases at no extra cost to you.
@@ -630,6 +690,38 @@
 
 <div id="site-footer"></div>
 <script src="/js/shared-footer.js"></script>
+<script>
+  (() => {
+    const form = document.getElementById('training-guide-form');
+    const status = document.getElementById('guide-status');
+    const download = document.getElementById('guide-download');
+    if (!form) return;
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const button = form.querySelector('button[type="submit"]');
+      button.disabled = true;
+      status.textContent = 'Preparing your guide...';
+      download.classList.remove('is-ready');
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(Object.fromEntries(new FormData(form)))
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Please try again.');
+        status.textContent = result.message || 'Your guide is ready, and a copy is on its way.';
+        download.href = result.downloadUrl || download.href;
+        download.classList.add('is-ready');
+        form.reset();
+      } catch (error) {
+        status.textContent = error.message || 'We could not send the guide just yet. Please try again.';
+      } finally {
+        button.disabled = false;
+      }
+    });
+  })();
+</script>
 <script>
   (function () {
     var nav = document.getElementById('mainNav');
