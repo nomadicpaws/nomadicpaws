@@ -5,6 +5,9 @@ backend:
 site_url: https://nomadicpaws.co
 display_url: https://nomadicpaws.co
 
+editor:
+  preview: false
+
 media_folder: images
 public_folder: /images
 

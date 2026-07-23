@@ -1,0 +1,106 @@
+:root {
+  --np-cream: #fdfaf5;
+  --np-sand: #f4eee1;
+  --np-sand-deep: #e9dfc8;
+  --np-terracotta: #c1734b;
+  --np-terracotta-deep: #a85c39;
+  --np-sage: #8b9a7c;
+  --np-sage-deep: #6f7e62;
+  --np-bark: #3f352a;
+  --np-bark-soft: #6b5d4c;
+}
+
+html,
+body,
+#nc-root {
+  background: var(--np-cream) !important;
+  color: var(--np-bark) !important;
+  font-family: "DM Sans", sans-serif !important;
+}
+
+header {
+  background: linear-gradient(110deg, var(--np-sage-deep), var(--np-sage)) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 12px rgb(63 53 42 / 16%) !important;
+}
+
+header h1,
+header h2,
+header h3,
+header a,
+header button {
+  color: #fff !important;
+}
+
+aside {
+  background: var(--np-sand) !important;
+  border-color: var(--np-sand-deep) !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--np-bark) !important;
+  font-family: "Fraunces", serif !important;
+}
+
+a {
+  color: var(--np-terracotta-deep);
+}
+
+input,
+textarea,
+select {
+  background: #fff !important;
+  border-color: var(--np-sand-deep) !important;
+  border-radius: 9px !important;
+  color: var(--np-bark) !important;
+  font-family: "DM Sans", sans-serif !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--np-terracotta) !important;
+  box-shadow: 0 0 0 3px rgb(193 115 75 / 18%) !important;
+  outline: none !important;
+}
+
+button {
+  border-radius: 999px !important;
+  font-family: "DM Sans", sans-serif !important;
+  font-weight: 700 !important;
+}
+
+button:not(:disabled):hover {
+  filter: brightness(0.96);
+}
+
+button[type="submit"],
+button[class*="Button-primary"],
+button[class*="Publish"] {
+  background: var(--np-terracotta) !important;
+  border-color: var(--np-terracotta) !important;
+  color: #fff !important;
+}
+
+[class*="ControlPane"],
+[class*="EditorControl"],
+[class*="Card"],
+[class*="Collection"] {
+  border-color: var(--np-sand-deep) !important;
+}
+
+label,
+[class*="FieldLabel"] {
+  color: var(--np-bark-soft) !important;
+  font-family: "DM Sans", sans-serif !important;
+  font-weight: 700 !important;
+}
+
+::selection {
+  background: rgb(193 115 75 / 28%);
+}
