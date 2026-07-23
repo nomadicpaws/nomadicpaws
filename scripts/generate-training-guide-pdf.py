@@ -161,6 +161,12 @@ class NumberedDocTemplate(BaseDocTemplate):
         canvas.rect(0, letter[1] - .16 * inch, letter[0], .16 * inch, fill=1, stroke=0)
         canvas.setFillColor(TERRACOTTA)
         canvas.rect(0, 0, letter[0], .13 * inch, fill=1, stroke=0)
+        canvas.setFont("NPSans", 7.5)
+        canvas.setFillColor(SOFT)
+        canvas.drawCentredString(
+            letter[0] / 2, .32 * inch,
+            "hello@nomadicpaws.co   |   nomadicpaws.co   |   @nomadicpawstv"
+        )
         canvas.restoreState()
 
     def content_page(self, canvas, doc):
@@ -172,9 +178,15 @@ class NumberedDocTemplate(BaseDocTemplate):
         canvas.setFont("NPSansBold", 7)
         canvas.setFillColor(SAGE)
         canvas.drawString(.72 * inch, letter[1] - .38 * inch, "NOMADIC PAWS  |  TRUST BEFORE TRAILS")
-        canvas.setFont("NPSans", 7)
+        canvas.setStrokeColor(LINE)
+        canvas.line(.72 * inch, .5 * inch, letter[0] - .72 * inch, .5 * inch)
+        canvas.setFont("NPSans", 7.2)
         canvas.setFillColor(SOFT)
-        canvas.drawRightString(letter[0] - .72 * inch, .34 * inch, f"{doc.page}")
+        canvas.drawCentredString(
+            letter[0] / 2, .3 * inch,
+            "hello@nomadicpaws.co   |   nomadicpaws.co   |   @nomadicpawstv"
+        )
+        canvas.drawRightString(letter[0] - .72 * inch, .3 * inch, f"{doc.page}")
         canvas.restoreState()
 
 
@@ -229,6 +241,7 @@ story.append(Paragraph(
     body,
 ))
 
+story.append(PageBreak())
 story.append(Paragraph("A note about your cat", section))
 story.append(Paragraph(
     "I have made an effort to generalize this advice so it can help more people, but this guide began with one relationship: mine and Cheeto's. What works for us may look different from what works for you and your cat. Your cat may need more time, different rewards, fewer steps in one session, or a completely different kind of adventure. That is okay. Take video when your cat displays unfamiliar behavior so others can help you on your journey. No house is built alone.",
