@@ -756,7 +756,7 @@
       responseFrame.addEventListener('load', () => {
         if (!submissionPending) return;
         submissionPending = false;
-        status.textContent = 'Your training guides are on their way! Check your inbox—and your spam or promotions folder, just in case.';
+        status.textContent = 'Your training guides are ready below. Please check your inbox and confirm your email to join the trail and receive future stories, training tips, product updates, and adventures with Cheeto. Your downloads are available now either way.';
         downloads.classList.add('is-ready');
         form.reset();
         const button = form.querySelector('button[type="submit"]');
