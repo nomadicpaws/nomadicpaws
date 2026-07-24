@@ -126,7 +126,7 @@
  }
  .note strong{color:var(--bark);}
 
- .free-guide{
+ .training-guide{
  background:linear-gradient(135deg, #fff 0%, #F7F1E6 100%);
  border:1px solid var(--sand-deep);
  border-radius:22px;
@@ -139,12 +139,12 @@
  box-shadow:0 18px 42px -32px rgba(63,53,42,.45);
  scroll-margin-top:110px;
  }
- .free-guide-kicker{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--terracotta-deep);font-weight:700;margin:0 0 12px;}
- .free-guide h2{font-family:'Fraunces',serif;font-size:clamp(30px,4vw,43px);line-height:1.08;font-weight:500;margin:0 0 16px;}
- .free-guide h2 em{color:var(--terracotta-deep);font-weight:500;}
- .free-guide-copy{font-size:15.5px;line-height:1.7;color:var(--bark-soft);margin:0;}
- .free-guide-points{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:20px 0 0;}
- .free-guide-points li{background:rgba(139,154,124,.14);color:var(--sage-deep);border-radius:999px;padding:7px 11px;font-size:11.5px;font-weight:700;}
+ .training-guide-kicker{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--terracotta-deep);font-weight:700;margin:0 0 12px;}
+ .training-guide h2{font-family:'Fraunces',serif;font-size:clamp(30px,4vw,43px);line-height:1.08;font-weight:500;margin:0 0 16px;}
+ .training-guide h2 em{color:var(--terracotta-deep);font-weight:500;}
+ .training-guide-copy{font-size:15.5px;line-height:1.7;color:var(--bark-soft);margin:0;}
+ .training-guide-points{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:20px 0 0;}
+ .training-guide-points li{background:rgba(139,154,124,.14);color:var(--sage-deep);border-radius:999px;padding:7px 11px;font-size:11.5px;font-weight:700;}
  .guide-form{background:var(--bark);color:#fff;border-radius:16px;padding:24px;}
  .guide-form label{display:block;font-size:12px;font-weight:700;margin:0 0 7px;}
  .guide-form input{width:100%;border:1px solid rgba(255,255,255,.22);border-radius:10px;background:rgba(255,255,255,.1);color:#fff;font:inherit;padding:12px 13px;margin:0 0 13px;}
@@ -158,7 +158,7 @@
  .guide-downloads.is-ready{display:flex;}
  .guide-download{color:#fff;font-weight:700;text-underline-offset:3px;}
  .guide-honeypot{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important;}
- @media (max-width:760px){.free-guide{grid-template-columns:1fr;gap:26px;padding:28px 22px;}}
+ @media (max-width:760px){.training-guide{grid-template-columns:1fr;gap:26px;padding:28px 22px;}}
 
  .grid{
  display:grid;
@@ -492,6 +492,7 @@
     <ul class="nav-links">
         <li><a href="/trail-journal">Trail Journal</a></li>
         <li><a href="/cheetos-store/">Cheeto's Store</a></li>
+        <li><a href="/" class="nav-cta">Follow the Trail</a></li>
     </ul>
 </nav>
 <div class="wrap">
@@ -502,7 +503,7 @@
  <p class="sub">If you've ever wondered whether your cat could enjoy a harness, a trail, or even a backpack ride, you're in the right place.</p>
  <p class="sub">Trail walks were only where we started. Cheeto and I are training for car rides, camping, travel, and even the move to our next home—and we'll be sharing what we learn as we go. This is where we keep it honest: what worked for us, what we would do differently, and what we would choose again.</p>
  <p class="sub">Below you'll find the gear Cheeto genuinely uses, the products we recommend, and the brands we trust. You don't need everything on this page to begin. Start wherever you and your cat feel comfortable, and come back whenever you're ready.</p>
- <a class="header-guide-link" href="#free-training-guide">Free Training Guides ↓</a>
+ <a class="header-guide-link" href="#training-guides">Get Your Training Guides ↓</a>
  <div class="trail-line"></div>
  </header>
 
@@ -681,21 +682,21 @@
 
  </div>
 
- <section class="free-guide" id="free-training-guide" aria-labelledby="free-guide-title">
+ <section class="training-guide" id="training-guides" aria-labelledby="training-guide-title">
    <div>
-     <p class="free-guide-kicker">A relationship-first place to begin</p>
-     <h2 id="free-guide-title">Ready to Begin <em>Your Own Adventure?</em></h2>
-     <p class="free-guide-copy">You don't need a cart full of equipment to start building confidence with your cat. The relationship comes first—and Cheeto and I created two training guides to help you begin there.</p>
-     <p class="free-guide-copy" style="margin-top:12px;">Join the Pack and we'll send both guides directly to your inbox. You'll also receive occasional stories, training discoveries, product news, and honest lessons from the adventures ahead.</p>
-     <ul class="free-guide-points" aria-label="Guide topics">
+     <p class="training-guide-kicker">A relationship-first place to begin</p>
+     <h2 id="training-guide-title">Ready to Begin <em>Your Own Adventure?</em></h2>
+     <p class="training-guide-copy">You don't need a cart full of equipment to start building confidence with your cat. The relationship comes first—and Cheeto and I created two training guides to help you begin there.</p>
+     <p class="training-guide-copy" style="margin-top:12px;">Join the Pack and we'll send both guides directly to your inbox. You'll also receive occasional stories, training discoveries, product news, and honest lessons from the adventures ahead.</p>
+     <ul class="training-guide-points" aria-label="Guide topics">
        <li>Trust first</li>
        <li>Indoor practice</li>
        <li>Safer first outings</li>
      </ul>
    </div>
    <form class="guide-form" id="training-guide-form" action="/.netlify/functions/training-guide-signup" method="POST">
-     <label for="guide-first-name">First name <span aria-hidden="true">(optional)</span></label>
-     <input id="guide-first-name" name="firstName" type="text" autocomplete="given-name" placeholder="Your first name">
+     <label for="guide-first-name">First name</label>
+     <input id="guide-first-name" name="firstName" type="text" autocomplete="given-name" maxlength="80" placeholder="Your first name" required>
      <label for="guide-email">Where should we send the guides?</label>
      <input id="guide-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
      <div class="guide-honeypot" aria-hidden="true">

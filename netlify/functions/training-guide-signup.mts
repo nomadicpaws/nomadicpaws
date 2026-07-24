@@ -32,6 +32,9 @@ export const handler: Handler = async (event) => {
     const honeypot = String(body.company || "").trim();
 
     if (honeypot) return json(200, {message: "Your guides are ready.", ...DOWNLOADS});
+    if (!firstName) {
+      return json(400, {error: "Please enter your first name."});
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return json(400, {error: "Please enter a valid email address."});
     }
@@ -61,13 +64,15 @@ export const handler: Handler = async (event) => {
       return json(502, {error: "We could not send the guide just yet. Please try again."});
     }
 
-    const contactInfo: Record<string, string> = {"Contact Email": email};
-    if (firstName) contactInfo["First Name"] = firstName;
+    const contactInfo: Record<string, string> = {
+      "Contact Email": email,
+      "First Name": firstName,
+    };
     const subscribeParams = new URLSearchParams({
       resfmt: "JSON",
       listkey: ZOHO_CAMPAIGNS_LIST_KEY,
       contactinfo: JSON.stringify(contactInfo),
-      source: "Nomadic Paws free training guide",
+      source: "Nomadic Paws training guides",
     });
     if (process.env.ZOHO_CAMPAIGNS_TOPIC_ID) {
       subscribeParams.set("topic_id", process.env.ZOHO_CAMPAIGNS_TOPIC_ID);
