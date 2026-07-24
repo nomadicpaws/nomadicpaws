@@ -756,7 +756,7 @@
       responseFrame.addEventListener('load', () => {
         if (!submissionPending) return;
         submissionPending = false;
-        status.textContent = 'Your training guides are ready below. Please check your inbox and confirm your email to join the trail and receive future stories, training tips, product updates, and adventures with Cheeto. Your downloads are available now either way.';
+        status.textContent = 'Your training guides are ready below. Please check your inbox and confirm your email to join the trail—you’ll receive future stories, training tips, peeks at our designs, and a look at what’s in store for Nomadic Paws. Your downloads are available now either way.';
         downloads.classList.add('is-ready');
         form.reset();
         const button = form.querySelector('button[type="submit"]');
