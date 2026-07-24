@@ -694,11 +694,11 @@
        <li>Safer first outings</li>
      </ul>
    </div>
-   <form class="guide-form" id="training-guide-form" action="/.netlify/functions/training-guide-signup" method="POST">
+   <form class="guide-form" id="training-guide-form" action="https://zgnp-zngp.maillist-manage.com/weboptin.zc" method="POST" target="_zcSignup">
      <label for="guide-first-name">First name</label>
-     <input id="guide-first-name" name="firstName" type="text" autocomplete="given-name" maxlength="80" placeholder="Your first name" required>
+     <input id="guide-first-name" name="FIRSTNAME" type="text" autocomplete="given-name" maxlength="80" placeholder="Your first name" required>
      <label for="guide-email">Where should we send the guides?</label>
-     <input id="guide-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+     <input id="guide-email" name="CONTACT_EMAIL" type="email" autocomplete="email" placeholder="you@example.com" required>
      <div class="guide-honeypot" aria-hidden="true">
        <label for="guide-company">Company</label>
        <input id="guide-company" name="company" type="text" tabindex="-1" autocomplete="off">
@@ -710,7 +710,20 @@
        <a class="guide-download" id="complete-guide-download" href="/downloads/nomadic-paws-complete-leash-training-guide.pdf" download>Download the complete guide &rarr;</a>
        <a class="guide-download" id="quick-start-download" href="/downloads/nomadic-paws-leash-training-quick-start.pdf" download>Download the quick-start guide &rarr;</a>
      </div>
+     <input type="hidden" name="submitType" value="optinCustomView">
+     <input type="hidden" name="formType" value="QuickForm">
+     <input type="hidden" name="zx" value="137579d3f">
+     <input type="hidden" name="zcvers" value="3.0">
+     <input type="hidden" name="oldListIds" value="">
+     <input type="hidden" name="mode" value="OptinCreateView">
+     <input type="hidden" name="zcld" value="11751fe88eb261ea9">
+     <input type="hidden" name="zctd" value="11751fe88eb25ff71">
+     <input type="hidden" name="zc_trackCode" value="ZCFORMVIEW">
+     <input type="hidden" name="zc_formIx" value="3z5de3dfb838e1d12d60f81b76a3cffa792806568a87ceb7bab71a34d425a148a9">
+     <input type="hidden" name="scriptless" value="yes">
+     <input type="hidden" name="zc_spmSubmit" value="ZCSPMSUBMIT">
    </form>
+   <iframe id="_zcSignup" name="_zcSignup" title="Training guide signup response" hidden></iframe>
  </section>
 
 </div>
@@ -722,34 +735,34 @@
     const form = document.getElementById('training-guide-form');
     const status = document.getElementById('guide-status');
     const downloads = document.getElementById('guide-downloads');
-    const completeGuide = document.getElementById('complete-guide-download');
-    const quickStart = document.getElementById('quick-start-download');
+    const responseFrame = document.getElementById('_zcSignup');
+    let submissionPending = false;
     if (!form) return;
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
+    form.addEventListener('submit', (event) => {
+      const honeypot = form.querySelector('input[name="company"]');
+      if (honeypot && honeypot.value) {
+        event.preventDefault();
+        return;
+      }
+      const spamCheck = form.querySelector('input[name="zc_spmSubmit"]');
+      if (spamCheck) spamCheck.remove();
       const button = form.querySelector('button[type="submit"]');
       button.disabled = true;
-      status.textContent = 'Preparing your guide...';
+      status.textContent = 'Sending your training guides...';
       downloads.classList.remove('is-ready');
-      try {
-        const response = await fetch(form.action, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(Object.fromEntries(new FormData(form)))
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Please try again.');
-        status.textContent = result.message || 'Your guide is ready, and a copy is on its way.';
-        completeGuide.href = result.completeGuideUrl || completeGuide.href;
-        quickStart.href = result.quickStartUrl || quickStart.href;
+      submissionPending = true;
+    });
+    if (responseFrame) {
+      responseFrame.addEventListener('load', () => {
+        if (!submissionPending) return;
+        submissionPending = false;
+        status.textContent = 'Your training guides are on their way! Check your inbox—and your spam or promotions folder, just in case.';
         downloads.classList.add('is-ready');
         form.reset();
-      } catch (error) {
-        status.textContent = error.message || 'We could not send the guide just yet. Please try again.';
-      } finally {
-        button.disabled = false;
-      }
-    });
+        const button = form.querySelector('button[type="submit"]');
+        if (button) button.disabled = false;
+      });
+    }
   })();
 </script>
 <script>
