@@ -25,7 +25,7 @@ It wasn’t how far we had gone that hit me first. The wash had ended. And there
 
 I started making the way back, and I’m not sure when Cheeto realized that we were retracing our steps. At first, I had chalked it up to that he was just tired but given that I explored with him so often, a part of me knew that he wasn’t quite finished yet and his protest was to lay down and wait till we started going the direction he wanted to go. I could feel the heat starting to build on my skin, that particular rising sun feeling that tells you the clock just started for real.  We stopped for a water break, sat in the shade for a bit, and I watched him closely, because I already knew — the second he got back up, it wasn't going to be toward home.
 
-He hopped out to try one more path. Not our path home, of course. I realized that for him, the adventure wasn’t over yet and I had to make the decision. The desert sun stops for no one. He didn’t know that but I very well did, so I scooped him up — into the backpack he went, with his entrance unzipped so he could still take in the views while I made the walk through the wash again, but this time in the direction of home.
+He hopped up to try one more path. Not our path home, of course. I realized that for him, the adventure wasn’t over yet and I had to make the decision. The desert sun stops for no one. He didn’t know that but I very well did, so I scooped him up — into the backpack he went, with his entrance unzipped so he could still take in the views while I made the walk through the wash again, but this time in the direction of home.
 
 ## What the backpack is really for
 
