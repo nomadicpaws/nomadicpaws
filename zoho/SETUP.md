@@ -6,14 +6,16 @@ The website code is ready. Complete these account-level steps once so the form c
 
 1. Create a mailing list named `Free Cat Training Guides`.
 2. Copy its **List Key**.
-3. Under **Automation**, create a **Workflow** triggered when a contact joins that list.
-4. Add a **Send Email** action with no delay.
-5. Use the subject `Your free cat leash-training guide is ready`.
-6. Import or recreate the design in `zoho/training-guide-delivery.html`.
-7. Confirm the download button points to:
+3. In **Settings > Manage Opt-in**, enable **Double Opt-in** and customize the confirmation email. Keep this email focused on the confirmation button; do not include the guide links in it.
+4. Confirm the mailing list has a signup form enabled. Contacts submitted through the subscribe API remain pending and receive the confirmation email; Zoho adds them to the list only after they confirm.
+5. Under **Automation**, create a **Workflow** triggered when a confirmed contact joins that list.
+6. Add a **Send Email** action with no delay.
+7. Use the subject `Your free cat leash-training guide is ready`.
+8. Import or recreate the design in `zoho/training-guide-delivery.html`.
+9. Confirm the download buttons point to:
    - Complete guide: `https://nomadicpaws.co/downloads/nomadic-paws-complete-leash-training-guide.pdf`
    - Quick-start guide: `https://nomadicpaws.co/downloads/nomadic-paws-leash-training-quick-start.pdf`
-8. Activate the workflow.
+10. Activate the workflow.
 
 Zoho is retiring the older Autoresponder feature for new users, so use a Workflow when it is available.
 
@@ -49,10 +51,12 @@ Trigger a fresh Netlify deploy after saving the values.
 
 1. Open the live checklist page in a private browser window.
 2. Submit an email address you can check.
-3. Confirm the page immediately reveals the PDF download link.
-4. Confirm the contact appears in the Zoho list.
-5. Confirm the workflow email arrives and its download button works.
-6. Test the unsubscribe link Zoho adds to the sent email.
+3. Confirm the page tells the visitor to check their inbox, without revealing either PDF link.
+4. Confirm Zoho sends the subscription confirmation email.
+5. Before clicking confirm, verify the guide-delivery workflow has not sent the guides.
+6. Click the confirmation link and confirm the contact then appears as subscribed in the Zoho list.
+7. Confirm the workflow email arrives after confirmation and both download buttons work.
+8. Test the unsubscribe link Zoho adds to the sent email.
 
 ## Official references
 
