@@ -308,6 +308,7 @@
     padding: 0.6rem 1rem; font-size: 0.95rem; cursor: pointer;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
+  .np-cart-icon { font-size: 1.05rem; line-height: 1; }
   .snipcart-items-count { font-weight: 700; }
   @media (max-width: 768px) {
     .np-cart-button {
@@ -395,6 +396,41 @@
     };
 
     (()=>{var c,d;(d=(c=window.SnipcartSettings).version)!=null||(c.version="3.0");var s,S;(S=(s=window.SnipcartSettings).timeoutDuration)!=null||(s.timeoutDuration=2750);var l,p;(p=(l=window.SnipcartSettings).domain)!=null||(l.domain="cdn.snipcart.com");var w,u;(u=(w=window.SnipcartSettings).protocol)!=null||(w.protocol="https");var f=window.SnipcartSettings.version.includes("v3.0.0-ci")||window.SnipcartSettings.version!="3.0"&&window.SnipcartSettings.version.localeCompare("3.4.0",void 0,{numeric:!0,sensitivity:"base"})===-1,m=["focus","mouseover","touchmove","scroll","keydown"];window.LoadSnipcart=o;document.readyState==="loading"?document.addEventListener("DOMContentLoaded",r):r();function r(){window.SnipcartSettings.loadStrategy?window.SnipcartSettings.loadStrategy==="on-user-interaction"&&(m.forEach(t=>document.addEventListener(t,o)),setTimeout(o,window.SnipcartSettings.timeoutDuration)):o()}var a=!1;function o(){if(a)return;a=!0;let t=document.getElementsByTagName("head")[0],e=document.querySelector("#snipcart"),i=document.querySelector(`src[src^="${window.SnipcartSettings.protocol}://${window.SnipcartSettings.domain}"][src$="snipcart.js"]`),n=document.querySelector(`link[href^="${window.SnipcartSettings.protocol}://${window.SnipcartSettings.domain}"][href$="snipcart.css"]`);e||(e=document.createElement("div"),e.id="snipcart",e.setAttribute("hidden","true"),document.body.appendChild(e)),v(e),i||(i=document.createElement("script"),i.src=`${window.SnipcartSettings.protocol}://${window.SnipcartSettings.domain}/themes/v${window.SnipcartSettings.version}/default/snipcart.js`,i.async=!0,t.appendChild(i)),n||(n=document.createElement("link"),n.rel="stylesheet",n.type="text/css",n.href=`${window.SnipcartSettings.protocol}://${window.SnipcartSettings.domain}/themes/v${window.SnipcartSettings.version}/default/snipcart.css`,t.prepend(n)),m.forEach(g=>document.removeEventListener(g,o))}function v(t){!f||(t.dataset.apiKey=window.SnipcartSettings.publicApiKey,window.SnipcartSettings.addProductBehavior&&(t.dataset.configAddProductBehavior=window.SnipcartSettings.addProductBehavior),window.SnipcartSettings.modalStyle&&(t.dataset.configModalStyle=window.SnipcartSettings.modalStyle),window.SnipcartSettings.currency&&(t.dataset.currency=window.SnipcartSettings.currency),window.SnipcartSettings.templatesUrl&&(t.dataset.templatesUrl=window.SnipcartSettings.templatesUrl))}})();
+
+    document.addEventListener('snipcart.ready', function () {
+      Snipcart.api.session.setLanguage('en', {
+        actions: {
+          continue_shopping: 'Continue Exploring'
+        },
+        header: {
+          title_cart_summary: 'Your Pack'
+        },
+        cart: {
+          loading: "We're getting your pack ready...",
+          empty: 'Your pack is empty.'
+        }
+      });
+
+      const snipcartRoot = document.getElementById('snipcart');
+      if (!snipcartRoot) return;
+
+      const updatePackLanguage = () => {
+        const walker = document.createTreeWalker(snipcartRoot, NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())) {
+          if (node.nodeValue && /^Cart updated\.?$/.test(node.nodeValue.trim())) {
+            node.nodeValue = node.nodeValue.replace(/Cart updated\.?/, 'Pack updated');
+          }
+        }
+      };
+
+      updatePackLanguage();
+      new MutationObserver(updatePackLanguage).observe(snipcartRoot, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+    });
   </script>
 
 <nav class="np-site-nav" aria-label="Main navigation">
@@ -407,9 +443,10 @@
 </nav>
 <div class="np-shop-page">
 
-  <!-- Simple cart icon, fixed top-right. Snipcart auto-wires any element with class="snipcart-checkout" -->
-  <button class="snipcart-checkout np-cart-button" aria-label="View cart">
-    🛒 <span class="snipcart-items-count"></span>
+  <!-- Fixed pack button. Snipcart auto-wires any element with class="snipcart-checkout". -->
+  <button class="snipcart-checkout np-cart-button" aria-label="View your pack">
+    <span class="np-cart-icon" aria-hidden="true">🎒</span>
+    <span class="snipcart-items-count"></span>
   </button>
 
   <header class="np-store-hero">
@@ -449,7 +486,7 @@
             data-item-name="Nomadic Paws Trail Pack (3-Flavor Bundle)"
             data-item-description="One bag each of Lionfish Sticks, Nilgai Antelope Heart, and Silver Carp Chips"
             data-item-image="/images/products/pezzy-trail-pack-bundle.jpg"
-          >Add bundle to cart</button>
+          >Add to pack</button>
         </div>
       </div>
     </div>
@@ -474,7 +511,7 @@
               data-item-description="Single ingredient dog & cat treats, 100% wild-caught invasive lionfish"
               data-item-image="/images/products/pezzy-lionfish-sticks.jpg"
               data-item-max-quantity="11"
-            >Add to cart</button>
+            >Add to pack</button>
           </div>
           <p class="np-treat-qty">11 left</p>
         </div>
@@ -497,7 +534,7 @@
               data-item-description="Single ingredient jerky, wild-caught invasive nilgai antelope"
               data-item-image="/images/products/pezzy-nilgai-heart.jpg"
               data-item-max-quantity="12"
-            >Add to cart</button>
+            >Add to pack</button>
           </div>
           <p class="np-treat-qty">12 left</p>
         </div>
@@ -520,7 +557,7 @@
               data-item-description="Single ingredient dog & cat treats, wild-caught invasive silver carp"
               data-item-image="/images/products/pezzy-silver-carp-chips.jpg"
               data-item-max-quantity="29"
-            >Add to cart</button>
+            >Add to pack</button>
           </div>
         </div>
       </div>
