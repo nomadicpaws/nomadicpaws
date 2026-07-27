@@ -163,7 +163,7 @@
  .grid{
  display:grid;
  grid-template-columns:repeat(3, 1fr);
- grid-auto-rows:1fr;
+ align-items:start;
  gap:22px;
  }
  @media (max-width:860px){ .grid{grid-template-columns:repeat(2, 1fr);} }
@@ -210,7 +210,6 @@
  line-height:1.55;
  color:var(--bark-soft);
  margin:0;
- flex-grow:1;
  }
  .checklist-card .icon-slot{
  width:44px;
@@ -321,8 +320,7 @@
  font-size:13.5px;
  line-height:1.55;
  color:var(--bark-soft);
- margin:0 0 20px;
- flex-grow:1;
+ margin:0;
  }
  .tag{
  display:inline-block;
@@ -352,6 +350,7 @@
  padding:11px 16px;
  border-radius:10px;
  transition:background .15s ease;
+ margin-top:18px;
  }
  .btn:hover{background:var(--terracotta-deep);}
  .btn svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:2.2;}
@@ -385,6 +384,30 @@
  }
  .card.store-card .btn:hover{background:var(--sand);}
  .card.store-card .btn svg{stroke:var(--sage-deep);}
+
+ /* Unresolved image placeholders collapse until a real source URL is added. */
+ .media:has(.product-photo[src^="PASTE-"]){display:none;}
+ .card-summary{font-size:13.5px;line-height:1.55;color:var(--bark-soft);margin:0;}
+ .card-details{border-top:1px solid var(--sand-deep);margin-top:18px;padding-top:4px;}
+ .card-details summary{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ min-height:44px;color:var(--terracotta-deep);font-size:13px;font-weight:700;
+ cursor:pointer;list-style:none;border-radius:8px;
+ }
+ .card-details summary::-webkit-details-marker{display:none;}
+ .card-details summary::after{
+ content:'\25BE';font-size:15px;line-height:1;transition:transform .18s ease;
+ }
+ .card-details[open] summary::after{transform:rotate(180deg);}
+ .card-details summary:focus-visible{
+ outline:3px solid rgba(193,115,75,.35);outline-offset:3px;
+ }
+ .card-details .detail-copy{
+ font-size:13.5px;line-height:1.6;color:var(--bark-soft);margin:2px 0 10px;
+ }
+ .store-card .card-summary,.store-card .card-details .detail-copy{color:#fff;}
+ .store-card .card-details{border-top-color:rgba(255,255,255,.3);}
+ .store-card .card-details summary{color:#fff;}
 </style>
 </head>
 <body>
@@ -523,11 +546,15 @@
  </div>
  <span class="tag">Essential</span>
  <h3 class="cat-name">BuddyArmor Cat Harness &amp; Leash Set</h3>
- <p class="cat-desc">What should you look for in a cat harness for outdoor walks? BuddyArmor grew from its designer's experience of a pet going missing, and it's one of the brands I trust because the gear feels genuinely designed with cats in mind. This adjustable Y-shaped harness distributes leash pressure away from the neck and pairs with a lightweight leash. Cheeto wears the olive-green set, and I still check the fit before every outing.</p>
+ <p class="card-summary">A cat-designed Y-shaped harness and lightweight leash set that keeps pressure away from the neck.</p>
  <a class="btn" href="https://amzn.to/4vIIPER" target="_blank" rel="noopener sponsored">
  Shop on Amazon
  <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
  </a>
+ <details class="card-details">
+ <summary>Why we chose it</summary>
+ <p class="detail-copy">What should you look for in a cat harness for outdoor walks? BuddyArmor grew from its designer's experience of a pet going missing, and it's one of the brands I trust because the gear feels genuinely designed with cats in mind. This adjustable Y-shaped harness distributes leash pressure away from the neck and pairs with a lightweight leash. Cheeto wears the olive-green set, and I still check the fit before every outing.</p>
+ </details>
  </div>
 
  <!-- 3: Trail Collar — now with media slot -->
@@ -540,11 +567,15 @@
  </div>
  <span class="tag">Peace of Mind</span>
  <h3 class="cat-name">BuddyArmor Safety Collar for Cats</h3>
- <p class="cat-desc">What makes a good safety collar for an adventure cat? BuddyArmor designed this lightweight, adjustable collar for cats, with comfort and anti-loss accessories in mind. Cheeto wears it in olive green with his matching harness set. Tracking accessories are sold separately, and the Apple AirTag is linked below.</p>
+ <p class="card-summary">A lightweight, adjustable cat collar that pairs with Cheeto's harness and optional tracking accessories.</p>
  <a class="btn" href="https://amzn.to/4hnsTEx" target="_blank" rel="noopener sponsored">
  Shop on Amazon
  <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
  </a>
+ <details class="card-details">
+ <summary>Why we chose it</summary>
+ <p class="detail-copy">What makes a good safety collar for an adventure cat? BuddyArmor designed this lightweight, adjustable collar for cats, with comfort and anti-loss accessories in mind. Cheeto wears it in olive green with his matching harness set. Tracking accessories are sold separately, and the Apple AirTag is linked below.</p>
+ </details>
  </div>
 
  <!-- Apple AirTag — purchased separately for the BuddyArmor collar -->
@@ -554,11 +585,15 @@
  </div>
  <span class="tag">Sold Separately</span>
  <h3 class="cat-name">Apple AirTag for the BuddyArmor Cat Collar</h3>
- <p class="cat-desc">Can an AirTag help locate a cat? When it is nearby and connected to a compatible iPhone, Find Nearby can help pinpoint it. Farther away, its map location updates when another Apple device detects it through the Find My network, so it is not continuous GPS tracking. The AirTag is an additional purchase for the BuddyArmor collar above—an extra layer of peace of mind, not a replacement for a microchip, identification, or a secure harness and leash.</p>
+ <p class="card-summary">An optional extra layer of location awareness for the BuddyArmor collar—not a replacement for proper identification.</p>
  <a class="btn" href="https://amzn.to/4fPHAz6" target="_blank" rel="noopener sponsored">
  Shop on Amazon
  <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
  </a>
+ <details class="card-details">
+ <summary>Why we chose it</summary>
+ <p class="detail-copy">Can an AirTag help locate a cat? When it is nearby and connected to a compatible iPhone, Find Nearby can help pinpoint it. Farther away, its map location updates when another Apple device detects it through the Find My network, so it is not continuous GPS tracking. The AirTag is an additional purchase for the BuddyArmor collar above—an extra layer of peace of mind, not a replacement for a microchip, identification, or a secure harness and leash.</p>
+ </details>
  </div>
 
  <!-- Apollo Walker Backpack Carrier — VIDEO -->
@@ -571,11 +606,15 @@
  </div>
  <span class="tag">Essential</span>
  <h3 class="cat-name">Apollo Walker Cat Backpack Carrier</h3>
- <p class="cat-desc">What makes a good backpack carrier for an adventure cat? For Cheeto, this is his den away from home—if I leave it open, he climbs inside and meows at me for a walk. It opens multiple ways, has plenty of airflow, and the window placement lets him see out while sitting or lying down. The large pockets have practically turned it into my trail purse, but things can fall out when I squat, so I never keep anything breakable in them. There may be better carriers, but this is the one we use.</p>
+ <p class="card-summary">The backpack that carries Cheeto on every hike and offers the best balance of comfort, ventilation, and space we found.</p>
  <a class="btn" href="https://amzn.to/4yaPoCz" target="_blank" rel="noopener sponsored">
  Shop on Amazon
  <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
  </a>
+ <details class="card-details">
+ <summary>Why we chose it</summary>
+ <p class="detail-copy">What makes a good backpack carrier for an adventure cat? For Cheeto, this is his den away from home—if I leave it open, he climbs inside and meows at me for a walk. It opens multiple ways, has plenty of airflow, and the window placement lets him see out while sitting or lying down. The large pockets have practically turned it into my trail purse, but things can fall out when I squat, so I never keep anything breakable in them. There may be better carriers, but this is the one we use.</p>
+ </details>
  </div>
 
  <!-- Water Bottle + Bowl -->
@@ -583,7 +622,11 @@
  <div class="icon-slot">💧</div>
  <p class="category">Hydration</p>
  <h3>Collapsible Water Bowl for Cats</h3>
- <p>How do you give a cat water while hiking? A lightweight collapsible bowl clips to your pack and gives your cat an easy place to drink without taking up much room. Carry water separately, and look for a bowl that's sturdy when open, simple to clean, and appropriately sized for your cat.</p>
+ <p class="card-summary">Any sturdy, easy-to-clean option works—choose one that fits your pack and your budget.</p>
+ <details class="card-details">
+ <summary>Why we chose it</summary>
+ <p class="detail-copy">How do you give a cat water while hiking? A lightweight collapsible bowl clips to your pack and gives your cat an easy place to drink without taking up much room. Carry water separately, and look for a bowl that's sturdy when open, simple to clean, and appropriately sized for your cat.</p>
+ </details>
  </div>
 
  <!-- Pet Wipes -->
@@ -591,7 +634,11 @@
  <div class="icon-slot">🧼</div>
  <p class="category">Paw Care</p>
  <h3>Cat-Safe Paw &amp; Coat Wipes</h3>
- <p>What wipes are safe to use on a cat's paws and coat? For ordinary trail dust or mud, a damp cloth may be all you need. If you prefer wipes, choose a grooming product labeled for cats and follow its directions—never use household disinfecting wipes. The cat friendly wipes can be handy for a quick cleanup after a dusty trail loop.</p>
+ <p class="card-summary">A cat-safe option for quick cleanup after dusty or muddy trail walks.</p>
+ <details class="card-details">
+ <summary>Why we chose it</summary>
+ <p class="detail-copy">What wipes are safe to use on a cat's paws and coat? For ordinary trail dust or mud, a damp cloth may be all you need. If you prefer wipes, choose a grooming product labeled for cats and follow its directions—never use household disinfecting wipes. The cat friendly wipes can be handy for a quick cleanup after a dusty trail loop.</p>
+ </details>
  </div>
 
  <!-- Slicker Brush -->
@@ -599,7 +646,11 @@
  <div class="icon-slot">🪮</div>
  <p class="category">Grooming</p>
  <h3>Self-Cleaning Cat Slicker Brush</h3>
- <p>Is a self-cleaning slicker brush worth it for cats? The release button makes cleanup much easier by pushing collected fur off the pins, so you don't have to pull it out by hand—especially convenient when loose fur bothers your allergies. Look for sturdy pins, a comfortable grip, and a release button that holds up to regular use.</p>
+ <p class="card-summary">A practical brush style that makes regular grooming and fur cleanup easier.</p>
+ <details class="card-details">
+ <summary>Why we chose it</summary>
+ <p class="detail-copy">Is a self-cleaning slicker brush worth it for cats? The release button makes cleanup much easier by pushing collected fur off the pins, so you don't have to pull it out by hand—especially convenient when loose fur bothers your allergies. Look for sturdy pins, a comfortable grip, and a release button that holds up to regular use.</p>
+ </details>
  </div>
 
  <!-- 7: EasyGroomer Deshedding Brush — VIDEO -->
@@ -612,11 +663,15 @@
  </div>
  <span class="tag">Grooming</span>
  <h3 class="cat-name">EasyGroomer Trail Cleanup &amp; Deshedding Brush</h3>
- <p class="cat-desc">How do you remove burrs, stickers, and goat heads from a cat's coat after a walk? The EasyGroomer lifts trail debris and loose fur without letting everything get buried in a traditional brush, and it's also a useful deshedding tool for longer-haired cats. Our post-walk routine is simple: praise, dust Cheeto off, check his coat and paws, then clean the brush. If something is embedded or irritating the skin, don't tug at it.</p>
+ <p class="card-summary">A simple deshedding brush that lifts loose fur and trail debris without burying it in traditional brush pins.</p>
           <a class="btn" href="https://www.amazon.com/dp/B01F04HJWC?tag=nomadicpaws-20" target="_blank" rel="noopener sponsored">
  Shop on Amazon
  <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
  </a>
+ <details class="card-details">
+ <summary>Why we chose it</summary>
+ <p class="detail-copy">How do you remove burrs, stickers, and goat heads from a cat's coat after a walk? The EasyGroomer lifts trail debris and loose fur without letting everything get buried in a traditional brush, and it's also a useful deshedding tool for longer-haired cats. Our post-walk routine is simple: praise, dust Cheeto off, check his coat and paws, then clean the brush. If something is embedded or irritating the skin, don't tug at it.</p>
+ </details>
  </div>
 
  <!-- Churu Treats -->
@@ -624,7 +679,11 @@
  <div class="icon-slot">🍯</div>
  <p class="category">Trail Rewards</p>
  <h3>High-Value Lickable Cat Treats</h3>
- <p>Are lickable treats good for training cats? They're especially useful when you need your cat to stay focused for a little longer, such as during harness practice, and they make a great reward after a walk, bath, or other big experience. Cheeto goes so wild for them that I use calmer treats for most precise training—choose a reward your cat loves without becoming too distracted to learn.</p>
+ <p class="card-summary">A high-value reward for harness practice, post-walk praise, and other big experiences.</p>
+ <details class="card-details">
+ <summary>Why we chose it</summary>
+ <p class="detail-copy">Are lickable treats good for training cats? They're especially useful when you need your cat to stay focused for a little longer, such as during harness practice, and they make a great reward after a walk, bath, or other big experience. Cheeto goes so wild for them that I use calmer treats for most precise training—choose a reward your cat loves without becoming too distracted to learn.</p>
+ </details>
  </div>
 
  <!-- 10: Tiki Cat Born Carnivore — VIDEO -->
@@ -637,11 +696,15 @@
  </div>
  <span class="tag">Nutrition</span>
  <h3 class="cat-name">Tiki Cat Born Carnivore Dry Cat Food</h3>
- <p class="cat-desc">What should you look for in a high-protein dry cat food? Ingredients are what sold me on Tiki Cat Born Carnivore—it's one of the most carnivore-focused foods I've found, surprisingly affordable for an ingredient-driven formula, and I appreciate how actively the brand engages with its community. The small kibble pieces also work as calm training rewards when you're building trust with a food-motivated cat. Cheeto runs to his bowl when the automatic feeder goes off and loves it enough that he didn't even skip a meal after his neuter. Check the label for a complete-and-balanced formula suited to your cat's life stage.</p>
+ <p class="card-summary">A carnivore-focused dry food whose small kibble also works well for calm, precise training rewards.</p>
  <a class="btn" href="https://amzn.to/4aJXckS" target="_blank" rel="noopener sponsored">
  Shop on Amazon
  <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
  </a>
+ <details class="card-details">
+ <summary>Why we chose it</summary>
+ <p class="detail-copy">What should you look for in a high-protein dry cat food? Ingredients are what sold me on Tiki Cat Born Carnivore—it's one of the most carnivore-focused foods I've found, surprisingly affordable for an ingredient-driven formula, and I appreciate how actively the brand engages with its community. The small kibble pieces also work as calm training rewards when you're building trust with a food-motivated cat. Cheeto runs to his bowl when the automatic feeder goes off and loves it enough that he didn't even skip a meal after his neuter. Check the label for a complete-and-balanced formula suited to your cat's life stage.</p>
+ </details>
  </div>
 
  <!-- 11: 360° Retractable Leash — now with media slot -->
@@ -654,11 +717,15 @@
  </div>
  <span class="tag">Optional Upgrade</span>
  <h3 class="cat-name">360° Retractable Leash for Experienced Adventure Cats</h3>
- <p class="cat-desc">Can an experienced cat use a retractable leash? I reserve this one for skilled cats and handlers with a strong relationship, clear communication, and a familiar trail or private property. Its tape has held up for more than a year around cacti, brush, and trail debris, and it comes in cute colors. It isn't a necessity or a beginner tool: keep it attached to a secure harness, stay attentive, and choose a fixed leash whenever you need closer control.</p>
+ <p class="card-summary">An optional long-range leash for experienced cat-and-handler teams in familiar, controlled settings.</p>
  <a class="btn" href="https://amzn.to/4aHqikX" target="_blank" rel="noopener sponsored">
  Shop on Amazon
  <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
  </a>
+ <details class="card-details">
+ <summary>Why we chose it</summary>
+ <p class="detail-copy">Can an experienced cat use a retractable leash? I reserve this one for skilled cats and handlers with a strong relationship, clear communication, and a familiar trail or private property. Its tape has held up for more than a year around cacti, brush, and trail debris, and it comes in cute colors. It isn't a necessity or a beginner tool: keep it attached to a secure harness, stay attentive, and choose a fixed leash whenever you need closer control.</p>
+ </details>
  </div>
 
  <!-- 13: Pezzy Treats — closing CTA to Cheeto's Store -->
@@ -673,11 +740,15 @@
  </div>
  <span class="tag">Trail Rewards</span>
  <h3 class="cat-name">Pezzy Single-Ingredient Conservation Treats</h3>
- <p class="cat-desc">Can pet treats support conservation? Pezzy makes single-ingredient treats from invasive species, including devil fish, lionfish, silver carp, and Nilgai antelope. That creates a useful purpose for animals that can disrupt native ecosystems while supporting small-scale fishers, hunters, and their communities. I carry them in Cheeto's Store because they're simple treats with an environmental purpose—exactly the kind of product I want on our shelves.</p>
+ <p class="card-summary">Conservation-minded, single-ingredient treats made from invasive species that help protect native ecosystems.</p>
  <a class="btn" href="/cheetos-store" rel="noopener">
  Shop at Cheeto's Store
  <svg viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg>
  </a>
+ <details class="card-details">
+ <summary>Why we chose it</summary>
+ <p class="detail-copy">Can pet treats support conservation? Pezzy makes single-ingredient treats from invasive species, including devil fish, lionfish, silver carp, and Nilgai antelope. That creates a useful purpose for animals that can disrupt native ecosystems while supporting small-scale fishers, hunters, and their communities. I carry them in Cheeto's Store because they're simple treats with an environmental purpose—exactly the kind of product I want on our shelves.</p>
+ </details>
  </div>
 
  </div>
