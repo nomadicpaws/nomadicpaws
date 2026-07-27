@@ -161,12 +161,12 @@
 
  .grid{
  display:grid;
- grid-template-columns:repeat(3, 1fr);
+ grid-template-columns:repeat(3, minmax(0, 1fr));
  align-items:start;
  gap:22px;
  }
- @media (max-width:860px){ .grid{grid-template-columns:repeat(2, 1fr);} }
- @media (max-width:600px){ .grid{grid-template-columns:1fr;} }
+ @media (max-width:860px){ .grid{grid-template-columns:repeat(2, minmax(0, 1fr));} }
+ @media (max-width:600px){ .grid{grid-template-columns:minmax(0, 1fr);} }
 
  .card{
  background:#fff;
@@ -175,6 +175,7 @@
  padding:26px 24px 22px;
  display:flex;
  flex-direction:column;
+ min-width:0;
  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
  }
  .card:hover{
@@ -190,6 +191,7 @@
  padding:26px 24px 22px;
  display:flex;
  flex-direction:column;
+ min-width:0;
  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
  }
  .checklist-card:hover{
@@ -386,7 +388,10 @@
 
  /* Unresolved image placeholders collapse until a real source URL is added. */
  .media:has(.product-photo[src^="PASTE-"]){display:none;}
- .card-summary{font-size:13.5px;line-height:1.55;color:var(--bark-soft);margin:0;}
+ .card-summary{
+ font-size:13.5px;line-height:1.55;color:var(--bark-soft);margin:0;
+ overflow-wrap:anywhere;
+ }
  .card-details{border-top:1px solid var(--sand-deep);margin-top:18px;padding-top:4px;}
  .card-details summary{
  display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -403,6 +408,7 @@
  }
  .card-details .detail-copy{
  font-size:13.5px;line-height:1.6;color:var(--bark-soft);margin:2px 0 10px;
+ overflow-wrap:anywhere;
  }
  .store-card .card-summary,.store-card .card-details .detail-copy{color:#fff;}
  .store-card .card-details{border-top-color:rgba(255,255,255,.3);}
