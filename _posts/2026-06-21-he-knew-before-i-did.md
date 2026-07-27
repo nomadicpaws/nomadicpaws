@@ -1,9 +1,14 @@
 ---
 title: He Knew Before I Did
+description: Can cats sense danger before humans? On an Arizona desert walk,
+  Cheeto detected a herd of javelinas before I did—and showed me when to trust
+  him.
 category: Cheeto Diaries
-description: "Can cats sense danger before humans? On an Arizona desert walk, Cheeto detected a herd of javelinas before I did—and showed me when to trust him."
 date: 2026-06-21T15:11:00.000-07:00
 image: /images/cheeto-saved-us.png
+image_alt: Nomadic Paws Trail Journal cover featuring Cheeto perched in a
+  mesquite tree in the Arizona desert with vintage adventure-style artwork
+  introducing "The Day Cheeto Saved Us."
 ---
 I really thought it was going to be a normal walk in the wash.
 
