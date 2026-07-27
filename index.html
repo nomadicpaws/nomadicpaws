@@ -247,9 +247,20 @@
             margin-bottom: 16px;
         }
         .about-paw {
-            font-size: 5rem;
-            text-align: center;
-            filter: drop-shadow(0 4px 12px rgba(196,98,45,0.2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 0;
+        }
+
+        .about-logo {
+            display: block;
+            width: clamp(150px, 18vw, 200px);
+            height: auto;
+            aspect-ratio: 1;
+            object-fit: contain;
+            border-radius: 50%;
+            filter: drop-shadow(0 8px 18px rgba(44,24,16,0.14));
         }
 
         /* TRAIL FEATURES */
@@ -567,6 +578,7 @@
             nav { padding: 16px 20px; }
             .nav-links { display: none; }
             .about-inner { grid-template-columns: 1fr; gap: 32px; }
+            .about-logo { width: clamp(132px, 42vw, 164px); }
             .features-grid { grid-template-columns: 1fr; }
             .footer-inner { grid-template-columns: 1fr 1fr; gap: 32px; }
             .footer-brand { grid-column: 1 / -1; }
@@ -643,7 +655,9 @@
                 <p>Nomadic Paws started with one question: what if Cheeto came on the hike? Turns out, cats are braver than anyone gives them credit for.</p>
                 <p>We're based in Tucson, Arizona — saguaro country, golden hour country, Catalina Mountains country. These trails are our backyard and we're learning them together, one paw at a time.</p>
             </div>
-            <div class="about-paw">🐱🌵</div>
+            <div class="about-paw">
+                <img class="about-logo" src="/apple-touch-icon.png" alt="Nomadic Paws desert logo">
+            </div>
         </div>
     </section>
 
