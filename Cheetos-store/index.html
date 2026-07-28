@@ -252,6 +252,86 @@
   .np-treat-qty {
     font-size: 0.78rem; color: #8A6A4F; margin-top: 0.4rem;
   }
+
+  /* ---------- Product information accordions ---------- */
+  .np-product-accordions {
+    margin-top: 1rem;
+    border-top: 1px solid rgba(193, 101, 47, 0.35);
+  }
+
+  .np-product-detail {
+    border-bottom: 1px solid rgba(193, 101, 47, 0.35);
+  }
+
+  .np-product-detail summary {
+    position: relative;
+    padding: 0.8rem 1.8rem 0.8rem 0;
+    color: #4A3728;
+    font-family: 'Fraunces', serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.25;
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .np-product-detail summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .np-product-detail summary::after {
+    content: '+';
+    position: absolute;
+    top: 50%;
+    right: 0.15rem;
+    width: 1.15rem;
+    height: 1.15rem;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    color: #C1652F;
+    background: rgba(193, 101, 47, 0.1);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.05rem;
+    text-align: center;
+  }
+
+  .np-product-detail[open] summary {
+    color: #C1652F;
+  }
+
+  .np-product-detail[open] summary::after {
+    content: '−';
+    color: #FFFDF9;
+    background: #C1652F;
+  }
+
+  .np-product-detail summary:hover,
+  .np-product-detail summary:focus-visible {
+    color: #C1652F;
+  }
+
+  .np-product-detail summary:focus-visible {
+    outline: 2px solid #8A9A5B;
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+
+  .np-product-detail-content {
+    margin: 0 0 0.9rem;
+    padding: 0.85rem 0.9rem;
+    border-left: 3px solid #8A9A5B;
+    border-radius: 0 8px 8px 0;
+    background: #F5EFE6;
+    color: #6B5D4F;
+    font-size: 0.8rem;
+    line-height: 1.55;
+  }
+
+  .np-product-detail-content strong {
+    color: #4A3728;
+  }
   .np-treat-preorder-badge {
     display: inline-block; font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase;
     color: #C1652F; background: rgba(193,101,47,0.12); border-radius: 20px;
@@ -740,6 +820,24 @@
             >Add to pack</button>
           </div>
           <p class="np-treat-qty">11 left</p>
+          <div class="np-product-accordions">
+            <details class="np-product-detail">
+              <summary>Description</summary>
+              <p class="np-product-detail-content">Firm, chewy sticks made from wild-caught lionfish. They make a high-value trail reward and can be broken into smaller pieces for cats who prefer bite-sized treats.</p>
+            </details>
+            <details class="np-product-detail">
+              <summary>Product Ingredients</summary>
+              <p class="np-product-detail-content"><strong>One ingredient:</strong> 100% wild-caught lionfish.</p>
+            </details>
+            <details class="np-product-detail">
+              <summary>Why Pezzy</summary>
+              <p class="np-product-detail-content">Pezzy turns invasive species into thoughtfully made pet treats. Lionfish place pressure on native reef ecosystems, so choosing them as a protein gives an ecological problem a useful purpose.</p>
+            </details>
+            <details class="np-product-detail">
+              <summary>Feeding Instructions</summary>
+              <p class="np-product-detail-content">Offer as a treat or reward rather than a complete meal. Break into pieces appropriate for your pet, supervise while chewing, and keep fresh water nearby.</p>
+            </details>
+          </div>
         </div>
       </div>
 
@@ -763,6 +861,24 @@
             >Add to pack</button>
           </div>
           <p class="np-treat-qty">12 left</p>
+          <div class="np-product-accordions">
+            <details class="np-product-detail">
+              <summary>Description</summary>
+              <p class="np-product-detail-content">Rich, protein-dense heart jerky with a hearty texture. It works well as a memorable reward after a walk or anytime your cat deserves something special.</p>
+            </details>
+            <details class="np-product-detail">
+              <summary>Product Ingredients</summary>
+              <p class="np-product-detail-content"><strong>One ingredient:</strong> 100% nilgai antelope heart.</p>
+            </details>
+            <details class="np-product-detail">
+              <summary>Why Pezzy</summary>
+              <p class="np-product-detail-content">Pezzy creates single-ingredient treats from invasive species. Nilgai antelope have established wild populations in South Texas, and using this protein connects pet care with more responsible resource use.</p>
+            </details>
+            <details class="np-product-detail">
+              <summary>Feeding Instructions</summary>
+              <p class="np-product-detail-content">Offer as a treat or reward rather than a complete meal. Break into pieces appropriate for your pet, supervise while chewing, and keep fresh water nearby.</p>
+            </details>
+          </div>
         </div>
       </div>
 
@@ -784,6 +900,24 @@
               data-item-image="/images/products/pezzy-silver-carp-chips.jpg"
               data-item-max-quantity="29"
             >Add to pack</button>
+          </div>
+          <div class="np-product-accordions">
+            <details class="np-product-detail">
+              <summary>Description</summary>
+              <p class="np-product-detail-content">Light, crispy fish chips with an easy-to-break texture. They are convenient for portioning into small rewards at home, during training, or after an adventure.</p>
+            </details>
+            <details class="np-product-detail">
+              <summary>Product Ingredients</summary>
+              <p class="np-product-detail-content"><strong>One ingredient:</strong> 100% silver carp.</p>
+            </details>
+            <details class="np-product-detail">
+              <summary>Why Pezzy</summary>
+              <p class="np-product-detail-content">Pezzy turns invasive fish into simple pet treats. Silver carp crowd waterways and compete with native species, so this treat helps put an overabundant protein to better use.</p>
+            </details>
+            <details class="np-product-detail">
+              <summary>Feeding Instructions</summary>
+              <p class="np-product-detail-content">Offer as a treat or reward rather than a complete meal. Break into pieces appropriate for your pet, supervise while eating, and keep fresh water nearby.</p>
+            </details>
           </div>
         </div>
       </div>
@@ -809,6 +943,24 @@
             >Preorder</button>
           </div>
           <p class="np-treat-qty">19 available for preorder</p>
+          <div class="np-product-accordions">
+            <details class="np-product-detail">
+              <summary>Description</summary>
+              <p class="np-product-detail-content">Single-ingredient strips made from wild-caught Mexican devil fish. This preorder will ship as soon as the treats arrive in August 2026.</p>
+            </details>
+            <details class="np-product-detail">
+              <summary>Product Ingredients</summary>
+              <p class="np-product-detail-content"><strong>One ingredient:</strong> 100% wild-caught Mexican devil fish.</p>
+            </details>
+            <details class="np-product-detail">
+              <summary>Why Pezzy</summary>
+              <p class="np-product-detail-content">Pezzy gives invasive species a practical purpose as single-ingredient pet treats. Mexican devil fish can disrupt freshwater habitats, making this another conservation-minded protein choice.</p>
+            </details>
+            <details class="np-product-detail">
+              <summary>Feeding Instructions</summary>
+              <p class="np-product-detail-content">Offer as a treat or reward rather than a complete meal. Break into pieces appropriate for your pet, supervise while chewing, and keep fresh water nearby.</p>
+            </details>
+          </div>
         </div>
       </div>
 
