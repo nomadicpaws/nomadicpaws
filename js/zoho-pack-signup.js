@@ -60,7 +60,7 @@
         window.clearTimeout(timeout);
         form.remove();
         resolve({
-          message: 'Almost there! Check your inbox and confirm your email to officially join the Pack.'
+          message: 'One more step. Check your inbox and click the confirmation email to officially join us on the trail.'
         });
       }, { once: true });
 

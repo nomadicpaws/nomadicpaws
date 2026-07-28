@@ -606,7 +606,8 @@
           <form class="np-scratcher-form-inline" id="product-launch-updates" name="product-launch-updates" method="POST" data-netlify="true">
             <input type="hidden" name="form-name" value="product-launch-updates">
             <input type="hidden" name="interest" value="future-nomadic-paws-products">
-            <input type="email" name="email" placeholder="Your email" required>
+            <input type="text" name="first_name" placeholder="Your first name" autocomplete="given-name" required>
+            <input type="email" name="email" placeholder="Your email" autocomplete="email" required>
             <button type="submit">Get product updates</button>
           </form>
           <p class="np-scratcher-signup-status" id="product-launch-status" role="status" aria-live="polite"></p>
@@ -645,6 +646,7 @@
         if (!netlifyResponse.ok) throw new Error('We could not save your product interest.');
 
         const result = await window.NomadicPawsPackSignup.submit({
+          firstName: formData.get('first_name'),
           email: formData.get('email'),
         });
 
