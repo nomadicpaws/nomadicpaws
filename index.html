@@ -772,22 +772,45 @@
             nav.classList.toggle('scrolled', window.scrollY > 60);
         });
 
-        // Netlify form — swap to success message without page reload
+        // Save the note in Netlify, then subscribe the visitor in Zoho Campaigns.
         const form = document.getElementById('np-form');
         const success = document.getElementById('np-success');
         if (form) {
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const button = form.querySelector('button[type="submit"]');
+                const formData = new FormData(form);
+                button.disabled = true;
+                button.textContent = 'Joining...';
                 try {
-                    await fetch('/', {
+                    const netlifyResponse = await fetch('/', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams(new FormData(form)).toString(),
+                        body: new URLSearchParams(formData).toString(),
                     });
+                    if (!netlifyResponse.ok) throw new Error('We could not save your note.');
+
+                    const zohoResponse = await fetch('/.netlify/functions/pack-signup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            firstName: formData.get('first_name'),
+                            email: formData.get('email'),
+                            source: 'homepage',
+                            company: formData.get('bot-field'),
+                        }),
+                    });
+                    const result = await zohoResponse.json();
+                    if (!zohoResponse.ok) throw new Error(result.error || 'Signup failed');
+
                     form.style.display = 'none';
                     success.style.display = 'block';
-                } catch {
-                    form.submit();
+                    success.querySelector('p').textContent = result.message;
+                    form.reset();
+                } catch (error) {
+                    button.disabled = false;
+                    button.textContent = "I'm in";
+                    alert(error.message || 'We could not complete your signup. Please try again.');
                 }
             });
         }

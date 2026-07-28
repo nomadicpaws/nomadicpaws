@@ -301,6 +301,7 @@
     border: none; border-radius: 8px; padding: 0.6rem 1rem; cursor: pointer;
   }
   .np-scratcher-note-inline { font-size: 0.74rem; color: #8A6A4F; margin-top: 0.5rem; }
+  .np-scratcher-signup-status { min-height: 1.4em; margin-top: 0.5rem; font-size: 0.74rem; color: #6F7E63; }
 
   .np-cart-button {
     position: fixed; top: 92px; right: 1rem; z-index: 90;
@@ -602,12 +603,13 @@
           <span class="np-treat-preorder-badge">Coming This October</span>
           <h3 class="np-treat-name">First Look: What's Coming Next</h3>
           <p class="np-treat-desc">Get first looks, launch updates, and early access to space-saving cat furniture, adventure gear, and original Nomadic Paws designs - starting with the Window Scratcher.</p>
-          <form class="np-scratcher-form-inline" name="product-launch-updates" method="POST" data-netlify="true">
+          <form class="np-scratcher-form-inline" id="product-launch-updates" name="product-launch-updates" method="POST" data-netlify="true">
             <input type="hidden" name="form-name" value="product-launch-updates">
             <input type="hidden" name="interest" value="future-nomadic-paws-products">
             <input type="email" name="email" placeholder="Your email" required>
             <button type="submit">Get product updates</button>
           </form>
+          <p class="np-scratcher-signup-status" id="product-launch-status" role="status" aria-live="polite"></p>
           <p class="np-scratcher-note-inline">The Window Scratcher is first. Its initial run is limited to 54 units.</p>
         </div>
       </div>
@@ -619,5 +621,49 @@
 
 <div id="site-footer"></div>
 <script src="/js/shared-footer.js"></script>
+<script>
+  (() => {
+    const form = document.getElementById('product-launch-updates');
+    const status = document.getElementById('product-launch-status');
+    if (!form) return;
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const button = form.querySelector('button[type="submit"]');
+      const formData = new FormData(form);
+      button.disabled = true;
+      button.textContent = 'Joining...';
+      status.textContent = '';
+
+      try {
+        const netlifyResponse = await fetch('/', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: new URLSearchParams(formData).toString(),
+        });
+        if (!netlifyResponse.ok) throw new Error('We could not save your product interest.');
+
+        const zohoResponse = await fetch('/.netlify/functions/pack-signup', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            email: formData.get('email'),
+            source: 'product-updates',
+          }),
+        });
+        const result = await zohoResponse.json();
+        if (!zohoResponse.ok) throw new Error(result.error || 'Signup failed');
+
+        form.reset();
+        status.textContent = result.message;
+        button.textContent = 'Check your inbox';
+      } catch (error) {
+        status.textContent = error.message || 'We could not complete your signup. Please try again.';
+        button.disabled = false;
+        button.textContent = 'Get product updates';
+      }
+    });
+  })();
+</script>
 </body>
 </html>

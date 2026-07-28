@@ -256,6 +256,12 @@
             transition: background 0.2s;
         }
         .nl-form button:hover { background: var(--terra-light); }
+        .nl-status {
+            min-height: 1.5em;
+            margin: 14px auto 0 !important;
+            color: rgba(253,250,245,0.82) !important;
+            font-size: 0.84rem !important;
+        }
 
         /* FOOTER */
         footer {
@@ -362,10 +368,11 @@
     <div class="newsletter-strip">
         <h2>Never miss a trail report.</h2>
         <p>New posts, Cheeto updates, and what we're exploring next — in your inbox.</p>
-        <form class="nl-form" onsubmit="handleSignup(event)">
-            <input type="email" placeholder="your@email.com" required>
+        <form class="nl-form" id="trail-journal-signup">
+            <input type="email" name="email" placeholder="your@email.com" autocomplete="email" required>
             <button type="submit">Join the pack</button>
         </form>
+        <p class="nl-status" id="trail-journal-signup-status" role="status" aria-live="polite"></p>
     </div>
 
     <div id="site-footer"></div>
@@ -413,14 +420,34 @@
         `).join('');
     }
 
-    function handleSignup(e) {
+    async function handleSignup(e) {
         e.preventDefault();
-        const input = e.target.querySelector('input');
-        input.value = '';
-        input.placeholder = "You're in the pack! 🐾";
-        setTimeout(() => input.placeholder = 'your@email.com', 3000);
+        const form = e.currentTarget;
+        const input = form.querySelector('input[name="email"]');
+        const button = form.querySelector('button[type="submit"]');
+        const status = document.getElementById('trail-journal-signup-status');
+        button.disabled = true;
+        button.textContent = 'Joining...';
+        status.textContent = '';
+        try {
+            const response = await fetch('/.netlify/functions/pack-signup', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email: input.value, source: 'trail-journal'}),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Signup failed');
+            form.reset();
+            status.textContent = result.message;
+            button.textContent = 'Check your inbox';
+        } catch (error) {
+            status.textContent = error.message || 'We could not complete your signup. Please try again.';
+            button.disabled = false;
+            button.textContent = 'Join the pack';
+        }
     }
 
+    document.getElementById('trail-journal-signup')?.addEventListener('submit', handleSignup);
     renderPosts();
 </script>
 </body>
