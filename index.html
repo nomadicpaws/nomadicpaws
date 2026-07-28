@@ -590,6 +590,7 @@
             .newsletter-form button { transition: none; }
         }
     </style>
+    <script src="/js/zoho-pack-signup.js"></script>
     <script>
   if (window.netlifyIdentity) {
     window.netlifyIdentity.on("init", user => {
@@ -790,18 +791,10 @@
                     });
                     if (!netlifyResponse.ok) throw new Error('We could not save your note.');
 
-                    const zohoResponse = await fetch('/.netlify/functions/pack-signup', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            firstName: formData.get('first_name'),
-                            email: formData.get('email'),
-                            source: 'homepage',
-                            company: formData.get('bot-field'),
-                        }),
+                    const result = await window.NomadicPawsPackSignup.submit({
+                        firstName: formData.get('first_name'),
+                        email: formData.get('email'),
                     });
-                    const result = await zohoResponse.json();
-                    if (!zohoResponse.ok) throw new Error(result.error || 'Signup failed');
 
                     form.style.display = 'none';
                     success.style.display = 'block';

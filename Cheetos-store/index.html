@@ -621,6 +621,7 @@
 
 <div id="site-footer"></div>
 <script src="/js/shared-footer.js"></script>
+<script src="/js/zoho-pack-signup.js"></script>
 <script>
   (() => {
     const form = document.getElementById('product-launch-updates');
@@ -643,16 +644,9 @@
         });
         if (!netlifyResponse.ok) throw new Error('We could not save your product interest.');
 
-        const zohoResponse = await fetch('/.netlify/functions/pack-signup', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            email: formData.get('email'),
-            source: 'product-updates',
-          }),
+        const result = await window.NomadicPawsPackSignup.submit({
+          email: formData.get('email'),
         });
-        const result = await zohoResponse.json();
-        if (!zohoResponse.ok) throw new Error(result.error || 'Signup failed');
 
         form.reset();
         status.textContent = result.message;
