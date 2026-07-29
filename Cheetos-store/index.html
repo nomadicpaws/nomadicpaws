@@ -483,20 +483,22 @@
   }
 
   .np-paw-rating label {
-    padding: 0.15rem 0.22rem;
-    color: #CFC2B2;
-    font-size: 1.75rem;
+    display: grid;
+    place-items: center;
+    width: 2.55rem;
+    height: 2.55rem;
+    margin-right: 0.25rem;
+    color: #D8CCBD;
     line-height: 1;
     cursor: pointer;
-    filter: grayscale(1);
-    transition: transform 0.15s ease, filter 0.15s ease;
+    transition: transform 0.15s ease, color 0.15s ease;
   }
 
   .np-paw-rating label:hover,
   .np-paw-rating label:hover ~ label,
   .np-paw-rating input:checked + label,
   .np-paw-rating input:checked + label ~ label {
-    filter: none;
+    color: #C1652F;
   }
 
   .np-paw-rating label:hover {
@@ -507,6 +509,26 @@
     outline: 2px solid #C1652F;
     outline-offset: 3px;
     border-radius: 6px;
+  }
+
+  .np-paw-icon {
+    display: block;
+    width: 2.15rem;
+    height: 2.15rem;
+    background:
+      radial-gradient(circle at 22% 28%, currentColor 0 10%, transparent 11%),
+      radial-gradient(circle at 42% 14%, currentColor 0 11%, transparent 12%),
+      radial-gradient(circle at 63% 14%, currentColor 0 11%, transparent 12%),
+      radial-gradient(circle at 82% 28%, currentColor 0 10%, transparent 11%),
+      radial-gradient(ellipse at 52% 69%, currentColor 0 30%, transparent 31%);
+  }
+
+  .np-paw-selection {
+    min-height: 1.35em;
+    margin: 0.55rem 0 0;
+    color: #C1652F;
+    font-size: 0.8rem;
+    font-weight: 700;
   }
 
   .np-review-help {
@@ -1333,16 +1355,17 @@
           <legend>How many paws would you give it?</legend>
           <div class="np-paw-rating" aria-label="Choose a rating from one to five paws">
             <input type="radio" id="review-paws-5" name="paws" value="5" required>
-            <label for="review-paws-5" title="5 paws" aria-label="5 paws">🐾</label>
+            <label for="review-paws-5" title="5 paws" aria-label="5 paws"><span class="np-paw-icon" aria-hidden="true"></span></label>
             <input type="radio" id="review-paws-4" name="paws" value="4">
-            <label for="review-paws-4" title="4 paws" aria-label="4 paws">🐾</label>
+            <label for="review-paws-4" title="4 paws" aria-label="4 paws"><span class="np-paw-icon" aria-hidden="true"></span></label>
             <input type="radio" id="review-paws-3" name="paws" value="3">
-            <label for="review-paws-3" title="3 paws" aria-label="3 paws">🐾</label>
+            <label for="review-paws-3" title="3 paws" aria-label="3 paws"><span class="np-paw-icon" aria-hidden="true"></span></label>
             <input type="radio" id="review-paws-2" name="paws" value="2">
-            <label for="review-paws-2" title="2 paws" aria-label="2 paws">🐾</label>
+            <label for="review-paws-2" title="2 paws" aria-label="2 paws"><span class="np-paw-icon" aria-hidden="true"></span></label>
             <input type="radio" id="review-paws-1" name="paws" value="1">
-            <label for="review-paws-1" title="1 paw" aria-label="1 paw">🐾</label>
+            <label for="review-paws-1" title="1 paw" aria-label="1 paw"><span class="np-paw-icon" aria-hidden="true"></span></label>
           </div>
+          <p class="np-paw-selection" id="np-paw-selection" aria-live="polite">Choose 1–5 paws.</p>
         </fieldset>
 
         <div class="np-review-field">
@@ -1428,11 +1451,20 @@
     const form = document.getElementById('np-product-review-form');
     const productSelect = document.getElementById('review-product');
     const status = document.getElementById('np-review-status');
+    const pawSelection = document.getElementById('np-paw-selection');
     if (!form || !productSelect || !status) return;
 
     document.querySelectorAll('.np-first-review-link').forEach((link) => {
       link.addEventListener('click', () => {
         productSelect.value = link.dataset.reviewProduct || '';
+      });
+    });
+
+    form.querySelectorAll('input[name="paws"]').forEach((input) => {
+      input.addEventListener('change', () => {
+        if (pawSelection) {
+          pawSelection.textContent = `${input.value} ${input.value === '1' ? 'paw' : 'paws'} selected.`;
+        }
       });
     });
 
@@ -1452,6 +1484,7 @@
         if (!response.ok) throw new Error('We could not save your review.');
 
         form.reset();
+        if (pawSelection) pawSelection.textContent = 'Choose 1–5 paws.';
         status.textContent = 'Thank you—your Pack review is waiting for approval.';
         button.textContent = 'Review Sent';
       } catch (error) {
