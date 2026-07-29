@@ -73,6 +73,34 @@ export default async (request, context) => {
 
   class HeadRewriter {
     element(element) {
+      const articleData = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: post.title,
+        description,
+        image: [image],
+        datePublished: post.date || undefined,
+        dateModified: post.date || undefined,
+        mainEntityOfPage: {
+          "@type": "WebPage",
+          "@id": pageUrl,
+        },
+        author: {
+          "@type": "Person",
+          name: "Katie",
+          url: `${url.origin}/#about`,
+        },
+        publisher: {
+          "@type": "Organization",
+          name: "Nomadic Paws",
+          url: url.origin,
+          logo: {
+            "@type": "ImageObject",
+            url: `${url.origin}/apple-touch-icon.png`,
+          },
+        },
+      }).replace(/</g, "\\u003c");
+
       element.append(
         `<meta name="description" content="${escapeAttr(description)}">
 <link rel="canonical" href="${escapeAttr(pageUrl)}">
@@ -86,7 +114,8 @@ export default async (request, context) => {
 <meta name="twitter:title" content="${escapeAttr(title)}">
 <meta name="twitter:description" content="${escapeAttr(description)}">
 <meta name="twitter:image" content="${escapeAttr(image)}">
-<meta name="twitter:image:alt" content="${escapeAttr(post.imageAlt || post.title)}">`,
+<meta name="twitter:image:alt" content="${escapeAttr(post.imageAlt || post.title)}">
+<script type="application/ld+json">${articleData}</script>`,
         { html: true }
       );
     }

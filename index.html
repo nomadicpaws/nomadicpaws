@@ -25,6 +25,40 @@
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/css/shared-footer.css">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://nomadicpaws.co/#website",
+          "url": "https://nomadicpaws.co/",
+          "name": "Nomadic Paws",
+          "alternateName": "Nomadic Paws TV",
+          "publisher": {
+            "@id": "https://nomadicpaws.co/#organization"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://nomadicpaws.co/#organization",
+          "name": "Nomadic Paws",
+          "url": "https://nomadicpaws.co/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://nomadicpaws.co/apple-touch-icon.png",
+            "width": 180,
+            "height": 180
+          },
+          "sameAs": [
+            "https://tiktok.com/@nomadicpawstv",
+            "https://youtube.com/@nomadicpawstv",
+            "https://instagram.com/nomadicpawstv"
+          ]
+        }
+      ]
+    }
+    </script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -719,8 +753,8 @@
     <!-- NEWSLETTER — now a real Netlify form with name + note -->
     <section id="newsletter" class="newsletter">
         <div class="newsletter-inner">
-            <h2>Join the pack.</h2>
-            <p class="newsletter-sub">Stories from the trail, Cheeto moments, new adventures, and the occasional surprise—straight to your inbox. No spam, just Desert Dispatches.</p>
+            <h2>Join the Pack.</h2>
+            <p class="newsletter-sub">Join us for Desert Dispatches, Cheeto moments, new adventures, first looks at what we're designing, and Pack Perks—including free shipping in Cheeto's Store.</p>
 
             <form
                 class="newsletter-form"
@@ -751,7 +785,7 @@
                     name="note"
                     placeholder="I'd love to know who you are, who you're adventuring with, and what brought you here. And if you're carrying something heavy or simply need a little love and prayer sent your way, this is a safe place for that too."
                 ></textarea>
-                <button type="submit">I'm in</button>
+                <button type="submit">Join the Pack</button>
             </form>
 
             <p class="newsletter-note">Unsubscribe anytime. We respect your inbox like we respect the trail—leave it better than you found it.</p>
@@ -802,7 +836,7 @@
                     form.reset();
                 } catch (error) {
                     button.disabled = false;
-                    button.textContent = "I'm in";
+                    button.textContent = 'Join the Pack';
                     alert(error.message || 'We could not complete your signup. Please try again.');
                 }
             });

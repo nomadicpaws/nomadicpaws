@@ -995,13 +995,13 @@
         <div class="np-treat-body">
           <span class="np-treat-preorder-badge">Coming This October</span>
           <h3 class="np-treat-name">First Look: What's Coming Next</h3>
-          <p class="np-treat-desc">Get first looks, launch updates, and early access to space-saving cat furniture, adventure gear, and original Nomadic Paws designs - starting with the Window Scratcher.</p>
+          <p class="np-treat-desc">Join the Pack for first looks at space-saving cat furniture, adventure gear, and original Nomadic Paws designs—plus Pack Perks, including free shipping in Cheeto's Store.</p>
           <form class="np-scratcher-form-inline" id="product-launch-updates" name="product-launch-updates" method="POST" data-netlify="true">
             <input type="hidden" name="form-name" value="product-launch-updates">
             <input type="hidden" name="interest" value="future-nomadic-paws-products">
             <input type="text" name="first_name" placeholder="Your first name" autocomplete="given-name" required>
             <input type="email" name="email" placeholder="Your email" autocomplete="email" required>
-            <button type="submit">Get product updates</button>
+            <button type="submit">Join the Pack</button>
           </form>
           <p class="np-scratcher-signup-status" id="product-launch-status" role="status" aria-live="polite"></p>
           <p class="np-scratcher-note-inline">The Window Scratcher is first. Its initial run is limited to 50 available units.</p>
@@ -1049,7 +1049,7 @@
       } catch (error) {
         status.textContent = error.message || 'We could not complete your signup. Please try again.';
         button.disabled = false;
-        button.textContent = 'Get product updates';
+        button.textContent = 'Join the Pack';
       }
     });
   })();

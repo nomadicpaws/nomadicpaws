@@ -15,9 +15,15 @@ function parseFrontmatter(raw: string): { data: Frontmatter; body: string } {
 
   const [, block, body] = match
   const data: Frontmatter = {}
+  let currentField = ''
   for (const line of block.split(/\r?\n/)) {
     const field = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/)
-    if (!field) continue
+    if (!field) {
+      if (currentField && /^\s+/.test(line) && line.trim()) {
+        data[currentField] = `${data[currentField]} ${line.trim()}`.trim()
+      }
+      continue
+    }
     let value = field[2].trim()
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
@@ -26,6 +32,7 @@ function parseFrontmatter(raw: string): { data: Frontmatter; body: string } {
       value = value.slice(1, -1)
     }
     data[field[1]] = value
+    currentField = field[1]
   }
   return { data, body: body.trim() }
 }
