@@ -515,12 +515,9 @@
     display: block;
     width: 2.15rem;
     height: 2.15rem;
-    background:
-      radial-gradient(circle at 22% 28%, currentColor 0 10%, transparent 11%),
-      radial-gradient(circle at 42% 14%, currentColor 0 11%, transparent 12%),
-      radial-gradient(circle at 63% 14%, currentColor 0 11%, transparent 12%),
-      radial-gradient(circle at 82% 28%, currentColor 0 10%, transparent 11%),
-      radial-gradient(ellipse at 52% 69%, currentColor 0 30%, transparent 31%);
+    background: currentColor;
+    -webkit-mask: url('/images/paw-rating.svg') center / contain no-repeat;
+    mask: url('/images/paw-rating.svg') center / contain no-repeat;
   }
 
   .np-paw-selection {
