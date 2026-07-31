@@ -44,7 +44,7 @@ He was right all along.
 
 His human just couldn't fit.
 
-The secure harness, leash, and backpack that made mornings like this possible are all part of Cheeto's trail-ready checklist.
+The secure harness, leash, and backpack that made mornings like this possible are all part of [Cheeto's trail-ready checklist](https://nomadicpaws.co/checklist/).
 
 *"In their hearts humans plan their course, but the Lord establishes their steps." — Proverbs 16:9*
 

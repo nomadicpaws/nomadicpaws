@@ -22,7 +22,7 @@ And then he spooked. Not the little flicker of cat caution he gets when somethin
 
 I didn't even know what we were running from.
 
-I swung the backpack off my back and around to my front, loaded him in mid-stride, and then did something that probably wasn't smart — I walked toward whatever had sent him flying.
+I swung the [backpack](https://nomadicpaws.co/checklist/) off my back and around to my front, loaded him in mid-stride, and then did something that probably wasn't smart — I walked toward whatever had sent him flying.
 
 Javelina. A whole herd of them.
 

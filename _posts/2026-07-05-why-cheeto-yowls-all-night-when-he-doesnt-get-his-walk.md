@@ -34,7 +34,7 @@ The toys weren't the problem. Stimulation wasn't the problem. *Enough* stimulati
 
 When Cheeto doesn't get his walk, he makes sure I know it. He yowls at the door. He reorganizes whatever is sitting near it. He scratches at his TV — what we humans call the window — like he's filing a formal complaint with the outside world. And my mom, who watches him when I leave for a trail without him, says he cries then too.
 
-Here's the thing though: I don't think it's separation anxiety. I've thought about this. Cheeto isn't crying because I'm gone. He's crying because I left on an adventure without him. There's a difference. He's not attached to my presence. He's attached to the idea of *going*. Being with me is not his goal — seeing new things is. I just happen to be the person with the harness.
+Here's the thing though: I don't think it's separation anxiety. I've thought about this. Cheeto isn't crying because I'm gone. He's crying because I left on an adventure without him. There's a difference. He's not attached to my presence. He's attached to the idea of *going*. Being with me is not his goal — seeing new things is. I just happen to be the person with the [harness](https://nomadicpaws.co/checklist/).
 
 That's not a knock on our bond. Our bond is real and it runs deep. But I'd rather see him clearly than project something soft onto him that isn't there.
 
