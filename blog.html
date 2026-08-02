@@ -411,6 +411,10 @@
         })[character]);
     }
 
+    function optimizedImageUrl(source, width) {
+        return `/.netlify/images?url=${encodeURIComponent(source)}&w=${width}&q=76`;
+    }
+
     async function renderPosts() {
         const grid = document.getElementById('postsGrid');
         let posts;
@@ -429,7 +433,7 @@
 
         grid.innerHTML = posts.map((post, i) => `
             <article class="post-card ${i === 0 ? 'featured' : ''}" onclick="location.href='/trail-journal/${post.slug}'">
-                ${post.thumbnail || post.image ? `<img class="post-img" src="${escapeAttribute(post.thumbnail || post.image)}" alt="${escapeAttribute(post.imageAlt || post.title)}" width="960" height="640" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async" ${i === 0 ? 'fetchpriority="high"' : ''}>` : `<div class="post-img"></div>`}
+                ${post.image || post.thumbnail ? `<img class="post-img" src="${escapeAttribute(optimizedImageUrl(post.image || post.thumbnail, 960))}" srcset="${escapeAttribute(optimizedImageUrl(post.image || post.thumbnail, 480))} 480w, ${escapeAttribute(optimizedImageUrl(post.image || post.thumbnail, 720))} 720w, ${escapeAttribute(optimizedImageUrl(post.image || post.thumbnail, 960))} 960w" sizes="${i === 0 ? '(max-width: 768px) 100vw, 50vw' : '(max-width: 768px) 100vw, 33vw'}" alt="${escapeAttribute(post.imageAlt || post.title)}" width="960" height="640" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async" ${i === 0 ? 'fetchpriority="high"' : ''}>` : `<div class="post-img"></div>`}
                 <div class="post-body">
                     <div class="post-tag">${post.category || ''}</div>
                     <h2>${post.title}</h2>

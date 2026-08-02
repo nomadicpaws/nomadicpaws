@@ -466,6 +466,16 @@
             return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         }
 
+        function escapeAttribute(value) {
+            return String(value || '').replace(/[&"<>]/g, character => ({
+                '&': '&amp;', '"': '&quot;', '<': '&lt;', '>': '&gt;'
+            })[character]);
+        }
+
+        function optimizedImageUrl(source, width) {
+            return `/.netlify/images?url=${encodeURIComponent(source)}&w=${width}&q=82`;
+        }
+
         function showState(message) {
             document.getElementById('articleTitle').textContent = 'Trail Journal';
             document.getElementById('articleBody').innerHTML =
@@ -530,7 +540,7 @@
 
             if (post.image) {
                 document.getElementById('articleCover').innerHTML =
-                    `<img src="${post.image}" alt="${(post.imageAlt || post.title).replace(/"/g, '&quot;')}" decoding="async" fetchpriority="high">`;
+                    `<img src="${escapeAttribute(optimizedImageUrl(post.image, 1600))}" srcset="${escapeAttribute(optimizedImageUrl(post.image, 640))} 640w, ${escapeAttribute(optimizedImageUrl(post.image, 1200))} 1200w, ${escapeAttribute(optimizedImageUrl(post.image, 1600))} 1600w" sizes="(max-width: 900px) 100vw, 900px" alt="${escapeAttribute(post.imageAlt || post.title)}" width="1600" height="1067" decoding="async" fetchpriority="high">`;
             }
 
             // Post bodies are authored by the site owner in the CMS, so the
@@ -539,7 +549,6 @@
             articleBody.innerHTML = marked.parse(post.body || '');
             articleBody.querySelectorAll('img').forEach((image) => {
                 image.loading = 'lazy';
-                image.decoding = 'async';
                 image.decoding = 'async';
             });
         }
