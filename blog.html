@@ -419,7 +419,7 @@
         const grid = document.getElementById('postsGrid');
         let posts;
         try {
-            const res = await fetch('/api/posts');
+            const res = await fetch('/api/posts?summary=1');
             posts = await res.json();
         } catch {
             grid.innerHTML = '<p style="text-align:center;color:var(--bark-mid);padding:40px">Could not load posts.</p>';

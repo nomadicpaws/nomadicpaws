@@ -55,7 +55,15 @@ function readTime(markdown: string): number {
   return Math.max(1, Math.round(count / 200))
 }
 
-export default async () => {
+export default async (request: Request) => {
+  const requestUrl = new URL(request.url)
+  const summariesOnly = requestUrl.searchParams.get('summary') === '1'
+  const requestedLimit = Number.parseInt(requestUrl.searchParams.get('limit') || '', 10)
+  const requestedOffset = Number.parseInt(requestUrl.searchParams.get('offset') || '0', 10)
+  const limit = Number.isFinite(requestedLimit) && requestedLimit > 0
+    ? Math.min(requestedLimit, 24)
+    : undefined
+  const offset = Number.isFinite(requestedOffset) && requestedOffset > 0 ? requestedOffset : 0
   let files: string[] = []
   try {
     files = (await readdir(POSTS_DIR)).filter((f) => f.endsWith('.md'))
@@ -81,7 +89,7 @@ export default async () => {
         draft: data.draft === 'true',
         excerpt: excerpt(body),
         readTime: readTime(body),
-        body,
+        ...(!summariesOnly && { body }),
       }
     }),
   )
@@ -97,7 +105,11 @@ export default async () => {
   // Newest first.
   publishedPosts.sort((a, b) => (a.date < b.date ? 1 : -1))
 
-  return Response.json(publishedPosts)
+  const selectedPosts = limit
+    ? publishedPosts.slice(offset, offset + limit)
+    : publishedPosts.slice(offset)
+
+  return Response.json(selectedPosts)
 }
 
 export const config: Config = {
