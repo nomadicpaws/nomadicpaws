@@ -23,8 +23,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -94,7 +92,7 @@
             text-decoration: none;
             transition: background 0.2s, transform 0.2s;
         }
-        .nav-cta:hover { background: var(--terra-light); transform: translateY(-1px); }
+        .nav-cta:hover { background: #8F3D19; transform: translateY(-1px); }
 
         /* ARTICLE HEADER */
         .article-header {
@@ -167,7 +165,7 @@
         .article-body h2 { font-size: 1.6rem; }
         .article-body h3 { font-size: 1.3rem; }
         .article-body p { margin-bottom: 22px; }
-        .article-body a { color: var(--terra); }
+        .article-body a { color: #713014; }
         .article-body ul, .article-body ol { margin: 0 0 22px 1.2em; }
         .article-body li { margin-bottom: 8px; }
         .article-body img {
@@ -245,7 +243,7 @@
         .np-story-direction {
             display: block;
             margin-bottom: 0.3rem;
-            color: var(--terra);
+            color: #713014;
             font-size: 0.76rem;
             font-weight: 600;
             letter-spacing: 0.08em;
@@ -283,7 +281,7 @@
             justify-content: center;
             padding: 0.85rem 1.4rem;
             border-radius: 999px;
-            background: var(--terra);
+            background: #A94B22;
             color: #fff;
             font-size: 0.9rem;
             font-weight: 600;
@@ -291,7 +289,7 @@
             transition: background 0.2s, transform 0.2s;
         }
         .np-journal-cta-link:hover {
-            background: var(--terra-light);
+            background: #8F3D19;
             transform: translateY(-1px);
         }
         @media (max-width: 560px) {
@@ -323,7 +321,7 @@
             display: block;
         }
         .footer-brand p { font-size: 0.88rem; line-height: 1.7; max-width: 220px; }
-        .footer-col h4 {
+        .footer-col h2 {
             font-size: 0.78rem;
             font-weight: 600;
             letter-spacing: 0.12em;
@@ -343,7 +341,8 @@
         .footer-social { display: flex; gap: 16px; margin-top: 4px; }
         .footer-social a {
             color: rgba(253,250,245,0.5);
-            font-size: 1.15rem;
+            font-size: 0.82rem;
+            font-weight: 600;
             transition: color 0.2s;
             text-decoration: none;
         }
@@ -395,10 +394,11 @@
         </div>
     </header>
 
+    <main>
     <div class="article-cover" id="articleCover"></div>
 
     <article class="article-wrap">
-        <a href="/trail-journal" class="back-link"><i class="fas fa-arrow-left"></i> Back to the Trail Journal</a>
+        <a href="/trail-journal" class="back-link">← Back to the Trail Journal</a>
         <div class="article-body" id="articleBody">
             <p class="article-state">Loading post…</p>
         </div>
@@ -423,6 +423,7 @@
             <a href="/trail-journal" class="np-journal-cta-link">Explore the Trail Journal →</a>
         </section>
     </article>
+    </main>
 
     <footer>
         <div class="footer-inner">
@@ -431,7 +432,7 @@
                 <p>Exploring the Sonoran Desert one trail at a time, with a cat who thinks he owns it.</p>
             </div>
             <div class="footer-col">
-                <h4>Explore</h4>
+                <h2>Explore</h2>
                 <ul>
                     <li><a href="/trail-journal">Trail Journal</a></li>
                     <li><a href="index.html#about">About</a></li>
@@ -439,15 +440,15 @@
                 </ul>
             </div>
             <div class="footer-col">
-                <h4>Follow</h4>
+                <h2>Follow</h2>
                 <div class="footer-social">
-                    <a href="https://tiktok.com/@nomadicpawstv" target="_blank"><i class="fab fa-tiktok"></i></a>
-                    <a href="https://youtube.com/@nomadicpawstv" target="_blank"><i class="fab fa-youtube"></i></a>
-                    <a href="https://instagram.com/@nomadicpawstv" target="_blank"><i class="fab fa-instagram"></i></a>
+                    <a href="https://tiktok.com/@nomadicpawstv" target="_blank" rel="noopener noreferrer" aria-label="Follow Nomadic Paws on TikTok">TikTok</a>
+                    <a href="https://youtube.com/@nomadicpawstv" target="_blank" rel="noopener noreferrer" aria-label="Watch Nomadic Paws on YouTube">YouTube</a>
+                    <a href="https://instagram.com/nomadicpawstv" target="_blank" rel="noopener noreferrer" aria-label="Follow Nomadic Paws on Instagram">Instagram</a>
                 </div>
             </div>
             <div class="footer-col">
-                <h4>Contact</h4>
+                <h2>Contact</h2>
                 <ul>
                     <li><a href="mailto:hello@nomadicpaws.com">hello@nomadicpaws.com</a></li>
                     <li><a href="index.html#newsletter">Newsletter</a></li>
@@ -460,7 +461,6 @@
         </div>
     </footer>
 
-    <script defer src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
     <script>
         function formatDate(value) {
             const d = new Date(value);
@@ -481,6 +481,17 @@
         function imageHeightForWidth(aspect, width) {
             const [aspectWidth = 3, aspectHeight = 2] = String(aspect || '3/2').split('/').map(Number);
             return Math.round(width * aspectHeight / aspectWidth);
+        }
+
+        function loadMarkdownRenderer() {
+            if (window.marked) return Promise.resolve();
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/marked@12/marked.min.js';
+                script.onload = resolve;
+                script.onerror = () => reject(new Error('Could not load the article renderer.'));
+                document.head.appendChild(script);
+            });
         }
 
         function showState(message) {
@@ -555,11 +566,14 @@
             // Post bodies are authored by the site owner in the CMS, so the
             // Markdown is trusted content.
             const articleBody = document.getElementById('articleBody');
-            articleBody.innerHTML = marked.parse(post.body || '');
-            articleBody.querySelectorAll('img').forEach((image) => {
-                image.loading = 'lazy';
-                image.decoding = 'async';
-            });
+            if (articleBody.querySelector('.article-state')) {
+                await loadMarkdownRenderer();
+                articleBody.innerHTML = marked.parse(post.body || '');
+                articleBody.querySelectorAll('img').forEach((image) => {
+                    image.loading = 'lazy';
+                    image.decoding = 'async';
+                });
+            }
         }
         window.addEventListener('DOMContentLoaded', loadPost);
     </script>
