@@ -23,7 +23,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -458,7 +459,7 @@
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
     <script>
         function formatDate(value) {
             const d = new Date(value);
@@ -473,7 +474,7 @@
         }
 
         function optimizedImageUrl(source, width) {
-            return `/.netlify/images?url=${encodeURIComponent(source)}&w=${width}&q=82`;
+            return `/.netlify/images?url=${encodeURIComponent(source)}&w=${width}&h=${Math.round(width * 2 / 3)}&fit=cover&q=82`;
         }
 
         function showState(message) {
@@ -552,7 +553,7 @@
                 image.decoding = 'async';
             });
         }
-        loadPost();
+        window.addEventListener('DOMContentLoaded', loadPost);
     </script>
 </body>
 </html>

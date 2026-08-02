@@ -11,6 +11,7 @@
 // HTMLRewriter isn't a built-in global in Netlify's edge runtime (unlike
 // Cloudflare Workers), so it has to be imported explicitly.
 import { HTMLRewriter } from "https://ghuc.cc/worker-tools/html-rewriter/index.ts";
+import { marked } from "https://esm.sh/marked@12";
 
 export default async (request, context) => {
   const url = new URL(request.url);
@@ -121,10 +122,48 @@ export default async (request, context) => {
     }
   }
 
+  class TextRewriter {
+    constructor(value) {
+      this.value = value;
+    }
+    element(element) {
+      element.setInnerContent(this.value);
+    }
+  }
+
+  class HtmlRewriter {
+    constructor(value) {
+      this.value = value;
+    }
+    element(element) {
+      element.setInnerContent(this.value, { html: true });
+    }
+  }
+
+  const optimizedCover = post.image
+    ? `/.netlify/images?url=${encodeURIComponent(post.image)}&w=1200&h=800&fit=cover&q=82`
+    : "";
+  const coverHtml = optimizedCover
+    ? `<img src="${escapeAttr(optimizedCover)}" alt="${escapeAttr(post.imageAlt || post.title)}" width="1200" height="800" decoding="async" fetchpriority="high">`
+    : "";
+  const articleHtml = marked.parse(post.body || "");
+  const formattedDate = post.date
+    ? new Date(post.date).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "";
+
   return new HTMLRewriter()
     .on("title", new TitleRewriter())
     .on("meta", new MetaStripper())
     .on("head", new HeadRewriter())
+    .on("#articleTag", new TextRewriter(post.category || ""))
+    .on("#articleTitle", new TextRewriter(post.title))
+    .on("#articleDate", new TextRewriter(formattedDate))
+    .on("#articleCover", new HtmlRewriter(coverHtml))
+    .on("#articleBody", new HtmlRewriter(articleHtml))
     .transform(response);
 };
 
