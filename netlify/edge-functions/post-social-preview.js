@@ -140,11 +140,16 @@ export default async (request, context) => {
     }
   }
 
+  const aspectParts = String(post.imageAspect || "3/2").split("/").map(Number);
+  const aspectWidth = aspectParts[0] || 3;
+  const aspectHeight = aspectParts[1] || 2;
+  const coverWidth = 1200;
+  const coverHeight = Math.round(coverWidth * aspectHeight / aspectWidth);
   const optimizedCover = post.image
-    ? `/.netlify/images?url=${encodeURIComponent(post.image)}&w=1200&h=800&fit=cover&q=82`
+    ? `/.netlify/images?url=${encodeURIComponent(post.image)}&w=${coverWidth}&q=82`
     : "";
   const coverHtml = optimizedCover
-    ? `<img src="${escapeAttr(optimizedCover)}" alt="${escapeAttr(post.imageAlt || post.title)}" width="1200" height="800" decoding="async" fetchpriority="high">`
+    ? `<img src="${escapeAttr(optimizedCover)}" alt="${escapeAttr(post.imageAlt || post.title)}" width="${coverWidth}" height="${coverHeight}" decoding="async" fetchpriority="high">`
     : "";
   const articleHtml = marked.parse(post.body || "");
   const formattedDate = post.date

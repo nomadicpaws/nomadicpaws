@@ -76,6 +76,7 @@ export default async () => {
         date: data.date || '',
         image: data.image || data.thumbnail || '',
         thumbnail: data.thumbnail || data.image || '',
+        imageAspect: data.image_aspect || '3/2',
         imageAlt: data.image_alt || data.title || 'Trail Journal cover image',
         draft: data.draft === 'true',
         excerpt: excerpt(body),

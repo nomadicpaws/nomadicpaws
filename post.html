@@ -133,6 +133,7 @@
         }
         .article-cover img {
             width: 100%;
+            height: auto;
             border-radius: 20px;
             box-shadow: 0 12px 40px rgba(44,24,16,0.18);
             display: block;
@@ -474,7 +475,12 @@
         }
 
         function optimizedImageUrl(source, width) {
-            return `/.netlify/images?url=${encodeURIComponent(source)}&w=${width}&h=${Math.round(width * 2 / 3)}&fit=cover&q=82`;
+            return `/.netlify/images?url=${encodeURIComponent(source)}&w=${width}&q=82`;
+        }
+
+        function imageHeightForWidth(aspect, width) {
+            const [aspectWidth = 3, aspectHeight = 2] = String(aspect || '3/2').split('/').map(Number);
+            return Math.round(width * aspectHeight / aspectWidth);
         }
 
         function showState(message) {
@@ -540,8 +546,10 @@
             document.getElementById('articleDate').textContent = formatDate(post.date);
 
             if (post.image) {
+                const coverWidth = 1600;
+                const coverHeight = imageHeightForWidth(post.imageAspect, coverWidth);
                 document.getElementById('articleCover').innerHTML =
-                    `<img src="${escapeAttribute(optimizedImageUrl(post.image, 1600))}" srcset="${escapeAttribute(optimizedImageUrl(post.image, 640))} 640w, ${escapeAttribute(optimizedImageUrl(post.image, 1200))} 1200w, ${escapeAttribute(optimizedImageUrl(post.image, 1600))} 1600w" sizes="(max-width: 900px) 100vw, 900px" alt="${escapeAttribute(post.imageAlt || post.title)}" width="1600" height="1067" decoding="async" fetchpriority="high">`;
+                    `<img src="${escapeAttribute(optimizedImageUrl(post.image, coverWidth))}" srcset="${escapeAttribute(optimizedImageUrl(post.image, 640))} 640w, ${escapeAttribute(optimizedImageUrl(post.image, 1200))} 1200w, ${escapeAttribute(optimizedImageUrl(post.image, coverWidth))} 1600w" sizes="(max-width: 900px) 100vw, 900px" alt="${escapeAttribute(post.imageAlt || post.title)}" width="${coverWidth}" height="${coverHeight}" decoding="async" fetchpriority="high">`;
             }
 
             // Post bodies are authored by the site owner in the CMS, so the

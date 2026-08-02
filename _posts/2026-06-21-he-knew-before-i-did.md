@@ -6,6 +6,7 @@ description: Can cats sense danger before humans? On an Arizona desert walk,
 category: Cheeto Diaries
 date: 2026-06-21T15:11:00.000-07:00
 image: /images/cheeto-saved-us.jpg
+image_aspect: 16/9
 thumbnail: /images/cheeto-saved-us-card.jpg
 image_alt: Nomadic Paws Trail Journal cover featuring Cheeto perched in a
   mesquite tree in the Arizona desert with vintage adventure-style artwork
