@@ -6,6 +6,7 @@ description: Why does my cat yowl at night? Cheeto's story explores missed
 category: Cheeto Diaries
 date: 2026-07-05T06:55:00.000-04:00
 image: /images/img_0893.jpg
+thumbnail: /images/img_0893-card.jpg
 image_alt: Nomadic Paws Trail Journal cover featuring Katie and Cheeto together
   with a collage of their favorite moments exploring nature, sharing quiet
   companionship, and enjoying life outdoors.

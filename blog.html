@@ -26,8 +26,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="/css/shared-footer.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
+    <link rel="stylesheet" href="/css/shared-footer.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="/css/shared-footer.css"></noscript>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -129,6 +131,11 @@
             grid-template-columns: repeat(3, 1fr);
             gap: 32px;
         }
+        .post-skeleton { pointer-events: none; }
+        .post-skeleton .post-img { background: var(--mist); }
+        .skeleton-line { height: 14px; margin-bottom: 14px; border-radius: 10px; background: rgba(92,61,46,0.12); }
+        .skeleton-line.short { width: 36%; }
+        .skeleton-line.title { width: 76%; height: 28px; }
 
         .post-card {
             background: var(--sand);
@@ -363,7 +370,17 @@
     </header>
 
     <main>
-        <div class="posts-grid" id="postsGrid"></div>
+        <div class="posts-grid" id="postsGrid" aria-busy="true">
+            <article class="post-card featured post-skeleton" aria-hidden="true">
+                <div class="post-img"></div><div class="post-body"><div class="skeleton-line short"></div><div class="skeleton-line title"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+            </article>
+            <article class="post-card post-skeleton" aria-hidden="true">
+                <div class="post-img"></div><div class="post-body"><div class="skeleton-line short"></div><div class="skeleton-line title"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+            </article>
+            <article class="post-card post-skeleton" aria-hidden="true">
+                <div class="post-img"></div><div class="post-body"><div class="skeleton-line short"></div><div class="skeleton-line title"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+            </article>
+        </div>
     </main>
 
     <div class="newsletter-strip">
@@ -378,9 +395,9 @@
     </div>
 
     <div id="site-footer"></div>
-    <script src="/js/shared-footer.js"></script>
+    <script defer src="/js/shared-footer.js"></script>
 
-    <script src="/js/zoho-pack-signup.js"></script>
+    <script defer src="/js/zoho-pack-signup.js"></script>
     <script>
     function formatDate(value) {
         const d = new Date(value);
@@ -388,10 +405,14 @@
         return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     }
 
+    function escapeAttribute(value) {
+        return String(value || '').replace(/[&"<>]/g, character => ({
+            '&': '&amp;', '"': '&quot;', '<': '&lt;', '>': '&gt;'
+        })[character]);
+    }
+
     async function renderPosts() {
         const grid = document.getElementById('postsGrid');
-        grid.innerHTML = '<p style="text-align:center;color:var(--bark-mid);padding:40px">Loading…</p>';
-
         let posts;
         try {
             const res = await fetch('/api/posts');
@@ -408,7 +429,7 @@
 
         grid.innerHTML = posts.map((post, i) => `
             <article class="post-card ${i === 0 ? 'featured' : ''}" onclick="location.href='/trail-journal/${post.slug}'">
-                ${post.image ? `<img class="post-img" src="${post.image}" alt="${post.imageAlt || post.title}" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async" ${i === 0 ? 'fetchpriority="high"' : ''}>` : `<div class="post-img"></div>`}
+                ${post.thumbnail || post.image ? `<img class="post-img" src="${escapeAttribute(post.thumbnail || post.image)}" alt="${escapeAttribute(post.imageAlt || post.title)}" width="960" height="640" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async" ${i === 0 ? 'fetchpriority="high"' : ''}>` : `<div class="post-img"></div>`}
                 <div class="post-body">
                     <div class="post-tag">${post.category || ''}</div>
                     <h2>${post.title}</h2>
@@ -417,10 +438,11 @@
                         <span><i class="far fa-calendar"></i> ${formatDate(post.date)}</span>
                         <span><i class="far fa-clock"></i> ${post.readTime} min read</span>
                     </div>
-                    <a href="/trail-journal/${post.slug}" class="read-more">Read on the trail <i class="fas fa-arrow-right"></i></a>
+                    <a href="/trail-journal/${post.slug}" class="read-more" aria-label="Read ${escapeAttribute(post.title)}">Read on the trail <i class="fas fa-arrow-right"></i></a>
                 </div>
             </article>
         `).join('');
+        grid.setAttribute('aria-busy', 'false');
     }
 
     async function handleSignup(e) {
