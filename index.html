@@ -23,8 +23,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="/css/shared-footer.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
+    <link rel="stylesheet" href="/css/shared-footer.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="/css/shared-footer.css"></noscript>
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -625,7 +627,7 @@
             .newsletter-form button { transition: none; }
         }
     </style>
-    <script src="/js/zoho-pack-signup.js"></script>
+    <script defer src="/js/zoho-pack-signup.js"></script>
 </head>
 <body>
 
