@@ -75,7 +75,13 @@
 
 .np-social-links {
   display: flex;
-  gap: 16px;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.np-social-links a {
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .np-footer-bottom {
