@@ -24,7 +24,7 @@ But before we got there, there were a lot of sleepless nights.
 
 
 
-![Rescued orange tabby cat that yowls when walks are skipped](/images/img_0894.png "Cheeto-yowl-no-walk")
+![Rescued orange tabby cat that yowls when walks are skipped](/images/img_0894.jpg "Cheeto-yowl-no-walk")
 
 **When the toys stopped working**
 

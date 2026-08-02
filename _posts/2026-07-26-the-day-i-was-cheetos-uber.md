@@ -5,7 +5,7 @@ description: A wrong turn, a rising desert sun, and the moment I knew it was
   desert heat.
 category: Cheeto Diaries
 date: 2026-07-26T15:14:00.000-07:00
-image: /images/a36f812b-4d3b-4467-adff-8b581eca4c5b.png
+image: /images/a36f812b-4d3b-4467-adff-8b581eca4c5b.jpg
 image_alt: A wrong turn, a rising desert sun, and the moment I knew it was time
   to carry Cheeto home. A true story about hiking with a cat in Arizona’s desert
   heat.

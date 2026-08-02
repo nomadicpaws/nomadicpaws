@@ -13,7 +13,7 @@
     <meta property="og:site_name" content="Nomadic Paws">
     <meta property="og:title" content="Trail Journal — Nomadic Paws">
     <meta property="og:description" content="Field notes from the desert with Cheeto. Trail reports, cat adventures, and honest dispatches from life on the trail in Tucson, AZ.">
-    <meta property="og:image" content="https://nomadicpaws.co/images/cheeto-saved-us.png">
+    <meta property="og:image" content="https://nomadicpaws.co/images/cheeto-saved-us.jpg">
     <meta property="og:url" content="https://nomadicpaws.co/trail-journal">
     <meta property="og:locale" content="en_US">
 
@@ -21,9 +21,10 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Trail Journal — Nomadic Paws">
     <meta name="twitter:description" content="Field notes from the desert with Cheeto. Trail reports, cat adventures, and honest dispatches from life on the trail in Tucson, AZ.">
-    <meta name="twitter:image" content="https://nomadicpaws.co/images/cheeto-saved-us.png">
+    <meta name="twitter:image" content="https://nomadicpaws.co/images/cheeto-saved-us.jpg">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/css/shared-footer.css">
@@ -407,7 +408,7 @@
 
         grid.innerHTML = posts.map((post, i) => `
             <article class="post-card ${i === 0 ? 'featured' : ''}" onclick="location.href='/trail-journal/${post.slug}'">
-                ${post.image ? `<img class="post-img" src="${post.image}" alt="${post.imageAlt || post.title}" loading="lazy">` : `<div class="post-img"></div>`}
+                ${post.image ? `<img class="post-img" src="${post.image}" alt="${post.imageAlt || post.title}" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async" ${i === 0 ? 'fetchpriority="high"' : ''}>` : `<div class="post-img"></div>`}
                 <div class="post-body">
                     <div class="post-tag">${post.category || ''}</div>
                     <h2>${post.title}</h2>
