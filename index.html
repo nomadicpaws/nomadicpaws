@@ -131,12 +131,12 @@
             font-weight: 600;
             padding: 10px 22px;
             border-radius: 100px;
-            background: var(--terra);
+            background: #A94B22;
             color: white !important;
             text-decoration: none;
             transition: background 0.2s, transform 0.2s;
         }
-        .nav-cta:hover { background: var(--terra-light); transform: translateY(-1px); }
+        .nav-cta:hover { background: #8F3D19; transform: translateY(-1px); }
 
         /* HERO */
         .hero {
@@ -202,7 +202,7 @@
 
         .btn-primary {
             padding: 16px 36px;
-            background: var(--terra);
+            background: #A94B22;
             color: white;
             border-radius: 100px;
             font-weight: 600;
@@ -213,7 +213,7 @@
             align-items: center;
             gap: 8px;
         }
-        .btn-primary:hover { background: var(--terra-light); transform: translateY(-2px); }
+        .btn-primary:hover { background: #8F3D19; transform: translateY(-2px); }
 
         .btn-ghost {
             padding: 16px 36px;
@@ -266,7 +266,7 @@
             font-weight: 600;
             letter-spacing: 0.18em;
             text-transform: uppercase;
-            color: var(--terra);
+            color: #98401C;
             margin-bottom: 16px;
         }
         .about-inner h2 {
@@ -437,7 +437,7 @@
         }
         .platform-btn:hover { transform: translateY(-2px); opacity: 0.9; }
         .platform-btn.tiktok { background: #010101; color: white; }
-        .platform-btn.youtube { background: #FF0000; color: white; }
+        .platform-btn.youtube { background: #C60000; color: white; }
         .platform-btn.instagram { background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045); color: white; }
 
         /* NEWSLETTER */
@@ -454,7 +454,7 @@
             margin-bottom: 16px;
         }
         .newsletter > .newsletter-inner > .newsletter-sub {
-            color: rgba(253,250,245,0.72);
+            color: rgba(253,250,245,0.92);
             margin-bottom: 40px;
             font-size: 1.05rem;
             max-width: 420px;
@@ -504,7 +504,7 @@
         }
         .newsletter-form button {
             padding: 16px 48px;
-            background: var(--terra);
+            background: #A94B22;
             color: white;
             border: none;
             border-radius: 100px;
@@ -514,10 +514,10 @@
             cursor: pointer;
             transition: background 0.2s, transform 0.15s;
         }
-        .newsletter-form button:hover { background: var(--terra-light); transform: translateY(-1px); }
+        .newsletter-form button:hover { background: #8F3D19; transform: translateY(-1px); }
         .newsletter-note {
             font-size: 0.78rem;
-            color: rgba(253,250,245,0.4);
+            color: rgba(253,250,245,0.78);
             letter-spacing: 0.02em;
             max-width: 360px;
             margin: 0 auto;
@@ -643,6 +643,7 @@
         </ul>
     </nav>
 
+    <main>
     <!-- HERO -->
     <header class="hero">
         <svg class="paw-trail" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
@@ -730,13 +731,13 @@
         <h2>Come watch us out there.</h2>
         <p>See the moments that don't always make it into the Trail Journal—from quiet mornings on the trail to wildlife encounters, trick training, and plenty of Cheeto being Cheeto.</p>
         <div class="platform-links">
-            <a href="https://tiktok.com/@nomadicpawstv" target="_blank" class="platform-btn tiktok">
+            <a href="https://tiktok.com/@nomadicpawstv" target="_blank" rel="noopener noreferrer" class="platform-btn tiktok" aria-label="Follow Nomadic Paws on TikTok">
                 <i class="fab fa-tiktok"></i> @NomadicPawsTV
             </a>
-            <a href="https://youtube.com/@nomadicpawstv" target="_blank" class="platform-btn youtube">
+            <a href="https://youtube.com/@nomadicpawstv" target="_blank" rel="noopener noreferrer" class="platform-btn youtube" aria-label="Watch Nomadic Paws on YouTube">
                 <i class="fab fa-youtube"></i> @NomadicPawsTV
             </a>
-            <a href="https://instagram.com/nomadicpawstv" target="_blank" class="platform-btn instagram">
+            <a href="https://instagram.com/nomadicpawstv" target="_blank" rel="noopener noreferrer" class="platform-btn instagram" aria-label="Follow Nomadic Paws on Instagram">
                 <i class="fab fa-instagram"></i> @NomadicPawsTV
             </a>
         </div>
@@ -788,6 +789,7 @@
             </div>
         </div>
     </section>
+    </main>
 
     <div id="site-footer"></div>
     <script src="/js/shared-footer.js"></script>

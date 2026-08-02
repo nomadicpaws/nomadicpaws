@@ -29,7 +29,7 @@
   line-height: 1.7;
 }
 
-.np-site-footer h4 {
+.np-site-footer h2 {
   margin: 0 0 16px;
   color: #FDFAF5;
   font-size: 0.78rem;
@@ -62,14 +62,14 @@
   margin-top: 2px;
   padding: 9px 18px;
   border-radius: 100px;
-  background: #C4622D;
+  background: #A94B22;
   color: #FDFAF5 !important;
   font-size: 0.82rem;
   font-weight: 700;
 }
 
 .np-footer-cta:hover {
-  background: #E8845A;
+  background: #8F3D19;
   color: #FDFAF5 !important;
 }
 
