@@ -6,12 +6,12 @@ description: I let Cheeto choose our route one morning and discovered he knew
 category: Cheeto Diaries
 date: 2026-08-02T16:00:00.000-07:00
 image: /images/4a2821e3-7fda-4f3f-8e53-2933989cfec8.jpg
-thumbnail: /images/4a2821e3-7fda-4f3f-8e53-2933989cfec8-card.jpg
 image_alt: Nomadic Paws Trail Journal cover featuring Cheeto hiking through
   mesquite trees in the Arizona desert on a harness and leash. Vintage
   adventure-style artwork introduces the story, "The Morning I Let Cheeto Lead,"
   about following a cat's instincts on the trail.
-draft: true
+draft: false
+thumbnail: /images/4a2821e3-7fda-4f3f-8e53-2933989cfec8-card.jpg
 ---
 # Can Cats Find Their Way Home?
 
