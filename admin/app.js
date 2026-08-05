@@ -231,18 +231,57 @@
       else if (action === 'copy-article') copy(true).catch(() => toast('Clipboard permission was denied'));
       else if (action === 'paste') pasteRevision(); else changeStatus(action);
     });
-    document.body.appendChild(dock); renderStatus(); showRecovery();
+    document.body.appendChild(dock); renderStatus(); showRecovery(); syncMobileLayout();
   }
 
   function renderDashboard() {
     const hasAuthenticatedCollection = $all('a').some(link => /#\/collections\/blog\/new/.test(link.getAttribute('href') || '') && !link.closest('#np-mobile-dashboard'));
     const onCollection = location.hash === '#/collections/blog' && hasAuthenticatedCollection;
     let dashboard = document.getElementById('np-mobile-dashboard');
-    if (!onCollection) { if (dashboard) dashboard.remove(); return; }
+    if (!onCollection) {
+      document.body.classList.remove('np-browse-open');
+      if (dashboard) dashboard.remove();
+      removeBrowseControls();
+      return;
+    }
     if (dashboard) return;
     dashboard = document.createElement('section'); dashboard.id = 'np-mobile-dashboard';
     dashboard.innerHTML = '<p class="np-eyebrow">Nomadic Paws</p><h1>Trail Journal</h1><p>What would you like to do?</p><div><a class="np-primary" href="#/collections/blog/new">＋ New Journal Entry</a><a href="#/collections/blog?filter=draft__true">Continue Draft</a><a href="#/collections/blog?filter=draft__false">Manage Scheduled Posts</a><a href="/trail-journal" target="_blank" rel="noopener">View Published Posts</a></div>';
-    document.body.appendChild(dashboard);
+    const browse = document.createElement('button');
+    browse.id = 'np-browse-toggle'; browse.type = 'button'; browse.textContent = 'Menu & Search'; browse.setAttribute('aria-expanded', 'false'); browse.onclick = toggleBrowse;
+    dashboard.insertBefore(browse, dashboard.children[2]);
+    document.body.appendChild(dashboard); ensureBrowseControls(); syncMobileLayout();
+  }
+
+  function toggleBrowse() {
+    const open = document.body.classList.toggle('np-browse-open');
+    const toggle = document.getElementById('np-browse-toggle');
+    if (toggle) toggle.setAttribute('aria-expanded', String(open));
+    if (open) {
+      ensureBrowseControls();
+      const search = document.querySelector('aside input[placeholder*="Search"]');
+      if (search) window.setTimeout(() => search.focus(), 50);
+    }
+  }
+
+  function ensureBrowseControls() {
+    if (!document.getElementById('np-mobile-dashboard')) return;
+    const aside = document.querySelector('#nc-root aside');
+    if (!aside || aside.querySelector('#np-browse-close')) return;
+    const close = document.createElement('button');
+    close.id = 'np-browse-close'; close.type = 'button'; close.textContent = 'Close menu'; close.onclick = toggleBrowse;
+    aside.prepend(close);
+  }
+
+  function removeBrowseControls() {
+    const close = document.getElementById('np-browse-close'); if (close) close.remove();
+  }
+
+  function syncMobileLayout() {
+    const header = document.querySelector('#nc-root header');
+    const dock = document.getElementById('np-action-dock');
+    document.documentElement.style.setProperty('--np-cms-header-height', (header ? Math.ceil(header.getBoundingClientRect().height) : 0) + 'px');
+    document.documentElement.style.setProperty('--np-action-dock-height', (dock ? Math.ceil(dock.getBoundingClientRect().height) : 0) + 'px');
   }
 
   function showRecovery() {
@@ -277,8 +316,11 @@
   window.addEventListener('online', () => { toast('Back online'); autosave(); });
   window.addEventListener('offline', () => { snapshot(); toast('Offline — this draft is stored on this device'); });
   window.addEventListener('hashchange', () => setTimeout(renderDock, 500));
+  window.addEventListener('resize', syncMobileLayout);
   new MutationObserver(function () {
     renderDock();
+    ensureBrowseControls();
+    syncMobileLayout();
     $all('input[type="file"]').forEach(input => input.setAttribute('accept', 'image/*,.heic,.heif'));
   }).observe(document.body, { childList: true, subtree: true });
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/admin/service-worker.js');

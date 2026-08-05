@@ -1,4 +1,4 @@
-const CACHE = 'nomadic-paws-cms-v2';
+const CACHE = 'nomadic-paws-cms-v3';
 const SHELL = ['/admin/', '/admin/admin.css', '/admin/app.js', '/admin/review-utils.js', '/admin/photo-utils.js', '/admin/manifest.webmanifest', '/apple-touch-icon.png'];
 
 self.addEventListener('install', event => {
