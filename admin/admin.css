@@ -18,6 +18,11 @@ body,
   font-family: "DM Sans", sans-serif !important;
 }
 
+#nc-root,
+#nc-root * {
+  box-sizing: border-box;
+}
+
 header {
   background: linear-gradient(110deg, var(--np-sage-deep), var(--np-sage)) !important;
   color: #fff !important;
@@ -191,10 +196,57 @@ label,
 #np-mobile-nav { display: none; }
 
 @media (max-width: 767px) {
+  html,
+  body,
+  #nc-root {
+    max-width: 100%;
+    overflow-x: hidden !important;
+    width: 100%;
+  }
   body { padding-bottom: 76px; }
-  input, textarea, select, [contenteditable="true"] { font-size: 16px !important; }
+  input,
+  textarea,
+  select,
+  [contenteditable="true"] {
+    display: block;
+    font-size: 16px !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-wrap: anywhere;
+    width: 100% !important;
+  }
   textarea { line-height: 1.65 !important; min-height: 120px; }
   label { margin-top: 8px !important; }
+
+  /* Decap's desktop editor uses nested flex/grid panes with minimum widths. */
+  main,
+  form,
+  [class*="Editor"],
+  [class*="ControlPane"],
+  [class*="ControlContainer"],
+  [class*="Field"],
+  [class*="Widget"] {
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+  [class*="ControlPane"] {
+    flex: 1 1 100% !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    width: 100% !important;
+  }
+  [class*="PreviewPane"] { display: none !important; }
+  [class*="Toolbar"] {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overscroll-behavior-inline: contain;
+  }
+  [contenteditable="true"],
+  [contenteditable="true"] * {
+    overflow-wrap: anywhere !important;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
   #np-action-dock { gap: 7px; }
   #np-action-dock button { min-height: 48px; padding-inline: 16px; }
   .np-status { bottom: 82px; left: 10px; max-width: none; padding: 7px 12px; right: auto; }
