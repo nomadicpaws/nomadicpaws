@@ -25,11 +25,11 @@ collections:
       - { label: Drafts, field: draft, pattern: true }
       - { label: Ready or published, field: draft, pattern: false }
     fields:
+      - { label: Cover image, name: image, widget: image, required: false, hint: "Choose the hero image readers will see first. iPhone photos are prepared automatically." }
       - { label: Title, name: title, widget: string }
+      - { label: Subtitle / excerpt, name: description, widget: text, required: false, hint: "The short introduction shown with the story and used as its search description." }
       - { label: Category, name: category, widget: select, options: [Trail Reports, Cheeto Diaries, Gear, Tips] }
       - { label: Body, name: body, widget: markdown, hint: "Write or dictate here. Add a photo at the cursor with the image option in the + menu." }
-      - { label: Cover image, name: image, widget: image, required: false, hint: "Optional. Leave blank to use a colored cover." }
       - { label: Cover image description, name: image_alt, widget: string, required: false, hint: "Describe what is visible in the image for screen readers and search engines. Example: Cheeto wearing a harness on a Tucson desert trail." }
-      - { label: Subtitle / excerpt, name: description, widget: text, required: false, hint: "Also used as the search description. Recommended: one natural sentence of about 140–160 characters." }
       - { label: Publish date and time, name: date, widget: datetime, hint: "Choose now to publish immediately, or choose a future time to schedule it. Scheduled posts must have Keep as draft turned off." }
       - { label: Keep as draft, name: draft, widget: boolean, default: true, required: false, hint: "ON: safely hidden. OFF + future date: scheduled. OFF + current/past date: published. Use the status panel before changing this." }

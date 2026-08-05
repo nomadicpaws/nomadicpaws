@@ -201,10 +201,16 @@ label,
   body,
   #nc-root {
     max-width: 100%;
-    overflow-x: hidden !important;
+    overflow-x: clip !important;
     width: 100%;
   }
   body { padding-bottom: 76px; }
+  #nc-root header {
+    position: sticky !important;
+    top: 0;
+    width: 100%;
+    z-index: 10001 !important;
+  }
   input,
   textarea,
   select {
@@ -270,7 +276,7 @@ label,
     padding: 34px 18px 100px;
     position: fixed;
     right: 0;
-    top: calc(58px + env(safe-area-inset-top));
+    top: calc(64px + env(safe-area-inset-top));
     z-index: 1;
   }
   #np-mobile-dashboard h1 { font-size: 34px; margin: 2px 0 4px; }
