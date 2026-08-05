@@ -214,7 +214,6 @@
   function renderDock() {
     const old = document.getElementById('np-action-dock');
     renderDashboard();
-    renderMobileNav();
     if (!isEditor()) {
       if (old) old.remove();
       const status = document.getElementById('np-status-panel'); if (status) status.remove();
@@ -244,16 +243,6 @@
     dashboard = document.createElement('section'); dashboard.id = 'np-mobile-dashboard';
     dashboard.innerHTML = '<p class="np-eyebrow">Nomadic Paws</p><h1>Trail Journal</h1><p>What would you like to do?</p><div><a class="np-primary" href="#/collections/blog/new">＋ New Journal Entry</a><a href="#/collections/blog?filter=draft__true">Continue Draft</a><a href="#/collections/blog?filter=draft__false">Manage Scheduled Posts</a><a href="/trail-journal" target="_blank" rel="noopener">View Published Posts</a></div>';
     document.body.appendChild(dashboard);
-  }
-
-  function renderMobileNav() {
-    const authenticated = $all('a').some(link => /#\/collections\/blog/.test(link.getAttribute('href') || '') && !link.closest('#np-mobile-nav'));
-    let nav = document.getElementById('np-mobile-nav');
-    if (!authenticated) { if (nav) nav.remove(); return; }
-    if (nav) return;
-    nav = document.createElement('nav'); nav.id = 'np-mobile-nav'; nav.setAttribute('aria-label', 'Trail Journal navigation');
-    nav.innerHTML = '<a href="#/collections/blog">Journal Home</a><a href="#/collections/blog?filter=draft__true">Drafts</a><a class="np-nav-new" href="#/collections/blog/new">＋ New</a>';
-    document.body.appendChild(nav);
   }
 
   function showRecovery() {
