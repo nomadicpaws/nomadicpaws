@@ -215,13 +215,19 @@
     const old = document.getElementById('np-action-dock');
     renderDashboard();
     renderMobileNav();
-    if (!isEditor()) { if (old) old.remove(); return; }
+    if (!isEditor()) {
+      if (old) old.remove();
+      const status = document.getElementById('np-status-panel'); if (status) status.remove();
+      const recovery = document.getElementById('np-recovery'); if (recovery) recovery.remove();
+      return;
+    }
     if (old) return;
     const dock = document.createElement('nav'); dock.id = 'np-action-dock'; dock.setAttribute('aria-label', 'Journal entry actions');
-    dock.innerHTML = '<span id="np-save-state">Autosave ready</span><button data-action="save">Save</button><button data-action="preview">Preview</button><button data-action="copy">Copy Draft for Review</button><button data-action="copy-article">Copy Article Text Only</button><button data-action="paste">Paste Revised Text</button><button data-action="draft">Draft</button><button data-action="schedule">Schedule</button><button data-action="publish">Publish</button>';
+    dock.innerHTML = '<span id="np-save-state">Autosave ready</span><button data-action="save">Save</button><button data-action="preview">Preview</button><button data-action="copy" aria-label="Copy Draft for Review">Copy for Review</button><button data-action="publish">Publish</button><button data-action="more" aria-expanded="false">More</button><div class="np-more-actions"><button data-action="copy-article">Copy Article Text</button><button data-action="paste">Paste Revision</button><button data-action="draft">Keep Draft</button><button data-action="schedule">Schedule</button></div>';
     dock.addEventListener('click', event => {
       const action = event.target.dataset.action; if (!action) return;
-      if (action === 'save') { const button = saveButton(); if (button) { setSaveLabel('Saving…'); button.click(); setTimeout(markSaved, 1800); } }
+      if (action === 'more') { const expanded = dock.classList.toggle('np-expanded'); event.target.setAttribute('aria-expanded', String(expanded)); event.target.textContent = expanded ? 'Less' : 'More'; }
+      else if (action === 'save') { const button = saveButton(); if (button) { setSaveLabel('Saving…'); button.click(); setTimeout(markSaved, 1800); } }
       else if (action === 'preview') preview(); else if (action === 'copy') copy(false).catch(() => toast('Clipboard permission was denied'));
       else if (action === 'copy-article') copy(true).catch(() => toast('Clipboard permission was denied'));
       else if (action === 'paste') pasteRevision(); else changeStatus(action);
