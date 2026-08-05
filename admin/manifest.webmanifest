@@ -1,0 +1,14 @@
+{
+  "name": "Nomadic Paws Trail Journal",
+  "short_name": "Trail Journal",
+  "description": "Write and publish Nomadic Paws Trail Journal entries.",
+  "start_url": "/admin/",
+  "scope": "/admin/",
+  "display": "standalone",
+  "background_color": "#fdfaf5",
+  "theme_color": "#6f7e62",
+  "icons": [
+    { "src": "/admin/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/admin/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

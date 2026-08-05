@@ -13,16 +13,23 @@ public_folder: /images
 
 collections:
   - name: blog
-    label: Blog Posts
+    label: Trail Journal
+    label_singular: Journal Entry
+    description: Draft, schedule, and publish Trail Journal stories.
     folder: _posts
     create: true
     slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    summary: "{{title}} — {{date}}"
+    sortable_fields: [date, title]
+    view_filters:
+      - { label: Drafts, field: draft, pattern: true }
+      - { label: Ready or published, field: draft, pattern: false }
     fields:
       - { label: Title, name: title, widget: string }
-      - { label: Search description, name: description, widget: text, required: false, hint: "Optional but recommended. Write one natural sentence of about 140–160 characters describing what the post answers or explores." }
+      - { label: Subtitle / excerpt, name: description, widget: text, required: false, hint: "Also used as the search description. Recommended: one natural sentence of about 140–160 characters." }
       - { label: Category, name: category, widget: select, options: [Trail Reports, Cheeto Diaries, Gear, Tips] }
       - { label: Publish date and time, name: date, widget: datetime, hint: "Choose now to publish immediately, or choose a future time to schedule it. Scheduled posts must have Keep as draft turned off." }
       - { label: Cover image, name: image, widget: image, required: false, hint: "Optional. Leave blank to use a colored cover." }
       - { label: Cover image description, name: image_alt, widget: string, required: false, hint: "Describe what is visible in the image for screen readers and search engines. Example: Cheeto wearing a harness on a Tucson desert trail." }
-      - { label: Keep as draft, name: draft, widget: boolean, default: true, required: false, hint: "Leave this on while editing. Turn it off when the post is ready to appear on the Trail Journal." }
+      - { label: Keep as draft, name: draft, widget: boolean, default: true, required: false, hint: "ON: safely hidden. OFF + future date: scheduled. OFF + current/past date: published. Use the status panel before changing this." }
       - { label: Body, name: body, widget: markdown, hint: "To add a photo inside the story, place your cursor where it belongs and use the image option in the + menu. Add a short description of what is visible for accessibility and search." }
