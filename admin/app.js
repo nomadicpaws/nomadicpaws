@@ -4,6 +4,7 @@
   let dirty = false;
   let saveTimer = null;
   let lastSaved = null;
+  let lastEditorFocus = null;
 
   const $all = selector => Array.from(document.querySelectorAll(selector));
   const text = element => (element && element.textContent || '').trim();
@@ -71,7 +72,20 @@
   }
 
   function saveButton() {
-    return $all('button').find(button => /^(save|save draft)$/i.test(text(button)) && !button.disabled);
+    return $all('button').find(button => /^(save|save draft)$/i.test(text(button)) && !button.disabled && !button.closest('#np-action-dock'));
+  }
+
+  function persistEntry() {
+    const save = saveButton();
+    if (save) { save.click(); return true; }
+    const publish = $all('button').find(button => /^publish$/i.test(text(button)) && !button.disabled && !button.closest('#np-action-dock'));
+    if (!publish) return false;
+    publish.click();
+    window.setTimeout(function () {
+      const publishNow = $all('[role="menuitem"]').find(item => /^publish now$/i.test(text(item)));
+      if (publishNow) publishNow.click();
+    }, 100);
+    return true;
   }
 
   function markSaved() {
@@ -85,11 +99,9 @@
     if (!dirty || !isEditor() || !navigator.onLine) return;
     const c = controls();
     if (c.draft && !valueOf(c.draft)) return;
-    const button = saveButton();
-    if (!button) return;
+    const started = persistEntry();
+    if (!started) return;
     setSaveLabel('Saving…');
-    button.click();
-    window.setTimeout(markSaved, 1800);
   }
 
   function setSaveLabel(label) {
@@ -200,15 +212,21 @@
 
   function renderStatus() {
     if (!isEditor()) return;
+    const mobile = window.matchMedia('(max-width: 767px)').matches;
+    const dock = document.getElementById('np-action-dock');
+    const desiredParent = mobile && dock ? dock.querySelector('.np-footer-info') : document.body;
     let panel = document.getElementById('np-status-panel');
+    if (panel && panel.parentElement !== desiredParent) { panel.remove(); panel = null; }
     if (!panel) {
-      panel = document.createElement('section'); panel.id = 'np-status-panel';
-      document.body.appendChild(panel);
+      panel = document.createElement(mobile ? 'strong' : 'section'); panel.id = 'np-status-panel';
+      if (mobile) desiredParent.prepend(panel); else desiredParent.appendChild(panel);
     }
     const status = statusFor(controls());
     panel.className = 'np-status np-' + status.toLowerCase();
-    panel.innerHTML = `<strong>${status}</strong><span>${status === 'Draft' ? 'This entry is currently a draft and will not publish.' : status === 'Scheduled' ? 'This entry will publish at the selected date and time.' : 'This entry is live on the Trail Journal.'}</span>`;
-    setSaveLabel(dirty ? 'Unsaved changes' : lastSaved ? 'Saved ' + lastSaved.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'Autosave ready');
+    if (mobile) panel.textContent = status;
+    else panel.innerHTML = `<strong>${status}</strong><span>${status === 'Draft' ? 'This entry is currently a draft and will not publish.' : status === 'Scheduled' ? 'This entry will publish at the selected date and time.' : 'This entry is live on the Trail Journal.'}</span>`;
+    const savedAt = lastSaved ? ' · Last saved ' + lastSaved.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+    setSaveLabel(dirty ? 'Unsaved changes' + savedAt : lastSaved ? 'Autosave on' + savedAt : 'Autosave ready');
   }
 
   function renderDock() {
@@ -222,11 +240,21 @@
     }
     if (old) return;
     const dock = document.createElement('nav'); dock.id = 'np-action-dock'; dock.setAttribute('aria-label', 'Journal entry actions');
-    dock.innerHTML = '<span id="np-save-state">Autosave ready</span><button data-action="save">Save</button><button data-action="preview">Preview</button><button data-action="copy" aria-label="Copy Draft for Review">Copy for Review</button><button data-action="publish">Publish</button><button data-action="more" aria-expanded="false">More</button><div class="np-more-actions"><button data-action="copy-article">Copy Article Text</button><button data-action="paste">Paste Revision</button><button data-action="draft">Keep Draft</button><button data-action="schedule">Schedule</button></div>';
+    const mobile = window.matchMedia('(max-width: 767px)').matches;
+    dock.innerHTML = mobile
+      ? '<div class="np-footer-info"><span id="np-save-state">Autosave ready</span></div><button data-action="save">Save</button><button data-action="copy" aria-label="Copy Draft for Review">Copy for Review</button><button data-action="publish">Publish</button><button data-action="more" aria-expanded="false">More</button><div class="np-more-actions"><button data-action="preview">Preview</button><button data-action="copy-article">Article Text</button><button data-action="paste">Paste Revision</button><button data-action="draft">Keep as Draft</button><button data-action="schedule">Schedule</button></div>'
+      : '<span id="np-save-state">Autosave ready</span><button data-action="save">Save</button><button data-action="preview">Preview</button><button data-action="copy" aria-label="Copy Draft for Review">Copy for Review</button><button data-action="copy-article">Copy Article Text</button><button data-action="paste">Paste Revision</button><button data-action="draft">Keep Draft</button><button data-action="schedule">Schedule</button><button data-action="publish">Publish</button>';
     dock.addEventListener('click', event => {
       const action = event.target.dataset.action; if (!action) return;
-      if (action === 'more') { const expanded = dock.classList.toggle('np-expanded'); event.target.setAttribute('aria-expanded', String(expanded)); event.target.textContent = expanded ? 'Less' : 'More'; }
-      else if (action === 'save') { const button = saveButton(); if (button) { setSaveLabel('Saving…'); button.click(); setTimeout(markSaved, 1800); } }
+      if (action === 'more') {
+        const expanded = dock.classList.toggle('np-expanded');
+        event.target.setAttribute('aria-expanded', String(expanded)); event.target.textContent = expanded ? 'Close' : 'More';
+        window.setTimeout(function () {
+          syncMobileLayout();
+          if (expanded && lastEditorFocus && document.contains(lastEditorFocus)) lastEditorFocus.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }, 0);
+      }
+      else if (action === 'save') { const started = persistEntry(); if (started) setSaveLabel('Saving…'); else setSaveLabel('Autosave ready'); }
       else if (action === 'preview') preview(); else if (action === 'copy') copy(false).catch(() => toast('Clipboard permission was denied'));
       else if (action === 'copy-article') copy(true).catch(() => toast('Clipboard permission was denied'));
       else if (action === 'paste') pasteRevision(); else changeStatus(action);
@@ -280,8 +308,10 @@
   function syncMobileLayout() {
     const header = document.querySelector('#nc-root header');
     const dock = document.getElementById('np-action-dock');
+    const more = dock && dock.classList.contains('np-expanded') ? dock.querySelector('.np-more-actions') : null;
     document.documentElement.style.setProperty('--np-cms-header-height', (header ? Math.ceil(header.getBoundingClientRect().height) : 0) + 'px');
     document.documentElement.style.setProperty('--np-action-dock-height', (dock ? Math.ceil(dock.getBoundingClientRect().height) : 0) + 'px');
+    document.documentElement.style.setProperty('--np-more-panel-height', (more ? Math.ceil(more.getBoundingClientRect().height) : 0) + 'px');
   }
 
   function showRecovery() {
@@ -297,6 +327,9 @@
   document.addEventListener('input', event => {
     if (!isEditor() || event.target.closest('#np-action-dock')) return;
     dirty = true; setSaveLabel('Unsaved changes'); clearTimeout(saveTimer); saveTimer = setTimeout(autosave, 4000); snapshot(); renderStatus();
+  }, true);
+  document.addEventListener('focusin', event => {
+    if (isEditor() && !event.target.closest('#np-action-dock')) lastEditorFocus = event.target;
   }, true);
   document.addEventListener('change', event => { if (isEditor() && !event.target.closest('#np-action-dock')) { dirty = true; snapshot(); renderStatus(); } }, true);
   document.addEventListener('change', function (event) {
@@ -317,6 +350,7 @@
   window.addEventListener('offline', () => { snapshot(); toast('Offline — this draft is stored on this device'); });
   window.addEventListener('hashchange', () => setTimeout(renderDock, 500));
   window.addEventListener('resize', syncMobileLayout);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', syncMobileLayout);
   new MutationObserver(function () {
     renderDock();
     ensureBrowseControls();
@@ -324,5 +358,6 @@
     $all('input[type="file"]').forEach(input => input.setAttribute('accept', 'image/*,.heic,.heif'));
   }).observe(document.body, { childList: true, subtree: true });
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/admin/service-worker.js');
+  if (window.CMS && CMS.registerEventListener) CMS.registerEventListener({ name: 'postSave', handler: markSaved });
   renderDock();
 })();
