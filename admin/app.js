@@ -42,8 +42,8 @@
     return {
       title: field(/^Title$/i), description: field(/^(Subtitle|Search description)/i),
       date: field(/^Publish date/i), image: field(/^Cover image$/i),
-      imageAlt: field(/^Cover image description$/i), draft: field(/^Keep as draft$/i),
-      body: field(/^Body$/i)
+      imageAlt: field(/^Cover image description$/i), draft: field(/Keep as draft/i),
+      body: field(/^(Article body|Body)$/i)
     };
   }
 
