@@ -28,7 +28,7 @@ Our complete practical packing list lives on [Cheeto’s trail-ready cat hiking 
 
 **The cues that tell him an adventure is coming**
 
-But honestly, he doesn’t even need the zipper. He knows the second I put my tennis shoes on. I don’t wear them out much without him, so somewhere along the way it became his cue—shoes on, adventure’s happening. And on the rare day it’s a shoes day and he’s not coming, I feel genuinely bad about it, because I know what that sound means to him now and I don’t want to be the one to make it mean less.
+But honestly, he doesn’t even need the zipper. He knows the second I put my tennis shoes on. I don’t wear them out much without him, so somewhere along the way it became his cue—shoes on, adventure’s happening. On the rare day I put on my tennis shoes without taking him, I genuinely feel bad. I know what that cue means to him, and I don’t want to be the one who makes it mean less.
 
 The second the backpack hits the floor, he’s already meowing at me, inquiring about things I can’t fully answer yet—where, how far, are we leaving now? He knows. And at that point, the whole routine turns into a race against how fast we can actually get out the door, because he’s ready before I am.
 
