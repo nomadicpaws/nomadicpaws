@@ -20,17 +20,17 @@ Thankfully, Cheeto has always been an agreeable cat. I wish I could tell you the
 
 And from his perspective, it really was. The harness brought treats, attention, and eventually access to the desert. Instead of becoming something that restrained him, it became the thing that made his adventures possible.
 
-**Making the harness part of something positive**
+### Making the harness part of something positive
 
 Treats did the heavy lifting, if I’m being honest. He’s motivated by them in the way most cats are motivated by very little else, and that made the whole process less about training and more about just… showing him what was in it for him.
 
 Putting the harness on became part of a petting session. He’d come up for it the same way he comes up for pets, rubbing against me first. He still had to learn to stay still for the few seconds it took to fasten everything, so timing mattered more than anything. I’d put a treat on the ground, wait until he was mid-chew, and use that little window to clip the harness around his neck and then his tummy before he finished the bite. A Churu would have kept him occupied considerably longer and made this much easier, but I hadn’t quite been sold on them yet.
 
-**Choosing a secure cat harness**
+### Choosing a secure cat harness
 
 The harness itself went through a change, though. I didn’t start with the one we use now. Cheeto could slip right out of his first harness if he really wanted to—which is a genuinely unsettling thing to discover when you’re somewhere with roads or open space nearby. That’s when I switched to the Buddy Armor harness we use now. Its more secure design makes it much harder for him to back out of, while still allowing him to move comfortably on the trail. You can find the exact harness on [Cheeto’s trail-ready checklist.](https://nomadicpaws.co/checklist/)
 
-**Why recall is a backup, not a replacement**
+### Why recall is a backup, not a replacement
 
 And in the meantime, praise the Lord, I’d already been working recall with him—not just on walks, but around the house too. Different rooms, different distractions, over and over, before we ever needed it to matter outside.
 
