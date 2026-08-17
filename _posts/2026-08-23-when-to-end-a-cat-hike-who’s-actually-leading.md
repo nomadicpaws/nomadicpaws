@@ -14,7 +14,7 @@ People assume that because Cheeto’s on a leash, I’m the one calling the shot
 
 I decide when we leave, keep track of the conditions, and make the final safety calls, but Cheeto has opinions about almost everything in between. He chooses where to pause, what deserves investigating, and whether a particular direction is worth pursuing. The leash keeps us connected; it doesn’t mean I control his every step.
 
-**The way Cheeto votes**
+### The way Cheeto votes
 
 He’s agreeable about direction—left, right, up over the rocks, it doesn’t matter much to him. But every so often, he just lies down. Right there in the wash. That’s him telling me clearly that he’d rather go the other way. He’s not being stubborn. He’s just voting.
 
@@ -22,7 +22,7 @@ The thing he doesn’t know—can’t know—is what the sun is doing while he v
 
 He doesn’t know that farther out means farther back. Every extra ten minutes of exploring is ten more minutes on the return trip, and out here, the desert changes fast after sunrise. He just wants to keep going. More ground, more smells, more world. He’s a cat living entirely in the present tense, and the present tense feels great.
 
-**Planning the walk to avoid the heat**
+### **Planning the walk to avoid the heat**
 
 That’s why I wake up early for our walks and plan our turnaround with enough time to get home before the desert heat builds. I’m not waiting for it to become dangerously hot. I’m watching the clock, the route, the rising sun, our remaining water, and Cheeto himself so I can make the decision while we still have a comfortable trip home.
 
@@ -32,7 +32,7 @@ I always give him the option to come back out. He’s even learned how to hop ou
 
 That exact conflict—Cheeto believing there was still more trail ahead while I watched the rising sun and the distance home—is what turned me into [Cheeto’s Uber](https://nomadicpaws.co/trail-journal/2026-07-26-the-day-i-was-cheetos-uber) on one particularly long walk through the wash.
 
-**Leading by seeing farther ahead**
+### **Leading by seeing farther ahead**
 
 I time our route so we’re approaching home before the real heat arrives. By then, he’s often thinking about water and the cool tile instead of another stretch of wash. While he’s still out there mid-walk, though, he wants to stay out. Every time.
 
