@@ -1,10 +1,10 @@
 ---
-image: /images/0ebde0f9-fed6-4f84-8620-3457cfeba450.png
+image: /images/a4c5d12e-e700-4ca4-b71b-22c130c0aacc.png
 image_alt: "Cheeto, an orange tabby wearing a purple harness and leash, walks
-  through sunlit mesquite beside the Nomadic Paws logo and the title “How We
-  Prepare for a Hike With Our Cat: Our Pre-Hike Routine.”"
-title: "How We Prepare for a Hike With Our Cat: Our Pre-Hike Routine"
-description: See how we prepare for a hike with our cat using predictable cues,
+  through sunlit mesquite beside the Nomadic Paws logo and the title “ How We
+  Prepare for a Cat Hike: Cheeto’s Pre-Hike Routine”"
+title: "How We Prepare for a Cat Hike: Cheeto’s Pre-Hike Routine"
+description: See how we prepare for a hike with a cat using predictable cues,
   backpack practice, water, and the gear Cheeto knows means adventure.
 category: Tips
 draft: false
