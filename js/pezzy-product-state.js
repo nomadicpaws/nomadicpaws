@@ -15,6 +15,7 @@
     link.textContent = label;
     link.setAttribute('aria-label', ariaLabel);
     control.replaceWith(link);
+    return link;
   }
 
   function showState(control, state) {
@@ -43,13 +44,14 @@
       return;
     }
     if (state.affiliateUrl) {
-      replaceWithAffiliateLink(
+      var availabilityLink = replaceWithAffiliateLink(
         control,
         state,
-        'Check availability',
+        'Check at Pezzy ↗',
         'Check this product’s availability through Pezzy (affiliate link)'
       );
-      if (message) message.textContent = 'Currently unavailable';
+      availabilityLink.classList.add('np-treat-cta--secondary');
+      if (message) message.textContent = 'Availability may vary · Affiliate link';
       return;
     }
     control.disabled = true;
