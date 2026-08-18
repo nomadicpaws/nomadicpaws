@@ -6,14 +6,14 @@
     return container && container.querySelector('[data-inventory-message]');
   }
 
-  function replaceWithAffiliateLink(control, state) {
+  function replaceWithAffiliateLink(control, state, label, ariaLabel) {
     var link = document.createElement('a');
     link.className = control.className.replace(/\bsnipcart-add-item\b/g, '').trim();
     link.href = state.affiliateUrl;
     link.target = '_blank';
     link.rel = 'noopener sponsored';
-    link.textContent = 'Shop through Pezzy';
-    link.setAttribute('aria-label', 'Shop this product through Pezzy (affiliate link)');
+    link.textContent = label;
+    link.setAttribute('aria-label', ariaLabel);
     control.replaceWith(link);
   }
 
@@ -33,8 +33,23 @@
       return;
     }
     if (state.status === 'affiliate' && state.affiliateUrl) {
-      replaceWithAffiliateLink(control, state);
+      replaceWithAffiliateLink(
+        control,
+        state,
+        'Shop through Pezzy',
+        'Shop this product through Pezzy (affiliate link)'
+      );
       if (message) message.textContent = 'Sold out here · Affiliate link';
+      return;
+    }
+    if (state.affiliateUrl) {
+      replaceWithAffiliateLink(
+        control,
+        state,
+        'Check availability',
+        'Check this product’s availability through Pezzy (affiliate link)'
+      );
+      if (message) message.textContent = 'Currently unavailable';
       return;
     }
     control.disabled = true;
