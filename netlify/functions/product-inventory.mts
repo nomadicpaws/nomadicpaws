@@ -11,7 +11,7 @@ function json(body: unknown, status = 200): Response {
 }
 
 export default async () => {
-  const secretKey = process.env.SNIPCART_SECRET_API_KEY
+  const secretKey = process.env.Snipcart
   if (!secretKey) return json({ error: 'Inventory service is not configured.' }, 503)
 
   const authorization = `Basic ${Buffer.from(`${secretKey}:`).toString('base64')}`
