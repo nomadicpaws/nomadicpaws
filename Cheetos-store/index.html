@@ -357,6 +357,20 @@
     color: #4A3728;
   }
 
+  .np-treat-img--reserved {
+    border-bottom: 1px solid #E4D9C8;
+  }
+
+  .np-product-photo {
+    display: block;
+    width: 100%;
+    max-height: 320px;
+    object-fit: contain;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: #FFFDF9;
+  }
+
   .np-review-empty {
     display: flex;
     flex-direction: column;
@@ -881,7 +895,7 @@
         "@type": "Product",
         "name": "Pezzy Lionfish Sticks",
         "description": "Single-ingredient dog and cat treats made from 100% wild-caught invasive lionfish.",
-        "image": "https://nomadicpaws.co/images/products/pezzy-lionfish-sticks.jpg",
+        "image": "https://nomadicpaws.co/images/products/pezzy-lionfish-sticks.png",
         "sku": "pezzy-lionfish-sticks",
         "category": "Dog and cat treats",
         "brand": { "@type": "Brand", "name": "Pezzy" },
@@ -923,7 +937,7 @@
         "@type": "Product",
         "name": "Pezzy Nilgai Antelope Heart",
         "description": "Single-ingredient dog and cat jerky made from 100% nilgai antelope heart.",
-        "image": "https://nomadicpaws.co/images/products/pezzy-nilgai-heart.jpg",
+        "image": "https://nomadicpaws.co/images/products/pezzy-nilgai-heart.png",
         "sku": "pezzy-nilgai-antelope-heart",
         "category": "Dog and cat treats",
         "brand": { "@type": "Brand", "name": "Pezzy" },
@@ -965,7 +979,7 @@
         "@type": "Product",
         "name": "Pezzy Silver Carp Chips",
         "description": "Single-ingredient dog and cat treats made from 100% invasive silver carp.",
-        "image": "https://nomadicpaws.co/images/products/pezzy-silver-carp-chips.jpg",
+        "image": "https://nomadicpaws.co/images/products/pezzy-silver-carp-chips.png",
         "sku": "pezzy-silver-carp-chips",
         "category": "Dog and cat treats",
         "brand": { "@type": "Brand", "name": "Pezzy" },
@@ -1007,7 +1021,7 @@
         "@type": "Product",
         "name": "Pezzy Devil Fish Strips",
         "description": "Single-ingredient dog and cat treats made from 100% wild-caught invasive Mexican devil fish.",
-        "image": "https://nomadicpaws.co/images/products/pezzy-devil-fish-strips.jpg",
+        "image": "https://nomadicpaws.co/images/products/pezzy-devil-fish-strips.png",
         "sku": "pezzy-devil-fish-strips-preorder",
         "category": "Dog and cat treats",
         "brand": { "@type": "Brand", "name": "Pezzy" },
@@ -1228,7 +1242,7 @@
 
     <div class="np-treats-grid">
       <div class="np-treat-card" id="lionfish-sticks">
-        <img class="np-treat-img" src="/images/products/pezzy-lionfish-sticks.jpg" alt="Pezzy Lionfish Sticks single ingredient dog and cat treats">
+        <div class="np-treat-img np-treat-img--reserved" aria-hidden="true"></div>
         <div class="np-treat-body">
           <span class="np-treat-badge">Single Ingredient</span>
           <h3 class="np-treat-name">Lionfish Sticks</h3>
@@ -1245,12 +1259,16 @@
               data-item-url="/cheetos-store/"
               data-item-name="Pezzy Lionfish Sticks"
               data-item-description="Single ingredient dog & cat treats, 100% wild-caught invasive lionfish"
-              data-item-image="/images/products/pezzy-lionfish-sticks.jpg"
+              data-item-image="/images/products/pezzy-lionfish-sticks.png"
               data-item-max-quantity="11"
             >Checking availability...</button>
           </div>
           <p class="np-treat-qty" data-inventory-message role="status">Checking inventory...</p>
           <div class="np-product-accordions">
+            <details class="np-product-detail">
+              <summary>Product photo</summary>
+              <img class="np-product-photo" src="/images/products/pezzy-lionfish-sticks.png" alt="Front of the Pezzy Lionfish Sticks package" loading="lazy" decoding="async">
+            </details>
             <details class="np-product-detail">
               <summary>Description</summary>
               <p class="np-product-detail-content">Firm, chewy sticks made from wild-caught lionfish. They make a high-value trail reward and can be broken into smaller pieces for cats who prefer bite-sized treats.</p>
@@ -1279,7 +1297,7 @@
       </div>
 
       <div class="np-treat-card" id="nilgai-antelope-heart">
-        <img class="np-treat-img" src="/images/products/pezzy-nilgai-heart.jpg" alt="Pezzy Nilgai Antelope Heart single ingredient treats">
+        <div class="np-treat-img np-treat-img--reserved" aria-hidden="true"></div>
         <div class="np-treat-body">
           <span class="np-treat-badge">Single Ingredient</span>
           <h3 class="np-treat-name">Nilgai Antelope Heart</h3>
@@ -1296,12 +1314,16 @@
               data-item-url="/cheetos-store/"
               data-item-name="Pezzy Nilgai Antelope Heart"
               data-item-description="Single ingredient jerky, wild-caught invasive nilgai antelope"
-              data-item-image="/images/products/pezzy-nilgai-heart.jpg"
+              data-item-image="/images/products/pezzy-nilgai-heart.png"
               data-item-max-quantity="12"
             >Checking availability...</button>
           </div>
           <p class="np-treat-qty" data-inventory-message role="status">Checking inventory...</p>
           <div class="np-product-accordions">
+            <details class="np-product-detail">
+              <summary>Product photo</summary>
+              <img class="np-product-photo" src="/images/products/pezzy-nilgai-heart.png" alt="Front of the Pezzy Nilgai Antelope Heart package" loading="lazy" decoding="async">
+            </details>
             <details class="np-product-detail">
               <summary>Description</summary>
               <p class="np-product-detail-content">Rich, protein-dense heart jerky with a hearty texture. It works well as a memorable reward after a walk or anytime your cat deserves something special.</p>
@@ -1330,7 +1352,7 @@
       </div>
 
       <div class="np-treat-card" id="silver-carp-chips">
-        <img class="np-treat-img" src="/images/products/pezzy-silver-carp-chips.jpg" alt="Pezzy Silver Carp Chips single ingredient dog and cat treats">
+        <div class="np-treat-img np-treat-img--reserved" aria-hidden="true"></div>
         <div class="np-treat-body">
           <span class="np-treat-badge">Single Ingredient</span>
           <h3 class="np-treat-name">Silver Carp Chips</h3>
@@ -1347,12 +1369,16 @@
               data-item-url="/cheetos-store/"
               data-item-name="Pezzy Silver Carp Chips"
               data-item-description="Single ingredient dog & cat treats, wild-caught invasive silver carp"
-              data-item-image="/images/products/pezzy-silver-carp-chips.jpg"
+              data-item-image="/images/products/pezzy-silver-carp-chips.png"
               data-item-max-quantity="29"
             >Checking availability...</button>
           </div>
           <p class="np-treat-qty" data-inventory-message role="status">Checking inventory...</p>
           <div class="np-product-accordions">
+            <details class="np-product-detail">
+              <summary>Product photo</summary>
+              <img class="np-product-photo" src="/images/products/pezzy-silver-carp-chips.png" alt="Front of the Pezzy Silver Carp Chips package" loading="lazy" decoding="async">
+            </details>
             <details class="np-product-detail">
               <summary>Description</summary>
               <p class="np-product-detail-content">Light, crispy fish chips with an easy-to-break texture. They are convenient for portioning into small rewards at home, during training, or after an adventure.</p>
@@ -1381,7 +1407,7 @@
       </div>
 
       <div class="np-treat-card" id="devil-fish-strips">
-        <img class="np-treat-img" src="/images/products/pezzy-devil-fish-strips.jpg" alt="Pezzy Devil Fish Strips single ingredient dog and cat treats">
+        <img class="np-treat-img" src="/images/products/pezzy-devil-fish-strips.png" alt="Front of the Pezzy Devil Fish Strips package">
         <div class="np-treat-body">
           <span class="np-treat-badge">Single Ingredient</span>
           <h3 class="np-treat-name">Devil Fish Strips</h3>
@@ -1398,7 +1424,7 @@
               data-item-url="/cheetos-store/"
               data-item-name="Pezzy Devil Fish Strips"
               data-item-description="Single ingredient dog & cat treats, wild-caught invasive devil fish."
-              data-item-image="/images/products/pezzy-devil-fish-strips.jpg"
+              data-item-image="/images/products/pezzy-devil-fish-strips.png"
               data-item-max-quantity="19"
             >Checking availability...</button>
           </div>
