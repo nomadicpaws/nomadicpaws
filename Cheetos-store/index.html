@@ -221,6 +221,7 @@
   .np-bundle-hero-cta {
     font-size: 0.92rem; font-weight: 700; color: #FFFDF9; background: #C1652F;
     border: none; border-radius: 8px; padding: 0.75rem 1.5rem; cursor: pointer;
+    text-decoration: none;
   }
   .np-treats-grid-label {
     font-family: 'Fraunces', serif; font-size: 1.15rem; color: #4A3728;
@@ -258,6 +259,7 @@
   .np-treat-cta {
     font-size: 0.85rem; font-weight: 600; color: #FFFDF9; background: #C1652F;
     border: none; border-radius: 8px; padding: 0.5rem 1rem; cursor: pointer;
+    text-decoration: none;
   }
   .np-treat-cta:disabled {
     background: #C9B89A; cursor: not-allowed;
@@ -1198,13 +1200,17 @@
           </span>
           <button
             class="np-bundle-hero-cta snipcart-add-item"
+            disabled
+            aria-disabled="true"
+            data-inventory-action="Add to pack"
             data-item-id="pezzy-trail-pack-bundle"
             data-item-price="50.00"
             data-item-url="/cheetos-store/"
             data-item-name="Nomadic Paws Trail Pack (3-Flavor Bundle)"
             data-item-description="One bag each of Lionfish Sticks, Nilgai Antelope Heart, and Silver Carp Chips"
             data-item-image="/images/products/pezzy-trail-pack-bundle.jpg"
-          >Add to pack</button>
+          >Checking availability...</button>
+          <span class="np-treat-qty" data-inventory-message role="status">Checking inventory...</span>
         </div>
       </div>
     </div>
@@ -1222,6 +1228,9 @@
             <span class="np-treat-price">$21.00</span>
             <button
               class="np-treat-cta snipcart-add-item"
+              disabled
+              aria-disabled="true"
+              data-inventory-action="Add to pack"
               data-item-id="pezzy-lionfish-sticks"
               data-item-price="21.00"
               data-item-url="/cheetos-store/"
@@ -1229,9 +1238,9 @@
               data-item-description="Single ingredient dog & cat treats, 100% wild-caught invasive lionfish"
               data-item-image="/images/products/pezzy-lionfish-sticks.jpg"
               data-item-max-quantity="11"
-            >Add to pack</button>
+            >Checking availability...</button>
           </div>
-          <p class="np-treat-qty">11 left</p>
+          <p class="np-treat-qty" data-inventory-message role="status">Checking inventory...</p>
           <div class="np-product-accordions">
             <details class="np-product-detail">
               <summary>Description</summary>
@@ -1270,6 +1279,9 @@
             <span class="np-treat-price">$18.00</span>
             <button
               class="np-treat-cta snipcart-add-item"
+              disabled
+              aria-disabled="true"
+              data-inventory-action="Add to pack"
               data-item-id="pezzy-nilgai-antelope-heart"
               data-item-price="18.00"
               data-item-url="/cheetos-store/"
@@ -1277,9 +1289,9 @@
               data-item-description="Single ingredient jerky, wild-caught invasive nilgai antelope"
               data-item-image="/images/products/pezzy-nilgai-heart.jpg"
               data-item-max-quantity="12"
-            >Add to pack</button>
+            >Checking availability...</button>
           </div>
-          <p class="np-treat-qty">12 left</p>
+          <p class="np-treat-qty" data-inventory-message role="status">Checking inventory...</p>
           <div class="np-product-accordions">
             <details class="np-product-detail">
               <summary>Description</summary>
@@ -1318,6 +1330,9 @@
             <span class="np-treat-price">$17.00</span>
             <button
               class="np-treat-cta snipcart-add-item"
+              disabled
+              aria-disabled="true"
+              data-inventory-action="Add to pack"
               data-item-id="pezzy-silver-carp-chips"
               data-item-price="17.00"
               data-item-url="/cheetos-store/"
@@ -1325,8 +1340,9 @@
               data-item-description="Single ingredient dog & cat treats, wild-caught invasive silver carp"
               data-item-image="/images/products/pezzy-silver-carp-chips.jpg"
               data-item-max-quantity="29"
-            >Add to pack</button>
+            >Checking availability...</button>
           </div>
+          <p class="np-treat-qty" data-inventory-message role="status">Checking inventory...</p>
           <div class="np-product-accordions">
             <details class="np-product-detail">
               <summary>Description</summary>
@@ -1366,6 +1382,9 @@
             <span class="np-treat-price">$17.00</span>
             <button
               class="np-treat-cta snipcart-add-item"
+              disabled
+              aria-disabled="true"
+              data-inventory-action="Preorder"
               data-item-id="pezzy-devil-fish-strips-preorder"
               data-item-price="17.00"
               data-item-url="/cheetos-store/"
@@ -1373,9 +1392,9 @@
               data-item-description="Single ingredient dog & cat treats, wild-caught invasive devil fish. Preorder, ships August 2026."
               data-item-image="/images/products/pezzy-devil-fish-strips.jpg"
               data-item-max-quantity="19"
-            >Preorder</button>
+            >Checking availability...</button>
           </div>
-          <p class="np-treat-qty">19 available for preorder</p>
+          <p class="np-treat-qty" data-inventory-message role="status">Checking inventory...</p>
           <div class="np-product-accordions">
             <details class="np-product-detail">
               <summary>Description</summary>
@@ -1520,6 +1539,8 @@
 <div id="site-footer"></div>
 <script src="/js/shared-footer.js"></script>
 <script src="/js/zoho-pack-signup.js"></script>
+<script src="/js/open-card-description.js"></script>
+<script src="/js/pezzy-product-state.js"></script>
 <script>
   (() => {
     const form = document.getElementById('product-launch-updates');
