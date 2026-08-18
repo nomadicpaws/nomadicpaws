@@ -15,6 +15,7 @@ export const PEZZY_PRODUCTS = [
   {
     id: 'pezzy-devil-fish-strips-preorder',
     affiliateUrl: 'https://pezzypets.com/products/pezzy-single-ingredient-treats-fish-strips?sca_ref=11859855.fBiDjsDHsK',
+    affiliateAvailable: false,
   },
 ]
 
@@ -31,7 +32,11 @@ export function publicProductState(product, snipcartProduct) {
 
   return {
     id: product.id,
-    status: stock > 0 ? 'in_stock' : product.affiliateUrl ? 'affiliate' : 'unavailable',
+    status: stock > 0
+      ? 'in_stock'
+      : product.affiliateUrl && product.affiliateAvailable !== false
+        ? 'affiliate'
+        : 'unavailable',
     stock,
     affiliateUrl: product.affiliateUrl,
   }

@@ -3,6 +3,11 @@ import { publicProductState } from '../netlify/functions/lib/pezzy-inventory.mjs
 
 const withAffiliate = { id: 'treat', affiliateUrl: 'https://example.com/affiliate' }
 const withoutAffiliate = { id: 'bundle', affiliateUrl: null }
+const unavailableAffiliate = {
+  id: 'sold-out-everywhere',
+  affiliateUrl: 'https://example.com/affiliate',
+  affiliateAvailable: false,
+}
 
 assert.deepEqual(
   publicProductState(withAffiliate, { inventoryManagementMethod: 'Single', stock: 4, totalStock: 4 }),
@@ -15,6 +20,15 @@ assert.deepEqual(
 assert.deepEqual(
   publicProductState(withoutAffiliate, { inventoryManagementMethod: 'Single', stock: 0, totalStock: 0 }),
   { id: 'bundle', status: 'unavailable', stock: 0, affiliateUrl: null },
+)
+assert.deepEqual(
+  publicProductState(unavailableAffiliate, { inventoryManagementMethod: 'Single', stock: 0, totalStock: 0 }),
+  {
+    id: 'sold-out-everywhere',
+    status: 'unavailable',
+    stock: 0,
+    affiliateUrl: unavailableAffiliate.affiliateUrl,
+  },
 )
 assert.deepEqual(
   publicProductState(withAffiliate, { inventoryManagementMethod: 'Disabled' }),
