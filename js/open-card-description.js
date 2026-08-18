@@ -12,7 +12,8 @@
     var card = document.getElementById(targetId);
     if (!card) return;
 
-    var description = card.querySelector('details.card-details, details.np-product-detail');
+    var description = card.querySelector('details[data-card-description]') ||
+      card.querySelector('details.card-details, details.np-product-detail');
     if (!description) return;
 
     description.open = true;
