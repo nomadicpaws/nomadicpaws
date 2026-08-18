@@ -367,18 +367,19 @@
  background:rgba(255,255,255,0.22);
  color:#fff;
  }
- .card.store-card .store-icon{
- background:rgba(255,255,255,0.18);
- border:1px solid rgba(255,255,255,0.28);
+ .card.store-card .pezzy-logo-link{
+ display:inline-block;
+ border-radius:12px;
  }
- .card.store-card .store-icon svg{
- width:25px;
- height:25px;
- stroke:#fff;
- fill:none;
- stroke-width:1.7;
- stroke-linecap:round;
- stroke-linejoin:round;
+ .card.store-card .pezzy-logo-link:focus-visible{
+ outline:3px solid #fff;
+ outline-offset:4px;
+ }
+ .card.store-card .pezzy-logo{
+ display:block;
+ width:120px;
+ max-width:100%;
+ height:auto;
  }
  .card.store-card .btn{
  background:#fff;
@@ -742,12 +743,9 @@
  <!-- 13: Pezzy Treats — closing CTA to Cheeto's Store -->
  <div class="card store-card" id="pezzy-treats">
  <div class="card-top">
- <div class="icon store-icon" aria-hidden="true">
- <svg viewBox="0 0 24 24">
- <path d="M20 4C12 5 6.5 9.3 5.5 16.2c4.1.9 7.8-.1 10.5-2.9C18.7 10.5 20 4 20 4Z"/>
- <path d="M4 20c2.2-5.1 6.2-8.3 12-11"/>
- </svg>
- </div>
+ <a class="pezzy-logo-link" href="/cheetos-store/" aria-label="Shop Pezzy treats in Cheeto's Store">
+ <img class="pezzy-logo" src="/images/pezzy-logo.png" alt="Pezzy Pet Treats" width="344" height="243" loading="lazy" decoding="async">
+ </a>
  </div>
  <span class="tag">Trail Rewards</span>
  <h3 class="cat-name">Pezzy Single-Ingredient Conservation Treats</h3>
