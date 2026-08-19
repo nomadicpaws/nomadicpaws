@@ -4,8 +4,19 @@ function authorization(secret) {
   return `Basic ${Buffer.from(`${secret}:`).toString("base64")}`;
 }
 
-export function createSnipcartInventoryClient({ secret = process.env.Snipcart, fetchImpl = fetch } = {}) {
+function configuredSecret() {
+  return process.env.EVENT_REGISTER_ENV === "test" ? process.env.SnipcartTest : process.env.Snipcart;
+}
+
+export function createSnipcartInventoryClient({
+  secret = configuredSecret(),
+  expectedMode = process.env.EVENT_REGISTER_ENV === "test" ? "Test" : undefined,
+  fetchImpl = fetch,
+} = {}) {
   if (!secret) throw new Error("Snipcart inventory is not configured.");
+  if (expectedMode === "Test" && String(secret).startsWith("SL_")) {
+    throw new Error("A live Snipcart key cannot be used by the test event register.");
+  }
   const headers = { Accept: "application/json", Authorization: authorization(secret) };
 
   return {
@@ -13,6 +24,9 @@ export function createSnipcartInventoryClient({ secret = process.env.Snipcart, f
       const response = await fetchImpl(`${PRODUCTS_URL}/${encodeURIComponent(productId)}`, { headers });
       if (!response.ok) throw new Error(`Snipcart returned ${response.status} while reading ${productId}.`);
       const product = await response.json();
+      if (expectedMode && product.mode !== expectedMode) {
+        throw new Error(`Snipcart returned ${product.mode || "an unknown mode"}; expected ${expectedMode}.`);
+      }
       const stock = Number(product.stock);
       if (!Number.isSafeInteger(stock) || stock < 0) throw new Error(`Snipcart returned invalid stock for ${productId}.`);
       return { product, stock };

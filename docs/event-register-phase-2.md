@@ -5,7 +5,7 @@ This backend is deliberately locked to Stripe test mode. It does not alter the e
 ## Netlify configuration
 
 1. Enable Netlify Database for the site. Netlify applies the migration in `netlify/database/migrations` before deployment.
-2. Add the variables shown in `.env.example` to the Production deploy context. Keep all secret values in Netlify, never in the phone app or repository.
+2. Add the variables shown in `.env.example` to the Production deploy context. Keep all secret values in Netlify, never in the phone app or repository. `Snipcart` remains the live-store secret; `SnipcartTest` must be a separate secret key created while the Snipcart dashboard is in Test mode.
 3. Set `EVENT_REGISTER_ENV` to `test`. The backend rejects any Stripe key that does not begin with `sk_test_`.
 4. Set an explicit `EVENT_TAX_RATE_BPS` for the event jurisdiction. For example, `820` means 8.20%. Confirm the correct rate before taking payments.
 5. In Stripe test mode, create a Terminal location and put its `tml_...` id in `STRIPE_TERMINAL_LOCATION_ID`.
@@ -15,7 +15,7 @@ This backend is deliberately locked to Stripe test mode. It does not alter the e
 
 The future React Native companion signs in by POSTing an operator-entered access code to `/api/event/auth/session`. It keeps the returned short-lived token only on the device and uses it for the remaining endpoints.
 
-1. `GET /api/event/products` reads current Snipcart stock.
+1. `GET /api/event/products` reads isolated Snipcart Test inventory and refuses a Live-mode response.
 2. `POST /api/event/sales` receives a fresh UUID `requestId`, validates stock and prices on the server, records the sale, and creates a Stripe test `card_present` PaymentIntent. Reusing a request id is rejected so a retry cannot silently create a second charge.
 3. The React Native Stripe Terminal SDK collects and confirms the payment with a simulated reader during Phase 2.
 4. Stripe calls the signed webhook. The webhook records the event exactly once, marks the sale paid, and creates durable inventory adjustments.
