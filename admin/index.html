@@ -18,7 +18,10 @@
     <link rel="stylesheet" href="/admin/admin.css" />
 
     <!-- Netlify Identity widget (load in head so it can handle invite/login handoff) -->
-    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+    <script
+      src="https://unpkg.com/netlify-identity-widget@1.9.2/build/netlify-identity-widget.js"
+      integrity="sha384-dy2tW8xkhLIj8lZR42MCwZhhDb2cCewZiw0uA65CMpdHiJzL+iubx7HzHcCXU2rW"
+      crossorigin="anonymous"></script>
   </head>
   <body>
     <noscript>
@@ -49,7 +52,10 @@
     </script>
 
     <!-- Decap CMS (load at end of body so it can mount into the DOM) -->
-    <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+    <script
+      src="https://unpkg.com/decap-cms@3.15.1/dist/decap-cms.js"
+      integrity="sha384-in6eHztHveqQ7uMZ1fDaKlDmacQLFuLH2wWrFTiymyuS8zQ5bixwL8U3AeRi8h/L"
+      crossorigin="anonymous"></script>
     <script src="/admin/review-utils.js"></script>
     <script src="/admin/photo-utils.js"></script>
     <script src="/admin/app.js" defer></script>

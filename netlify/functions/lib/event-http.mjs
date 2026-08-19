@@ -34,5 +34,9 @@ export function requireTestMode() {
 export function errorResponse(error) {
   const status = Number(error?.status) || 500;
   if (status >= 500) console.error(error);
-  return json({ error: status >= 500 ? "The event register could not complete that request." : error.message }, status);
+  return json(
+    { error: status >= 500 ? "The event register could not complete that request." : error.message },
+    status,
+    error?.headers || {},
+  );
 }

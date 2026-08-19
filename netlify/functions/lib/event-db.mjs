@@ -172,3 +172,43 @@ export async function applyAdjustmentWithLock(adjustment, apply) {
     client.release();
   }
 }
+
+export async function getAuthThrottle(clientKey) {
+  const result = await db().pool.query(
+    `SELECT attempt_count,
+            CASE WHEN blocked_until > NOW() THEN CEIL(EXTRACT(EPOCH FROM (blocked_until - NOW())))::integer ELSE 0 END AS retry_after
+       FROM event_auth_attempts WHERE client_key = $1`,
+    [clientKey],
+  );
+  return result.rows[0] || { attempt_count: 0, retry_after: 0 };
+}
+
+export async function recordAuthFailure(clientKey) {
+  const result = await db().pool.query(
+    `INSERT INTO event_auth_attempts (client_key, attempt_count, window_started_at, blocked_until, updated_at)
+     VALUES ($1, 1, NOW(), NULL, NOW())
+     ON CONFLICT (client_key) DO UPDATE SET
+       attempt_count = CASE
+         WHEN event_auth_attempts.window_started_at < NOW() - INTERVAL '15 minutes' THEN 1
+         ELSE event_auth_attempts.attempt_count + 1
+       END,
+       window_started_at = CASE
+         WHEN event_auth_attempts.window_started_at < NOW() - INTERVAL '15 minutes' THEN NOW()
+         ELSE event_auth_attempts.window_started_at
+       END,
+       blocked_until = CASE
+         WHEN event_auth_attempts.window_started_at < NOW() - INTERVAL '15 minutes' THEN NULL
+         WHEN event_auth_attempts.attempt_count + 1 >= 5 THEN NOW() + INTERVAL '15 minutes'
+         ELSE event_auth_attempts.blocked_until
+       END,
+       updated_at = NOW()
+     RETURNING attempt_count,
+       CASE WHEN blocked_until > NOW() THEN CEIL(EXTRACT(EPOCH FROM (blocked_until - NOW())))::integer ELSE 0 END AS retry_after`,
+    [clientKey],
+  );
+  return result.rows[0];
+}
+
+export async function clearAuthFailures(clientKey) {
+  await db().pool.query(`DELETE FROM event_auth_attempts WHERE client_key = $1`, [clientKey]);
+}

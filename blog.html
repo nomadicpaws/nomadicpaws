@@ -430,6 +430,12 @@
         })[character]);
     }
 
+    function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"']/g, character => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[character]);
+    }
+
     function optimizedImageUrl(source, width) {
         return `/.netlify/images?url=${encodeURIComponent(source)}&w=${width}&q=76`;
     }
@@ -451,17 +457,17 @@
         }
 
         grid.innerHTML = posts.map((post, i) => `
-            <article class="post-card ${i === 0 ? 'featured' : ''}" onclick="location.href='/trail-journal/${post.slug}'">
+            <article class="post-card ${i === 0 ? 'featured' : ''}" onclick="location.href='/trail-journal/${encodeURIComponent(String(post.slug || ''))}'">
                 ${post.image || post.thumbnail ? `<img class="post-img" src="${escapeAttribute(optimizedImageUrl(post.image || post.thumbnail, 960))}" srcset="${escapeAttribute(optimizedImageUrl(post.image || post.thumbnail, 480))} 480w, ${escapeAttribute(optimizedImageUrl(post.image || post.thumbnail, 720))} 720w, ${escapeAttribute(optimizedImageUrl(post.image || post.thumbnail, 960))} 960w" sizes="${i === 0 ? '(max-width: 768px) 100vw, 50vw' : '(max-width: 768px) 100vw, 33vw'}" alt="${escapeAttribute(post.imageAlt || post.title)}" width="960" height="640" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async" ${i === 0 ? 'fetchpriority="high"' : ''}>` : `<div class="post-img"></div>`}
                 <div class="post-body">
-                    <div class="post-tag">${post.category || ''}</div>
-                    <h2>${post.title}</h2>
-                    <p>${post.excerpt}</p>
+                    <div class="post-tag">${escapeHtml(post.category)}</div>
+                    <h2>${escapeHtml(post.title)}</h2>
+                    <p>${escapeHtml(post.excerpt)}</p>
                     <div class="post-meta">
                         <span>Calendar: ${formatDate(post.date)}</span>
                         <span>Time: ${post.readTime} min read</span>
                     </div>
-                    <a href="/trail-journal/${post.slug}" class="read-more" aria-label="Read ${escapeAttribute(post.title)}">Read on the trail →</a>
+                    <a href="/trail-journal/${encodeURIComponent(String(post.slug || ''))}" class="read-more" aria-label="Read ${escapeAttribute(post.title)}">Read on the trail →</a>
                 </div>
             </article>
         `).join('');

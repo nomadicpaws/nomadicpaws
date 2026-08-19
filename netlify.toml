@@ -7,6 +7,15 @@
   # Bundle the CMS-authored Markdown posts so the posts API can read them.
   included_files = ["_posts/**"]
 
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https://zgnp-zngp.maillist-manage.com https://*.snipcart.com; script-src 'self' 'unsafe-inline' https://cdn.snipcart.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.snipcart.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdn.snipcart.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.snipcart.com https://*.netlify.com https://api.github.com https://api.gitlab.com; frame-src 'self' https://*.snipcart.com https://zgnp-zngp.maillist-manage.com; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(self)"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+
 [[redirects]]
   from = "/sitemap.xml"
   to = "/.netlify/functions/sitemap"

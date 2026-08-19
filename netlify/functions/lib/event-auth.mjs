@@ -36,3 +36,12 @@ export function bearerToken(headers) {
   const authorization = headers.get?.("authorization") || headers.authorization || headers.Authorization || "";
   return authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
 }
+
+export function authRateLimitKey(request, secret) {
+  if (!secret || secret.length < 32) throw new Error("EVENT_REGISTER_SESSION_SECRET must be at least 32 characters.");
+  const headers = request.headers;
+  const address = headers.get?.("x-nf-client-connection-ip")
+    || headers.get?.("x-forwarded-for")?.split(",")[0]?.trim()
+    || "unknown";
+  return createHmac("sha256", secret).update(`event-auth:${address}`).digest("hex");
+}
