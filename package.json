@@ -1,0 +1,12 @@
+{
+  "name": "nomadic-paws",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "build": "node scripts/generate-sitemap.mjs"
+  },
+  "dependencies": {
+    "@netlify/database": "^1.0.0"
+  }
+}
