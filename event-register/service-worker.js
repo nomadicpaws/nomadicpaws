@@ -1,9 +1,9 @@
-const CACHE = 'np-event-register-v1';
+const CACHE = 'np-event-register-v2';
 const SHELL = [
   '/event-register/',
   '/event-register/register.css',
   '/event-register/register.js',
-  '/event-register/manifest.webmanifest',
+  '/event-register/manifest.json',
   '/apple-touch-icon.png',
   '/admin/icon-192.png',
   '/admin/icon-512.png',
