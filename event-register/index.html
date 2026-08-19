@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#6f7e62">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="NP Register">
+  <title>Event Register — Nomadic Paws</title>
+  <link rel="manifest" href="/event-register/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/event-register/register.css">
+</head>
+<body>
+  <header class="register-header">
+    <a class="brand" href="/" aria-label="Nomadic Paws home">
+      <img src="/apple-touch-icon.png" width="48" height="48" alt="">
+      <span><strong>Nomadic Paws</strong><small>Event Register</small></span>
+    </a>
+    <span class="mode-badge">TEST MODE</span>
+  </header>
+
+  <main>
+    <section class="login-panel" id="loginPanel">
+      <p class="eyebrow">Private seller access</p>
+      <h1>Open the register</h1>
+      <p>Enter the event access code you saved in Netlify. It stays in this sign-in request and is never saved on the device.</p>
+      <form id="loginForm">
+        <label for="accessCode">Event register access code</label>
+        <div class="password-row">
+          <input id="accessCode" name="accessCode" type="password" autocomplete="current-password" required>
+          <button class="secondary-button" id="toggleCode" type="button" aria-label="Show access code">Show</button>
+        </div>
+        <button class="primary-button" id="loginButton" type="submit">Open test register</button>
+        <p class="status" id="loginStatus" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="register" id="registerPanel" hidden>
+      <div class="register-intro">
+        <div>
+          <p class="eyebrow">Simulated sales</p>
+          <h1>Build a test cart</h1>
+          <p>Inventory below comes from Snipcart Test. No real money or live stock is used.</p>
+        </div>
+        <button class="secondary-button" id="signOutButton" type="button">Lock register</button>
+      </div>
+
+      <div class="connection-state" id="connectionState" role="status">
+        <span class="state-dot" aria-hidden="true"></span>
+        <span>Checking Test inventory…</span>
+      </div>
+
+      <div class="product-grid" id="productGrid" aria-live="polite"></div>
+
+      <aside class="cart-panel" aria-labelledby="cartTitle">
+        <div class="cart-heading">
+          <div>
+            <p class="eyebrow">Current test sale</p>
+            <h2 id="cartTitle">Cart</h2>
+          </div>
+          <button class="text-button" id="clearCartButton" type="button">Clear</button>
+        </div>
+        <div id="cartItems" class="cart-items">
+          <p class="empty-cart">Add a product to begin.</p>
+        </div>
+        <div class="cart-total">
+          <span>Subtotal</span>
+          <strong id="cartSubtotal">$0.00</strong>
+        </div>
+        <button class="primary-button" id="readerButton" type="button" disabled>Reader connection comes next</button>
+        <p class="reader-note">The Stripe reader remains disabled until the native companion is ready. This screen cannot charge a card.</p>
+      </aside>
+    </section>
+  </main>
+
+  <script src="/event-register/register.js" defer></script>
+</body>
+</html>
