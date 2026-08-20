@@ -8,8 +8,8 @@ export default async (request) => {
   const url = new URL(request.url);
   const route = url.searchParams.get("route") || url.pathname.replace(/^\//, "");
   if (!env.CONNECTOR_BASE_URL || !env.CONNECTOR_AUTH_SECRET || !env.CONNECTOR_ACCESS_CODE) return json({ error: "Connector is not configured" }, 503);
-  if (route === "oauth-authorization-server") return json(metadata(env));
-  if (route === "oauth-protected-resource") return json({ resource: `${env.CONNECTOR_BASE_URL}/mcp`, authorization_servers: [env.CONNECTOR_BASE_URL] });
+  if (["oauth-authorization-server", ".well-known/oauth-authorization-server"].includes(route)) return json(metadata(env));
+  if (["oauth-protected-resource", ".well-known/oauth-protected-resource"].includes(route)) return json({ resource: `${env.CONNECTOR_BASE_URL}/mcp`, authorization_servers: [env.CONNECTOR_BASE_URL] });
   if (route === "oauth/register" && request.method === "POST") return register(request, env);
   if (route === "oauth/authorize" && ["GET", "POST"].includes(request.method)) return authorize(request, env);
   if (route === "oauth/token" && request.method === "POST") return token(request, env);
