@@ -23,6 +23,12 @@
   force = true
 
 [[redirects]]
+  from = "/trail-journal/2026-08-16-how-we-prepare-for-a-hike-with-our-cat-our-pre-hike-routine"
+  to = "/trail-journal/2026-08-16-how-we-prepare-for-a-cat-hike-cheetos-pre-hike-routine"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/trail-journal/:slug"
   to = "/post.html?slug=:slug"
   status = 200
