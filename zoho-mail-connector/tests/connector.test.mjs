@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { TOOLS, handleMcp } from "../src/mcp.mjs";
 import { createDraft, resetTokenCacheForTests } from "../src/zoho.mjs";
 import { signToken, verifyToken, pkceChallenge } from "../src/security.mjs";
+import { register } from "../src/oauth.mjs";
 
 test("tool surface contains no sending or destructive mail actions", () => {
   assert.deepEqual(TOOLS.map((tool) => tool.name), ["search_mail", "read_message", "create_draft"]);
@@ -41,4 +42,13 @@ test("signed connector tokens reject tampering and PKCE is deterministic", () =>
   assert.equal(verifyToken(token, "secret", "access").typ, "access");
   assert.throws(() => verifyToken(`${token}x`, "secret", "access"));
   assert.equal(pkceChallenge("verifier"), pkceChallenge("verifier"));
+});
+
+test("OAuth registration allows secure URLs and desktop loopback callbacks only", async () => {
+  const env = { CONNECTOR_AUTH_SECRET: "test-secret" };
+  const request = new Request("https://connector.test/oauth/register", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ redirect_uris: ["http://127.0.0.1:49152/callback", "http://localhost:8000/done", "https://chat.example/callback", "http://evil.example/callback"] }) });
+  const response = await register(request, env);
+  const body = await response.json();
+  assert.equal(response.status, 201);
+  assert.deepEqual(body.redirect_uris, ["http://127.0.0.1:49152/callback", "http://localhost:8000/done", "https://chat.example/callback"]);
 });

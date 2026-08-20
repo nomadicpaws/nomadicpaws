@@ -19,7 +19,15 @@ export function metadata(env) {
 
 export async function register(request, env) {
   const input = await request.json();
-  const redirects = Array.isArray(input.redirect_uris) ? input.redirect_uris.filter((x) => /^https:\/\//.test(x)) : [];
+  const redirects = Array.isArray(input.redirect_uris) ? input.redirect_uris.filter((value) => {
+    try {
+      const url = new URL(value);
+      if (url.protocol === "https:") return true;
+      return url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    } catch {
+      return false;
+    }
+  }) : [];
   if (!redirects.length) return json({ error: "invalid_redirect_uris" }, 400);
   const clientId = signToken({ typ: "client", redirects, iat: Date.now(), nonce: randomId() }, env.CONNECTOR_AUTH_SECRET);
   return json({ client_id: clientId, client_id_issued_at: Math.floor(Date.now() / 1000), redirect_uris: redirects, token_endpoint_auth_method: "none" }, 201);
@@ -62,4 +70,3 @@ export function requireAccess(request, env) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   return verifyToken(token, env.CONNECTOR_AUTH_SECRET, "access");
 }
-
