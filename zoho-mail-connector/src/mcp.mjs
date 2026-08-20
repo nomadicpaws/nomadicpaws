@@ -30,7 +30,10 @@ const result = (value) => ({ content: [{ type: "text", text: JSON.stringify(valu
 export async function handleMcp(message, env, fetchImpl = fetch) {
   const base = { jsonrpc: "2.0", id: message?.id ?? null };
   try {
-    if (message.method === "initialize") return { ...base, result: { protocolVersion: "2025-03-26", capabilities: { tools: {} }, serverInfo: { name: "Nomadic Paws Zoho Mail", version: "0.1.0" } } };
+    if (message.method === "initialize") {
+      const requestedVersion = typeof message.params?.protocolVersion === "string" ? message.params.protocolVersion : "2025-03-26";
+      return { ...base, result: { protocolVersion: requestedVersion, capabilities: { tools: { listChanged: false } }, serverInfo: { name: "Nomadic Paws Zoho Mail", version: "0.1.1" }, instructions: "Private Zoho Mail access for search, reading, and saving unsent drafts only. Sending and destructive mailbox actions are unavailable." } };
+    }
     if (message.method === "notifications/initialized") return null;
     if (message.method === "ping") return { ...base, result: {} };
     if (message.method === "tools/list") return { ...base, result: { tools: TOOLS } };
@@ -47,4 +50,3 @@ export async function handleMcp(message, env, fetchImpl = fetch) {
     return { ...base, error: { code: -32000, message: error.message || "Connector error" } };
   }
 }
-

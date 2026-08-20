@@ -15,6 +15,12 @@ test("unknown tools fail closed", async () => {
   assert.match(response.error.message, /prohibited/i);
 });
 
+test("initialize negotiates the client's MCP protocol version", async () => {
+  const response = await handleMcp({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18" } }, {});
+  assert.equal(response.result.protocolVersion, "2025-06-18");
+  assert.deepEqual(response.result.capabilities.tools, { listChanged: false });
+});
+
 test("draft requests force mode=draft and never accept a send mode", async () => {
   resetTokenCacheForTests();
   const calls = [];
