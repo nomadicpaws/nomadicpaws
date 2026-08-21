@@ -164,7 +164,11 @@
             pointer-events: none;
         }
 
-        .hero-content { position: relative; z-index: 2; max-width: 760px; }
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: min(650px, 44vw);
+        }
 
         .hero-eyebrow {
             display: inline-block;
@@ -178,11 +182,13 @@
 
         .hero h1 {
             font-family: 'Fraunces', serif;
-            font-size: clamp(3rem, 7vw, 5.5rem);
+            font-size: clamp(3rem, 5.2vw, 5rem);
             font-weight: 900;
             color: var(--cream);
             line-height: 1.05;
             margin-bottom: 24px;
+            max-width: 650px;
+            text-wrap: balance;
         }
 
         .hero h1 em {
@@ -631,6 +637,8 @@
                 background-image: linear-gradient(0deg, rgba(28,16,11,.93) 0%, rgba(28,16,11,.62) 48%, rgba(28,16,11,.08) 78%), url('/images/hero/cheeto-desert-sunset-mobile-720.jpg');
                 background-position: center;
             }
+            .hero-content { max-width: 100%; }
+            .hero h1 { max-width: 12ch; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -695,7 +703,7 @@
                 <p>We're based in Tucson, Arizona — saguaro country, golden hour country, Catalina Mountains country. These trails are our backyard and we're learning them together, one paw at a time.</p>
             </div>
             <div class="about-paw">
-                <img class="about-logo" src="/apple-touch-icon.png" alt="Nomadic Paws desert logo">
+                <img class="about-logo" src="/images/brand/nomadic-paws-desert-medallion.png" alt="Nomadic Paws white desert logo over a Sonoran Desert background" width="512" height="512" loading="lazy" decoding="async">
             </div>
         </div>
     </section>
