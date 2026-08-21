@@ -284,6 +284,14 @@
  margin:0;
  display:block;
  }
+ .media.media--portrait-video{
+ height:240px;
+ background:var(--bark);
+ }
+ .media.media--portrait-video video{
+ object-fit:contain;
+ background:var(--bark);
+ }
  .play-btn{
  position:absolute;
  top:50%;
@@ -550,11 +558,8 @@
 
  <!-- 1: Complete Leash & Harness Set -->
  <div class="card" id="buddyarmor-harness-leash">
- <div class="media" data-video="PASTE-LEASH-HARNESS-VIDEO-URL-HERE.mp4">
- <img class="product-photo" data-image="/images/mockups/checklist-harness-cheeto-placeholder.png" alt="Cheeto wearing a purple harness and leash on trail ground; temporary photo until the BuddyArmor set is photographed" width="960" height="640" loading="lazy" decoding="async">
- <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
- <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
- </button>
+ <div class="media media--portrait-video">
+ <video src="/images/videos/buddyarmor-harness-source.mov" controls muted playsinline preload="metadata" aria-label="Cheeto wearing the light-green BuddyArmor harness"></video>
  </div>
  <span class="tag">Essential</span>
  <h3 class="cat-name">BuddyArmor Cat Harness &amp; Leash Set</h3>
