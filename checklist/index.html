@@ -214,16 +214,20 @@
  margin:0;
  }
  .checklist-card .icon-slot{
- width:44px;
- height:44px;
+ width:100%;
+ height:auto;
+ aspect-ratio:4 / 3;
  display:flex;
  align-items:center;
  justify-content:center;
  flex-shrink:0;
- margin-bottom:14px;
- border-radius:11px;
- background:var(--sand);
- font-size:22px;
+ margin-bottom:16px;
+ border:1px solid var(--sand-deep);
+ border-radius:12px;
+ background:
+ radial-gradient(circle at 74% 25%, rgba(255,255,255,.88) 0 9%, transparent 10%),
+ linear-gradient(145deg, #F7F1E6, #EEE4D3);
+ font-size:32px;
  line-height:1;
  }
  .checklist-card .category{
@@ -245,6 +249,29 @@
  align-items:flex-start;
  justify-content:space-between;
  margin-bottom:14px;
+ }
+ .card:not(.store-card) > .card-top{
+ width:100%;
+ aspect-ratio:4 / 3;
+ align-items:center;
+ justify-content:center;
+ margin-bottom:16px;
+ border:1px solid var(--sand-deep);
+ border-radius:12px;
+ background:
+ radial-gradient(circle at 74% 25%, rgba(255,255,255,.88) 0 9%, transparent 10%),
+ linear-gradient(145deg, #F7F1E6, #EEE4D3);
+ }
+ .card:not(.store-card) > .card-top .icon{
+ width:62px;
+ height:62px;
+ border-radius:16px;
+ background:rgba(255,255,255,.78);
+ box-shadow:0 9px 24px -18px rgba(63,53,42,.55);
+ }
+ .card:not(.store-card) > .card-top .icon svg{
+ width:30px;
+ height:30px;
  }
  .icon{
  width:44px;height:44px;
