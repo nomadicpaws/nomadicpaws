@@ -215,13 +215,20 @@
     padding: 2.4rem 1rem 1.2rem;
     box-sizing: border-box;
     overflow: hidden;
-    background: linear-gradient(180deg, #f7f1e7 0 66%, #d9c6a6 66% 100%);
+    background-color: #5E5A4E;
+    background-image:
+      linear-gradient(rgba(35,31,27,.12), rgba(35,31,27,.36)),
+      url('/images/reference/desert-storm-mountains.jpg');
+    background-position: center 64%;
+    background-size: cover;
   }
   .np-bundle-hero-products img {
     width: min(31%, 170px);
     max-height: 270px;
     object-fit: contain;
-    filter: drop-shadow(0 12px 10px rgba(74,55,40,.18));
+    filter:
+      drop-shadow(0 0 4px rgba(255,253,249,.9))
+      drop-shadow(0 12px 10px rgba(35,31,27,.4));
   }
   .np-bundle-hero-products img:nth-child(2) { transform: translateY(-12px); }
   .np-bundle-hero-body { padding: 1.75rem 2rem; display: flex; flex-direction: column; justify-content: center; }
@@ -388,15 +395,45 @@
     background: #F5EFE6;
   }
 
-  .np-treat-img--desert {
+  .np-treat-hero {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    max-height: 260px;
+    display: grid;
+    place-items: center;
+    padding: 0.75rem;
+    box-sizing: border-box;
+    overflow: hidden;
     background-color: #D8C7AA;
-    background-image:
-      linear-gradient(rgba(255,253,249,.08), rgba(74,55,40,.12)),
-      url('/images/reference/desert-mountain-clouds.jpg');
-    background-position: center 58%;
+    background-position: center;
     background-size: cover;
     border-bottom: 1px solid #E4D9C8;
-    filter: drop-shadow(0 10px 8px rgba(74,55,40,.18));
+  }
+  .np-treat-hero .np-treat-img--product {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    padding: 0;
+    background: transparent;
+    filter:
+      drop-shadow(0 0 4px rgba(255,253,249,.92))
+      drop-shadow(0 11px 9px rgba(35,31,27,.4));
+  }
+  .np-treat-hero--lionfish {
+    background-image: linear-gradient(rgba(42,61,67,.04), rgba(42,61,67,.2)), url('/images/reference/desert-blue-mountains.jpg');
+    background-position: center 58%;
+  }
+  .np-treat-hero--nilgai {
+    background-image: linear-gradient(rgba(48,31,51,.08), rgba(48,31,51,.28)), url('/images/reference/desert-purple-sunset.jpg');
+    background-position: center 72%;
+  }
+  .np-treat-hero--silver-carp {
+    background-image: linear-gradient(rgba(242,229,205,.03), rgba(65,68,54,.18)), url('/images/reference/desert-evening-brush.jpg');
+    background-position: center 58%;
+  }
+  .np-treat-hero--devil-fish {
+    background-image: linear-gradient(rgba(72,37,31,.04), rgba(72,37,31,.22)), url('/images/reference/desert-orange-sunset.jpg');
+    background-position: center 70%;
   }
 
   .np-product-photo-gallery {
@@ -425,6 +462,7 @@
 
   @media (max-width: 520px) {
     .np-treat-img--product { max-height: 230px; }
+    .np-treat-hero { max-height: 230px; }
     .np-product-photo-gallery { gap: 0.35rem; padding: 0.65rem; }
     .np-product-photo { height: 120px; padding: 0.2rem; }
   }
@@ -1304,7 +1342,9 @@
 
     <div class="np-treats-grid">
       <div class="np-treat-card" id="lionfish-sticks">
-        <img class="np-treat-img np-treat-img--product np-treat-img--desert" src="/images/products/pezzy-lionfish-sticks.png" alt="Front of the Pezzy Lionfish Sticks package against a natural desert background; temporary hero until Cheeto's product photo is ready">
+        <div class="np-treat-hero np-treat-hero--lionfish">
+          <img class="np-treat-img np-treat-img--product" src="/images/products/pezzy-lionfish-sticks.png" alt="Front of the Pezzy Lionfish Sticks package against a cool desert mountain background; temporary hero until Cheeto's product photo is ready">
+        </div>
         <div class="np-treat-body">
           <span class="np-treat-badge">Single Ingredient</span>
           <h3 class="np-treat-name">Lionfish Sticks</h3>
@@ -1363,7 +1403,9 @@
       </div>
 
       <div class="np-treat-card" id="nilgai-antelope-heart">
-        <img class="np-treat-img np-treat-img--product np-treat-img--desert" src="/images/products/pezzy-nilgai-heart.png" alt="Front of the Pezzy Nilgai Antelope Heart package against a natural desert background; temporary hero until Cheeto's product photo is ready">
+        <div class="np-treat-hero np-treat-hero--nilgai">
+          <img class="np-treat-img np-treat-img--product" src="/images/products/pezzy-nilgai-heart.png" alt="Front of the Pezzy Nilgai Antelope Heart package against a purple desert sunset; temporary hero until Cheeto's product photo is ready">
+        </div>
         <div class="np-treat-body">
           <span class="np-treat-badge">Single Ingredient</span>
           <h3 class="np-treat-name">Nilgai Antelope Heart</h3>
@@ -1422,7 +1464,9 @@
       </div>
 
       <div class="np-treat-card" id="silver-carp-chips">
-        <img class="np-treat-img np-treat-img--product np-treat-img--desert" src="/images/products/pezzy-silver-carp-chips.png" alt="Front of the Pezzy Silver Carp Chips package against a natural desert background; temporary hero until Cheeto's product photo is ready">
+        <div class="np-treat-hero np-treat-hero--silver-carp">
+          <img class="np-treat-img np-treat-img--product" src="/images/products/pezzy-silver-carp-chips.png" alt="Front of the Pezzy Silver Carp Chips package against a pale evening desert; temporary hero until Cheeto's product photo is ready">
+        </div>
         <div class="np-treat-body">
           <span class="np-treat-badge">Single Ingredient</span>
           <h3 class="np-treat-name">Silver Carp Chips</h3>
@@ -1481,7 +1525,9 @@
       </div>
 
       <div class="np-treat-card" id="devil-fish-strips">
-        <img class="np-treat-img np-treat-img--product np-treat-img--desert" src="/images/products/pezzy-devil-fish-strips.png" alt="Front of the Pezzy Devil Fish Strips package against a natural desert background">
+        <div class="np-treat-hero np-treat-hero--devil-fish">
+          <img class="np-treat-img np-treat-img--product" src="/images/products/pezzy-devil-fish-strips.png" alt="Front of the Pezzy Devil Fish Strips package against an orange desert sunset">
+        </div>
         <div class="np-treat-body">
           <span class="np-treat-badge">Single Ingredient</span>
           <h3 class="np-treat-name">Devil Fish Strips</h3>
