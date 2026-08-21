@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" role="img" aria-labelledby="title desc">
+  <title id="title">Safety collar photography plan</title><desc id="desc">A planning diagram showing where Cheeto and the safety collar should appear in the final photograph.</desc>
+  <rect width="960" height="640" fill="#efe5d3"/><path d="M0 430 170 330l130 76 175-160 177 137 132-90 176 137v210H0z" fill="#98a57a"/>
+  <rect x="55" y="55" width="850" height="530" rx="28" fill="none" stroke="#c1734b" stroke-width="7" stroke-dasharray="18 14"/>
+  <circle cx="660" cy="300" r="120" fill="#f7f1e7" stroke="#4a3728" stroke-width="8"/><path d="m585 225 18-82 65 64m66 19-8-83-62 64" fill="#f7f1e7" stroke="#4a3728" stroke-width="8" stroke-linejoin="round"/><path d="M584 355q76 56 153 0" fill="none" stroke="#8a9a5b" stroke-width="26"/>
+  <path d="M115 500h330" stroke="#fffdf9" stroke-width="5" stroke-dasharray="14 12"/><circle cx="140" cy="500" r="13" fill="#c1734b"/>
+</svg>

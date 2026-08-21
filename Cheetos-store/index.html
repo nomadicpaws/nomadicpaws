@@ -206,6 +206,24 @@
     z-index: 2;
   }
   .np-bundle-hero-img { width: 100%; height: 100%; min-height: 260px; object-fit: cover; background: #EDE3D3; }
+  .np-bundle-hero-products {
+    min-height: 300px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: clamp(0.25rem, 1.4vw, 0.8rem);
+    padding: 2.4rem 1rem 1.2rem;
+    box-sizing: border-box;
+    overflow: hidden;
+    background: linear-gradient(180deg, #f7f1e7 0 66%, #d9c6a6 66% 100%);
+  }
+  .np-bundle-hero-products img {
+    width: min(31%, 170px);
+    max-height: 270px;
+    object-fit: contain;
+    filter: drop-shadow(0 12px 10px rgba(74,55,40,.18));
+  }
+  .np-bundle-hero-products img:nth-child(2) { transform: translateY(-12px); }
   .np-bundle-hero-body { padding: 1.75rem 2rem; display: flex; flex-direction: column; justify-content: center; }
   .np-bundle-hero-eyebrow {
     font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;
@@ -1240,7 +1258,11 @@
 
     <div class="np-bundle-hero">
       <span class="np-bundle-hero-ribbon">Save $6 · Best value</span>
-      <img class="np-bundle-hero-img" src="/images/products/pezzy-trail-pack-bundle.jpg" alt="Nomadic Paws Trail Pack bundle, all three Pezzy treat flavors">
+      <div class="np-bundle-hero-products" role="img" aria-label="Trail Pack bundle containing Pezzy Lionfish Sticks, Nilgai Antelope Heart, and Silver Carp Chips">
+        <img src="/images/products/pezzy-lionfish-sticks.png" alt="">
+        <img src="/images/products/pezzy-nilgai-heart.png" alt="">
+        <img src="/images/products/pezzy-silver-carp-chips.png" alt="">
+      </div>
       <div class="np-bundle-hero-body">
         <div class="np-bundle-hero-eyebrow">The Trail Pack</div>
         <h3 class="np-bundle-hero-title">All 3 flavors, one order</h3>
@@ -1271,7 +1293,7 @@
 
     <div class="np-treats-grid">
       <div class="np-treat-card" id="lionfish-sticks">
-        <div class="np-treat-img np-treat-img--reserved" aria-hidden="true"></div>
+        <img class="np-treat-img np-treat-img--product" src="/images/products/pezzy-lionfish-sticks.png" alt="Front of the Pezzy Lionfish Sticks package; temporary hero until Cheeto's product photo is ready">
         <div class="np-treat-body">
           <span class="np-treat-badge">Single Ingredient</span>
           <h3 class="np-treat-name">Lionfish Sticks</h3>
@@ -1330,7 +1352,7 @@
       </div>
 
       <div class="np-treat-card" id="nilgai-antelope-heart">
-        <div class="np-treat-img np-treat-img--reserved" aria-hidden="true"></div>
+        <img class="np-treat-img np-treat-img--product" src="/images/products/pezzy-nilgai-heart.png" alt="Front of the Pezzy Nilgai Antelope Heart package; temporary hero until Cheeto's product photo is ready">
         <div class="np-treat-body">
           <span class="np-treat-badge">Single Ingredient</span>
           <h3 class="np-treat-name">Nilgai Antelope Heart</h3>
@@ -1389,7 +1411,7 @@
       </div>
 
       <div class="np-treat-card" id="silver-carp-chips">
-        <div class="np-treat-img np-treat-img--reserved" aria-hidden="true"></div>
+        <img class="np-treat-img np-treat-img--product" src="/images/products/pezzy-silver-carp-chips.png" alt="Front of the Pezzy Silver Carp Chips package; temporary hero until Cheeto's product photo is ready">
         <div class="np-treat-body">
           <span class="np-treat-badge">Single Ingredient</span>
           <h3 class="np-treat-name">Silver Carp Chips</h3>
@@ -1517,7 +1539,7 @@
 
       <!-- Scratcher card — Cheeto's solution, its own card -->
       <div class="np-treat-card np-scratcher-card">
-        <img class="np-treat-img" src="/images/products/window-scratcher-teaser.jpg" alt="Nomadic Paws window-mounted cat scratcher, coming soon">
+        <img class="np-treat-img np-treat-img--product" src="/images/mockups/window-scratcher-photo-plan.svg" alt="Photography plan for Cheeto using the coming Nomadic Paws window scratcher">
         <div class="np-treat-body">
           <span class="np-treat-preorder-badge">Coming This October</span>
           <h3 class="np-treat-name">First Look: What's Coming Next</h3>

@@ -551,7 +551,7 @@
  <!-- 1: Complete Leash & Harness Set -->
  <div class="card" id="buddyarmor-harness-leash">
  <div class="media" data-video="PASTE-LEASH-HARNESS-VIDEO-URL-HERE.mp4">
- <img class="product-photo" data-image="PASTE-LEASH-HARNESS-PHOTO-URL-HERE.jpg" alt="Complete Leash & Harness Set" width="960" height="640" loading="lazy" decoding="async">
+ <img class="product-photo" data-image="/images/mockups/checklist-harness-cheeto-placeholder.png" alt="Cheeto wearing a purple harness and leash on trail ground; temporary photo until the BuddyArmor set is photographed" width="960" height="640" loading="lazy" decoding="async">
  <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
  </button>
@@ -572,7 +572,7 @@
  <!-- 3: Trail Collar — now with media slot -->
  <div class="card" id="buddyarmor-safety-collar">
  <div class="media" data-video="PASTE-TRAILCOLLAR-VIDEO-URL-HERE.mp4">
- <img class="product-photo" data-image="PASTE-TRAILCOLLAR-PHOTO-URL-HERE.jpg" alt="Trail Collar" width="960" height="640" loading="lazy" decoding="async">
+ <img class="product-photo" data-image="/images/mockups/checklist-collar-photo-plan.svg" alt="Photography plan for Cheeto's BuddyArmor safety collar" width="960" height="640" loading="lazy" decoding="async">
  <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
  </button>
@@ -611,7 +611,7 @@
  <!-- Apollo Walker Backpack Carrier — VIDEO -->
  <div class="card" id="apollo-walker-backpack">
  <div class="media" data-video="PASTE-BACKPACK-VIDEO-URL-HERE.mp4">
- <img class="product-photo" data-image="PASTE-BACKPACK-PHOTO-URL-HERE.jpg" alt="Apollo Walker Pet Carrier Backpack" width="960" height="640" loading="lazy" decoding="async">
+ <img class="product-photo" data-image="/images/mockups/checklist-backpack-photo-plan.svg" alt="Photography plan for Cheeto in the Apollo Walker carrier backpack" width="960" height="640" loading="lazy" decoding="async">
  <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
  </button>
@@ -668,7 +668,7 @@
  <!-- 7: EquiGroomer 5-Inch Deshedding Brush — VIDEO -->
  <div class="card" id="equigroomer-deshedding-brush">
  <div class="media" data-video="PASTE-EQUIGROOMER-VIDEO-URL-HERE.mp4">
- <img class="product-photo" data-image="PASTE-EQUIGROOMER-BRUSH-PHOTO-URL-HERE.jpg" alt="EquiGroomer 5-Inch Deshedding Brush" width="960" height="640" loading="lazy" decoding="async">
+ <img class="product-photo" data-image="/images/mockups/checklist-equigroomer-photo-plan.svg" alt="Photography plan for Cheeto being brushed with the EquiGroomer" width="960" height="640" loading="lazy" decoding="async">
  <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
  </button>
@@ -701,7 +701,7 @@
  <!-- 10: Tiki Cat Born Carnivore — VIDEO -->
  <div class="card" id="tiki-cat-born-carnivore">
  <div class="media" data-video="PASTE-TIKICAT-VIDEO-URL-HERE.mp4">
- <img class="product-photo" data-image="PASTE-CAT-FOOD-PHOTO-URL-HERE.jpg" alt="Tiki Cat Born Carnivore Dry Cat Food" width="960" height="640" loading="lazy" decoding="async">
+ <img class="product-photo" data-image="/images/mockups/checklist-tiki-food-photo-plan.svg" alt="Photography plan for Tiki Cat food, a bowl, and Cheeto" width="960" height="640" loading="lazy" decoding="async">
  <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
  </button>
@@ -722,7 +722,7 @@
  <!-- 11: 360° Retractable Leash — now with media slot -->
  <div class="card">
  <div class="media" data-video="PASTE-RETRACTABLELEASH-VIDEO-URL-HERE.mp4">
- <img class="product-photo" data-image="PASTE-RETRACTABLELEASH-PHOTO-URL-HERE.jpg" alt="360° Tangle-Free Retractable Leash" width="960" height="640" loading="lazy" decoding="async">
+ <img class="product-photo" data-image="/images/mockups/checklist-retractable-leash-photo-plan.svg" alt="Photography plan for a retractable leash in use with Cheeto on a familiar trail" width="960" height="640" loading="lazy" decoding="async">
  <button class="play-btn" type="button" aria-label="Play video" style="display:none;">
  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
  </button>
@@ -862,6 +862,10 @@
   document.querySelectorAll('.product-photo[data-image]').forEach(function(img){
     var source = img.getAttribute('data-image');
     if (!source || source.indexOf('PASTE-') === 0) return;
+    if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') {
+      img.src = source;
+      return;
+    }
     img.src = optimizedImageUrl(source, 720);
     img.srcset = [480, 720, 960].map(function(width){
       return optimizedImageUrl(source, width) + ' ' + width + 'w';
