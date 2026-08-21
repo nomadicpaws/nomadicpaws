@@ -292,6 +292,88 @@
             background: #8F3D19;
             transform: translateY(-1px);
         }
+
+        /* COMPACT PRAYER INVITATION */
+        .np-prayer {
+            margin: 1.5rem 0;
+            border: 1px solid rgba(92, 61, 46, 0.18);
+            border-radius: 10px;
+            background: #fff;
+            overflow: hidden;
+        }
+        .np-prayer summary {
+            position: relative;
+            padding: 1.15rem 3rem 1.15rem 1.25rem;
+            color: var(--bark);
+            cursor: pointer;
+            list-style: none;
+        }
+        .np-prayer summary::-webkit-details-marker { display: none; }
+        .np-prayer summary::after {
+            content: '+';
+            position: absolute;
+            right: 1.25rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--terra);
+            font-size: 1.35rem;
+            font-weight: 500;
+        }
+        .np-prayer[open] summary::after { content: '–'; }
+        .np-prayer-summary-title {
+            display: block;
+            margin-bottom: .2rem;
+            font-family: 'Fraunces', serif;
+            font-size: 1.22rem;
+            font-weight: 700;
+        }
+        .np-prayer-summary-copy { color: var(--bark-mid); font-size: .88rem; line-height: 1.5; }
+        .np-prayer-inner { padding: 0 1.25rem 1.1rem; border-top: 1px solid rgba(92, 61, 46, 0.12); }
+        .np-prayer-intro { margin: .8rem 0; color: var(--bark-mid); font-size: .86rem; line-height: 1.5; }
+        .np-prayer-form { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
+        .np-prayer-field { display: grid; gap: .35rem; color: var(--bark); font-size: .76rem; font-weight: 600; }
+        .np-prayer-field--message { grid-column: 1 / -1; }
+        .np-prayer-form input[type="text"],
+        .np-prayer-form input[type="email"],
+        .np-prayer-form textarea {
+            box-sizing: border-box;
+            width: 100%;
+            border: 1px solid rgba(92, 61, 46, 0.22);
+            border-radius: 8px;
+            padding: .7rem .8rem;
+            background: var(--cream);
+            color: var(--bark);
+            font: inherit;
+        }
+        .np-prayer-form textarea { min-height: 82px; resize: vertical; line-height: 1.5; }
+        .np-prayer-form input:focus,
+        .np-prayer-form textarea:focus { outline: 2px solid rgba(169,75,34,.25); border-color: var(--terra); }
+        .np-prayer-optin {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: 18px 1fr;
+            gap: .55rem;
+            align-items: start;
+            color: var(--bark);
+            font-size: .8rem;
+            line-height: 1.45;
+            cursor: pointer;
+        }
+        .np-prayer-optin input { width: 16px; height: 16px; margin: .1rem 0 0; accent-color: var(--terra); }
+        .np-prayer-note { grid-column: 1 / -1; margin: -.25rem 0 0; color: var(--bark-mid); font-size: .7rem; line-height: 1.45; }
+        .np-prayer-submit {
+            justify-self: start;
+            border: 0;
+            border-radius: 999px;
+            padding: .72rem 1.15rem;
+            background: var(--terra);
+            color: #fff;
+            font: 600 .82rem 'DM Sans', sans-serif;
+            cursor: pointer;
+        }
+        .np-prayer-submit:hover { background: #8F3D19; }
+        .np-prayer-submit:disabled { opacity: .65; cursor: wait; }
+        .np-prayer-status { align-self: center; margin: 0; color: var(--bark-mid); font-size: .75rem; line-height: 1.45; }
         @media (max-width: 560px) {
             .np-story-tabs { grid-template-columns: 1fr; }
             .np-story-tab.next { text-align: left; }
@@ -422,6 +504,36 @@
             </div>
         </section>
 
+        <details class="np-prayer">
+            <summary>
+                <span class="np-prayer-summary-title">Need prayer?</span>
+                <span class="np-prayer-summary-copy">There’s a quiet place for that here. No signup required.</span>
+            </summary>
+            <div class="np-prayer-inner">
+                <p class="np-prayer-intro">If something is on your heart, you’re welcome to share it here. I’ll pray with you. Cheeto will probably be nearby, too. 🐾</p>
+                <form class="np-prayer-form" id="trail-prayer-form" name="trail-journal-prayer" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+                    <input type="hidden" name="form-name" value="trail-journal-prayer">
+                    <p hidden><label>Leave this blank: <input name="bot-field"></label></p>
+                    <label class="np-prayer-field"><span>Your name (optional)</span>
+                        <input type="text" name="first_name" autocomplete="given-name">
+                    </label>
+                    <label class="np-prayer-field"><span>Your email (optional*)</span>
+                        <input type="email" name="email" autocomplete="email">
+                    </label>
+                    <label class="np-prayer-field np-prayer-field--message">Prayer request or message
+                        <textarea name="prayer_request" required></textarea>
+                    </label>
+                    <label class="np-prayer-optin">
+                        <input type="checkbox" name="join_pack" value="yes">
+                        <span>Join the Pack, too — send me new Trail Journal stories, Cheeto adventures, and occasional Nomadic Paws updates.</span>
+                    </label>
+                    <p class="np-prayer-note"><em>*Email is only required if you join the Pack. Leave the box unchecked if you’re only here for prayer. Your message is personal correspondence, not marketing data.</em></p>
+                    <button class="np-prayer-submit" type="submit">Send prayer request</button>
+                    <p class="np-prayer-status" id="trail-prayer-status" role="status" aria-live="polite"></p>
+                </form>
+            </div>
+        </details>
+
         <section class="np-journal-cta">
             <h2>Come with us on the next adventure.</h2>
             <p>Browse the Trail Journal and follow along as Cheeto continues exploring deserts, forests, mountain trails, and everything in between.</p>
@@ -467,6 +579,7 @@
     </footer>
 
     <script src="/js/sanitize-html.js"></script>
+    <script src="/js/zoho-pack-signup.js"></script>
     <script>
         function formatDate(value) {
             const d = new Date(value);
@@ -583,7 +696,51 @@
                 });
             }
         }
+
+        async function handlePrayerRequest(event) {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const formData = new FormData(form);
+            const joinPack = formData.get('join_pack') === 'yes';
+            const emailInput = form.querySelector('input[name="email"]');
+            const email = String(formData.get('email') || '').trim();
+            const button = form.querySelector('button[type="submit"]');
+            const status = document.getElementById('trail-prayer-status');
+
+            emailInput.setCustomValidity(joinPack && !email ? 'Please add your email address if you would like to join the Pack.' : '');
+            if (!emailInput.reportValidity()) return;
+
+            button.disabled = true;
+            button.textContent = 'Sending…';
+            status.textContent = '';
+            try {
+                const response = await fetch('/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams(formData).toString()
+                });
+                if (!response.ok) throw new Error('Your request could not be saved. Please try again.');
+
+                let message = 'Your prayer request was received. Thank you for trusting me with it.';
+                if (joinPack) {
+                    try {
+                        const signup = await window.NomadicPawsPackSignup.submit({ email, firstName: formData.get('first_name') });
+                        message += ` ${signup.message}`;
+                    } catch {
+                        message += ' Your prayer request is safe, but the optional Pack signup did not complete. You can still join from the homepage.';
+                    }
+                }
+                form.reset();
+                status.textContent = message;
+                button.textContent = 'Received with care';
+            } catch (error) {
+                status.textContent = error.message || 'We could not send your request. Please try again.';
+                button.disabled = false;
+                button.textContent = 'Send prayer request';
+            }
+        }
         window.addEventListener('DOMContentLoaded', loadPost);
+        document.getElementById('trail-prayer-form')?.addEventListener('submit', handlePrayerRequest);
     </script>
 </body>
 </html>

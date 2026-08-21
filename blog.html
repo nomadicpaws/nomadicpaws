@@ -290,92 +290,6 @@
             font-size: 0.84rem !important;
         }
 
-        /* PRAYER INVITATION */
-        .prayer-section {
-            padding: 88px 40px;
-            background: var(--cream);
-        }
-        .prayer-card {
-            max-width: 820px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: minmax(0, .85fr) minmax(320px, 1.15fr);
-            gap: 46px;
-            padding: clamp(30px, 6vw, 58px);
-            border: 1px solid rgba(74,55,40,.13);
-            border-radius: 24px;
-            background: #fff;
-            box-shadow: 0 24px 58px -42px rgba(74,55,40,.45);
-        }
-        .prayer-kicker {
-            margin: 0 0 12px;
-            color: var(--terra);
-            font-size: .76rem;
-            font-weight: 700;
-            letter-spacing: .14em;
-            text-transform: uppercase;
-        }
-        .prayer-copy h2 {
-            margin: 0 0 16px;
-            font-family: 'Fraunces', serif;
-            font-size: clamp(2rem, 5vw, 3rem);
-            line-height: 1.05;
-            color: var(--bark);
-        }
-        .prayer-copy p {
-            margin: 0;
-            color: var(--bark-mid);
-            line-height: 1.75;
-        }
-        .prayer-form { display: grid; gap: 14px; }
-        .prayer-form label:not(.prayer-optin) {
-            display: grid;
-            gap: 7px;
-            color: var(--bark);
-            font-size: .82rem;
-            font-weight: 600;
-        }
-        .prayer-form input[type="text"],
-        .prayer-form input[type="email"],
-        .prayer-form textarea {
-            width: 100%;
-            box-sizing: border-box;
-            border: 1px solid rgba(74,55,40,.22);
-            border-radius: 12px;
-            padding: 13px 15px;
-            background: #FDFAF5;
-            color: var(--bark);
-            font: inherit;
-        }
-        .prayer-form textarea { min-height: 170px; resize: vertical; line-height: 1.55; }
-        .prayer-form input:focus,
-        .prayer-form textarea:focus { outline: 2px solid rgba(169,75,34,.3); border-color: var(--terra); }
-        .prayer-optin {
-            display: grid;
-            grid-template-columns: 20px 1fr;
-            gap: 10px;
-            align-items: start;
-            color: var(--bark);
-            font-size: .88rem;
-            line-height: 1.5;
-            cursor: pointer;
-        }
-        .prayer-optin input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--terra); }
-        .prayer-privacy { margin: -4px 0 2px; color: var(--bark-mid); font-size: .76rem; line-height: 1.55; }
-        .prayer-form button {
-            justify-self: start;
-            border: 0;
-            border-radius: 999px;
-            padding: 14px 26px;
-            background: var(--terra);
-            color: #fff;
-            font: 600 .9rem 'DM Sans', sans-serif;
-            cursor: pointer;
-        }
-        .prayer-form button:hover { background: var(--terra-light); }
-        .prayer-form button:disabled { opacity: .65; cursor: wait; }
-        .prayer-status { min-height: 1.5em; margin: 0; color: var(--bark-mid); font-size: .84rem; line-height: 1.5; }
-
         /* FOOTER */
         footer {
             background: var(--bark);
@@ -452,8 +366,6 @@
             .post-card.featured { grid-template-columns: 1fr; }
             .post-card.featured .post-img { height: 240px; }
             main { padding: 48px 20px; }
-            .prayer-section { padding: 58px 20px; }
-            .prayer-card { grid-template-columns: 1fr; gap: 28px; padding: 28px 22px; }
             .footer-inner { grid-template-columns: 1fr 1fr; gap: 32px; }
             .footer-brand { grid-column: 1 / -1; }
         }
@@ -489,36 +401,6 @@
             </article>
         </div>
     </main>
-
-    <section class="prayer-section" aria-labelledby="prayer-title">
-        <div class="prayer-card">
-            <div class="prayer-copy">
-                <p class="prayer-kicker">A quiet place on the trail</p>
-                <h2 id="prayer-title">Need prayer?</h2>
-                <p>If something is on your heart, you’re welcome to share it here. I’ll pray with you. Cheeto will probably be nearby, too. 🐾</p>
-            </div>
-            <form class="prayer-form" id="trail-prayer-form" name="trail-journal-prayer" method="POST" data-netlify="true" netlify-honeypot="bot-field">
-                <input type="hidden" name="form-name" value="trail-journal-prayer">
-                <p hidden><label>Leave this blank: <input name="bot-field"></label></p>
-                <label>Your name <span>(optional)</span>
-                    <input type="text" name="first_name" autocomplete="given-name">
-                </label>
-                <label>Your email <span>(optional, unless joining the Pack)</span>
-                    <input type="email" name="email" autocomplete="email">
-                </label>
-                <label>Prayer request or message
-                    <textarea name="prayer_request" required></textarea>
-                </label>
-                <label class="prayer-optin">
-                    <input type="checkbox" name="join_pack" value="yes">
-                    <span>Join the Pack, too — send me new Trail Journal stories, Cheeto adventures, and occasional Nomadic Paws updates.</span>
-                </label>
-                <p class="prayer-privacy"><em>Leave this unchecked if you’re only here for prayer. No signup required. Your message is treated as personal correspondence, not marketing data.</em></p>
-                <button type="submit">Send prayer request</button>
-                <p class="prayer-status" id="trail-prayer-status" role="status" aria-live="polite"></p>
-            </form>
-        </div>
-    </section>
 
     <div class="newsletter-strip">
         <h2>Never miss a trail report.</h2>
@@ -617,57 +499,7 @@
         }
     }
 
-    async function handlePrayerRequest(event) {
-        event.preventDefault();
-        const form = event.currentTarget;
-        const formData = new FormData(form);
-        const joinPack = formData.get('join_pack') === 'yes';
-        const email = String(formData.get('email') || '').trim();
-        const button = form.querySelector('button[type="submit"]');
-        const status = document.getElementById('trail-prayer-status');
-
-        if (joinPack && !email) {
-            form.querySelector('input[name="email"]').setCustomValidity('Please add your email address if you would like to join the Pack.');
-            form.querySelector('input[name="email"]').reportValidity();
-            return;
-        }
-        form.querySelector('input[name="email"]').setCustomValidity('');
-        button.disabled = true;
-        button.textContent = 'Sending…';
-        status.textContent = '';
-
-        try {
-            const response = await fetch('/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams(formData).toString()
-            });
-            if (!response.ok) throw new Error('Your request could not be saved. Please try again.');
-
-            let message = 'Your prayer request was received. Thank you for trusting me with it.';
-            if (joinPack) {
-                try {
-                    const signup = await window.NomadicPawsPackSignup.submit({
-                        email,
-                        firstName: formData.get('first_name')
-                    });
-                    message += ` ${signup.message}`;
-                } catch {
-                    message += ' Your prayer request is safe, but the optional Pack signup did not complete. Please use the signup below if you would still like to join.';
-                }
-            }
-            form.reset();
-            status.textContent = message;
-            button.textContent = 'Received with care';
-        } catch (error) {
-            status.textContent = error.message || 'We could not send your request. Please try again.';
-            button.disabled = false;
-            button.textContent = 'Send prayer request';
-        }
-    }
-
     document.getElementById('trail-journal-signup')?.addEventListener('submit', handleSignup);
-    document.getElementById('trail-prayer-form')?.addEventListener('submit', handlePrayerRequest);
     renderPosts();
 </script>
 </body>
