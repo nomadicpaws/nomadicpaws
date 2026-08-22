@@ -132,6 +132,9 @@
         .article-cover img {
             width: 100%;
             height: auto;
+            aspect-ratio: 16 / 9;
+            object-fit: contain;
+            background: var(--bark);
             border-radius: 20px;
             box-shadow: 0 12px 40px rgba(44,24,16,0.18);
             display: block;
@@ -598,7 +601,7 @@
         }
 
         function imageHeightForWidth(aspect, width) {
-            const [aspectWidth = 3, aspectHeight = 2] = String(aspect || '3/2').split('/').map(Number);
+            const [aspectWidth = 16, aspectHeight = 9] = String(aspect || '16/9').split('/').map(Number);
             return Math.round(width * aspectHeight / aspectWidth);
         }
 

@@ -1,5 +1,6 @@
 ---
 image: /images/d20f4d7f-d095-446c-ad96-dcfc40862d74.png
+image_aspect: "16/9"
 image_alt: "Cheeto, an orange tabby, stands confidently against a tree beside
   the Nomadic Paws logo and the title “When to End a Cat Hike: Who’s Actually
   Leading?”"

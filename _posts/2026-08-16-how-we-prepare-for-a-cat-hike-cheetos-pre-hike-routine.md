@@ -1,5 +1,6 @@
 ---
 image: /images/a4c5d12e-e700-4ca4-b71b-22c130c0aacc.png
+image_aspect: "16/9"
 image_alt: "Cheeto, an orange tabby wearing a purple harness and leash, walks
   through sunlit mesquite beside the Nomadic Paws logo and the title “ How We
   Prepare for a Cat Hike: Cheeto’s Pre-Hike Routine”"

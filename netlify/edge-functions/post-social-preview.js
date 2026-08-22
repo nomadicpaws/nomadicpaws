@@ -140,7 +140,7 @@ export default async (request, context) => {
     }
   }
 
-  const aspectParts = String(post.imageAspect || "3/2").split("/").map(Number);
+  const aspectParts = String(post.imageAspect || "16/9").split("/").map(Number);
   const aspectWidth = aspectParts[0] || 3;
   const aspectHeight = aspectParts[1] || 2;
   const coverWidth = 1200;

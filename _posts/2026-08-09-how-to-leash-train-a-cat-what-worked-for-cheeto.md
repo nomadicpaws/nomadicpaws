@@ -1,5 +1,6 @@
 ---
 image: /images/19df23c3-2b96-4c2e-81de-dc78e6d9786e.png
+image_aspect: "16/9"
 image_alt: "Vintage pen-and-ink illustration of a harnessed cat walking along a
   desert trail beneath the Nomadic Paws logo, with the title “How to Leash Train
   a Cat: What Worked for Cheeto.”"
