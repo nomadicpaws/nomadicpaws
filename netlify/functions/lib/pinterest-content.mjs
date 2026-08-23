@@ -109,7 +109,7 @@ export function buildCsv(campaigns, postsBySlug, now = new Date()) {
       rows.push([
         pin.title.slice(0, 100),
         brandedMediaUrl(pin),
-        campaign.board || "Cheeto's Trail Journal",
+        campaign.board || 'Nomadic Paws Trail Journal',
         '',
         (pin.description || '').slice(0, 500),
         postUrl(campaign.post_slug),
@@ -134,7 +134,7 @@ export function buildCsv(campaigns, postsBySlug, now = new Date()) {
       rows.push([
         pin.title.slice(0, 100),
         brandedMediaUrl(pin),
-        campaign.board || "Cheeto's Trail Journal",
+        campaign.board || 'Nomadic Paws Trail Journal',
         '',
         (pin.description || '').slice(0, 500),
         postUrl(campaign.post_slug),

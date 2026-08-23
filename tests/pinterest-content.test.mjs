@@ -5,7 +5,7 @@ import { brandedMediaUrl, buildCsv, buildRss } from '../netlify/functions/lib/pi
 const campaign = {
   post_slug: '2026-09-01-cheeto-test',
   campaign_title: 'Cheeto Test',
-  board: "Cheeto's Trail Journal",
+  board: 'Nomadic Paws Trail Journal',
   keywords: 'adventure cat, cat hiking',
   enabled: true,
   rss_pin: { image: '/images/pin-1.jpg', title: 'First & best', description: 'RSS description' },

@@ -55,7 +55,20 @@ collections:
         value_field: "{{slug}}"
         hint: "Choose the article these Pins should link to."
       - { label: Campaign name, name: campaign_title, widget: string, hint: "Usually the article title. This is only for organizing the CMS." }
-      - { label: Pinterest board, name: board, widget: string, default: "Cheeto's Trail Journal", hint: "Enter the board name exactly as it appears on Pinterest. Pinterest will create it if it does not exist." }
+      - label: Pinterest board
+        name: board
+        widget: select
+        default: Nomadic Paws Trail Journal
+        hint: "Choose the existing Pinterest board for this campaign. The name is exported exactly as Pinterest expects it."
+        options:
+          - Nomadic Paws Trail Journal
+          - Hiking with Cats
+          - Trail Life with Cheeto
+          - Desert Adventures - Arizona
+          - Tiny Home - Small Space Living
+          - Small Space Cat Furniture
+          - Cat Gear & Adventure Essentials
+          - Cat Training Tips
       - { label: Keywords, name: keywords, widget: string, required: false, hint: "Comma-separated Pinterest search phrases shared by these four Pins." }
       - { label: Include in Pinterest publishing, name: enabled, widget: boolean, default: true }
       - { label: Retroactive article, name: retroactive, widget: boolean, default: false, required: false, hint: "Turn this ON for an older article. All four images will go into the catch-up CSV and will be placed on open dates between the regular Pin schedule." }
