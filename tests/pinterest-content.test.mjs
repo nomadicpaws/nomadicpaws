@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCsv, buildRss } from '../netlify/functions/lib/pinterest-content.mjs'
+import { brandedMediaUrl, buildCsv, buildRss } from '../netlify/functions/lib/pinterest-content.mjs'
 
 const campaign = {
   post_slug: '2026-09-01-cheeto-test',
@@ -15,6 +15,13 @@ const campaign = {
 }
 
 const posts = new Map([[campaign.post_slug, { date: '2026-09-01T09:00:00-07:00' }]])
+
+test('branded media URLs preserve the original upload and selected logo color', () => {
+  const url = brandedMediaUrl({ image: '/images/uploads/cheeto.jpg', template: 'sage' })
+  assert.match(url, /\/pinterest-image\.jpg\?/)
+  assert.match(url, /template=sage/)
+  assert.match(decodeURIComponent(url), /https:\/\/nomadicpaws\.co\/images\/uploads\/cheeto\.jpg/)
+})
 
 test('RSS releases the first image when the article publishes', () => {
   const early = buildRss([campaign], posts, new Date('2026-09-01T12:00:00Z'))

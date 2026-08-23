@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Config } from '@netlify/functions'
+import { brandedMediaUrl } from './lib/pinterest-content.mjs'
 
 // Blog posts are authored in Decap CMS, which commits one Markdown file per
 // post into the repo's `_posts/` folder. That folder is bundled with this
@@ -82,7 +83,7 @@ export default async (request: Request) => {
         if (!campaign.post_slug || campaign.enabled === false) return
         const pins = [campaign.rss_pin, campaign.day_7_pin, campaign.day_14_pin, campaign.day_21_pin]
           .filter((pin) => pin?.image)
-          .map((pin) => ({ image: pin.image, alt: pin.title || campaign.campaign_title || 'Nomadic Paws photo' }))
+          .map((pin) => ({ image: brandedMediaUrl(pin), alt: pin.title || campaign.campaign_title || 'Nomadic Paws photo' }))
         if (pins.length) pinterestByPost.set(campaign.post_slug, pins)
       } catch {
         // A partially saved campaign should not prevent articles from loading.

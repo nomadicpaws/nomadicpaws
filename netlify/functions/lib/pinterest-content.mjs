@@ -24,6 +24,13 @@ export function absoluteMediaUrl(path = '') {
   return `${SITE_URL}/${String(path).replace(/^\/+/, '')}`
 }
 
+export function brandedMediaUrl(pin = {}) {
+  const source = absoluteMediaUrl(pin.image || '')
+  if (!pin.template) return source
+  const template = ['bark', 'sage', 'sand', 'terracotta'].includes(pin.template) ? pin.template : 'bark'
+  return `${SITE_URL}/pinterest-image.jpg?image=${encodeURIComponent(source)}&template=${template}`
+}
+
 export function addDays(date, days) {
   return new Date(date.getTime() + days * DAY_MS)
 }
@@ -53,7 +60,7 @@ export function buildRss(campaigns, postsBySlug, now = new Date()) {
       <guid isPermaLink="false">${xmlEscape(`${link}#pinterest-rss`)}</guid>
       <pubDate>${publishDate.toUTCString()}</pubDate>
       <description>${xmlEscape(pin.description || campaign.campaign_title || pin.title)}</description>
-      <media:content url="${xmlEscape(absoluteMediaUrl(pin.image))}" medium="image" />
+      <media:content url="${xmlEscape(brandedMediaUrl(pin))}" medium="image" />
     </item>`)
     .join('')
 
@@ -101,7 +108,7 @@ export function buildCsv(campaigns, postsBySlug, now = new Date()) {
       if (!pin?.image || !pin?.title) return
       rows.push([
         pin.title.slice(0, 100),
-        absoluteMediaUrl(pin.image),
+        brandedMediaUrl(pin),
         campaign.board || "Cheeto's Trail Journal",
         '',
         (pin.description || '').slice(0, 500),
@@ -126,7 +133,7 @@ export function buildCsv(campaigns, postsBySlug, now = new Date()) {
       cursor = nextOpenDate(cursor, occupied)
       rows.push([
         pin.title.slice(0, 100),
-        absoluteMediaUrl(pin.image),
+        brandedMediaUrl(pin),
         campaign.board || "Cheeto's Trail Journal",
         '',
         (pin.description || '').slice(0, 500),

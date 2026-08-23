@@ -5,7 +5,7 @@
 [functions]
   directory = "netlify/functions"
   # Bundle the CMS-authored Markdown posts so the posts API can read them.
-  included_files = ["_posts/**", "_pinterest/**"]
+  included_files = ["_posts/**", "_pinterest/**", "images/pinterest-templates/**"]
 
 [[headers]]
   for = "/*"
