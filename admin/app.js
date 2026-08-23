@@ -78,14 +78,7 @@
   function persistEntry() {
     const save = saveButton();
     if (save) { save.click(); return true; }
-    const publish = $all('button').find(button => /^publish$/i.test(text(button)) && !button.disabled && !button.closest('#np-action-dock'));
-    if (!publish) return false;
-    publish.click();
-    window.setTimeout(function () {
-      const publishNow = $all('[role="menuitem"]').find(item => /^publish now$/i.test(text(item)));
-      if (publishNow) publishNow.click();
-    }, 100);
-    return true;
+    return false;
   }
 
   function markSaved() {
@@ -127,12 +120,6 @@
     }
     setValue(c.body, restored.text.replace(/^# .+\n+/, ''));
     toast('Revision applied; images kept in place');
-  }
-
-  function preview() {
-    const button = $all('button').find(item => /preview/i.test(text(item)));
-    if (button) button.click();
-    else window.open('/trail-journal', '_blank', 'noopener');
   }
 
   function confirmPublishing() {
@@ -242,22 +229,12 @@
     const dock = document.createElement('nav'); dock.id = 'np-action-dock'; dock.setAttribute('aria-label', 'Journal entry actions');
     const mobile = window.matchMedia('(max-width: 767px)').matches;
     dock.innerHTML = mobile
-      ? '<div class="np-footer-info"><span id="np-save-state">Autosave ready</span></div><button data-action="save">Save</button><button data-action="copy" aria-label="Copy Draft for Review">Copy for Review</button><button data-action="publish">Publish</button><button data-action="more" aria-expanded="false">More</button><div class="np-more-actions"><button data-action="preview">Preview</button><button data-action="copy-article">Article Text</button><button data-action="paste">Paste Revision</button><button data-action="draft">Keep as Draft</button><button data-action="schedule">Schedule</button></div>'
-      : '<span id="np-save-state">Autosave ready</span><button data-action="save">Save</button><button data-action="preview">Preview</button><button data-action="copy" aria-label="Copy Draft for Review">Copy for Review</button><button data-action="copy-article">Copy Article Text</button><button data-action="paste">Paste Revision</button><button data-action="draft">Keep Draft</button><button data-action="schedule">Schedule</button><button data-action="publish">Publish</button>';
+      ? '<div class="np-footer-info"><span id="np-save-state">Autosave ready</span></div><button data-action="save">Save</button><button data-action="copy" aria-label="Copy Draft for Review">Copy for Review</button>'
+      : '<span id="np-save-state">Autosave ready</span><button data-action="save">Save</button><button data-action="copy" aria-label="Copy Draft for Review">Copy for Review</button>';
     dock.addEventListener('click', event => {
       const action = event.target.dataset.action; if (!action) return;
-      if (action === 'more') {
-        const expanded = dock.classList.toggle('np-expanded');
-        event.target.setAttribute('aria-expanded', String(expanded)); event.target.textContent = expanded ? 'Close' : 'More';
-        window.setTimeout(function () {
-          syncMobileLayout();
-          if (expanded && lastEditorFocus && document.contains(lastEditorFocus)) lastEditorFocus.scrollIntoView({ block: 'center', behavior: 'smooth' });
-        }, 0);
-      }
-      else if (action === 'save') { const started = persistEntry(); if (started) setSaveLabel('Saving…'); else setSaveLabel('Autosave ready'); }
-      else if (action === 'preview') preview(); else if (action === 'copy') copy(false).catch(() => toast('Clipboard permission was denied'));
-      else if (action === 'copy-article') copy(true).catch(() => toast('Clipboard permission was denied'));
-      else if (action === 'paste') pasteRevision(); else changeStatus(action);
+      if (action === 'save') { const started = persistEntry(); if (started) setSaveLabel('Saving…'); else setSaveLabel('Use Save Draft above'); }
+      else if (action === 'copy') copy(false).catch(() => toast('Clipboard permission was denied'));
     });
     document.body.appendChild(dock); renderStatus(); showRecovery(); syncMobileLayout();
   }
