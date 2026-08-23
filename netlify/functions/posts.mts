@@ -6,6 +6,7 @@ import type { Config } from '@netlify/functions'
 // post into the repo's `_posts/` folder. That folder is bundled with this
 // function via `included_files` in netlify.toml, so we can read it at runtime.
 const POSTS_DIR = join(process.cwd(), '_posts')
+const PINTEREST_DIR = join(process.cwd(), '_pinterest')
 
 type Frontmatter = Record<string, string>
 
@@ -72,6 +73,23 @@ export default async (request: Request) => {
     return Response.json([])
   }
 
+  const pinterestByPost = new Map<string, Array<{ image: string; alt: string }>>()
+  if (!summariesOnly) {
+    const pinterestFiles = await readdir(PINTEREST_DIR).catch(() => [])
+    await Promise.all(pinterestFiles.filter((file) => file.endsWith('.json')).map(async (file) => {
+      try {
+        const campaign = JSON.parse(await readFile(join(PINTEREST_DIR, file), 'utf8'))
+        if (!campaign.post_slug || campaign.enabled === false) return
+        const pins = [campaign.rss_pin, campaign.day_7_pin, campaign.day_14_pin, campaign.day_21_pin]
+          .filter((pin) => pin?.image)
+          .map((pin) => ({ image: pin.image, alt: pin.title || campaign.campaign_title || 'Nomadic Paws photo' }))
+        if (pins.length) pinterestByPost.set(campaign.post_slug, pins)
+      } catch {
+        // A partially saved campaign should not prevent articles from loading.
+      }
+    }))
+  }
+
   const posts = await Promise.all(
     files.map(async (file) => {
       const raw = await readFile(join(POSTS_DIR, file), 'utf8')
@@ -89,6 +107,7 @@ export default async (request: Request) => {
         draft: data.draft === 'true',
         excerpt: excerpt(body),
         readTime: readTime(body),
+        ...(!summariesOnly && { pinterestImages: pinterestByPost.get(file.replace(/\.md$/, '')) || [] }),
         ...(!summariesOnly && { body }),
       }
     }),

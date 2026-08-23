@@ -274,7 +274,7 @@
     }
     if (dashboard) return;
     dashboard = document.createElement('section'); dashboard.id = 'np-mobile-dashboard';
-    dashboard.innerHTML = '<p class="np-eyebrow">Nomadic Paws</p><h1>Trail Journal</h1><p>What would you like to do?</p><div><a class="np-primary" href="#/collections/blog/new">＋ New Journal Entry</a><a href="#/collections/blog?filter=draft__true">Continue Draft</a><a href="#/collections/blog?filter=draft__false">Manage Scheduled Posts</a><a href="/trail-journal" target="_blank" rel="noopener">View Published Posts</a></div>';
+    dashboard.innerHTML = '<p class="np-eyebrow">Nomadic Paws</p><h1>Trail Journal</h1><p>What would you like to do?</p><div><a class="np-primary" href="#/collections/blog/new">＋ New Journal Entry</a><a href="#/collections/blog?filter=draft__true">Continue Draft</a><a href="#/collections/blog?filter=draft__false">Manage Scheduled Posts</a><a href="#/collections/pinterest">Pinterest Queue</a><a href="/pinterest.csv" target="_blank" rel="noopener">Download Pinterest CSV</a><a href="/trail-journal" target="_blank" rel="noopener">View Published Posts</a></div>';
     const browse = document.createElement('button');
     browse.id = 'np-browse-toggle'; browse.type = 'button'; browse.textContent = 'Menu & Search'; browse.setAttribute('aria-expanded', 'false'); browse.onclick = toggleBrowse;
     dashboard.insertBefore(browse, dashboard.children[2]);

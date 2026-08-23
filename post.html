@@ -377,10 +377,44 @@
         .np-prayer-submit:hover { background: #8F3D19; }
         .np-prayer-submit:disabled { opacity: .65; cursor: wait; }
         .np-prayer-status { align-self: center; margin: 0; color: var(--bark-mid); font-size: .75rem; line-height: 1.45; }
+        .np-editorial-gallery {
+            margin: 4.5rem auto 5.5rem;
+            padding: 3rem 0 4rem;
+            border-top: 1px solid rgba(73, 45, 32, .16);
+        }
+        .np-editorial-gallery[hidden] { display: none; }
+        .np-editorial-gallery-label {
+            margin: 0 0 2.25rem;
+            color: var(--terra);
+            font: 600 .72rem/1.2 'DM Sans', sans-serif;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+        }
+        .np-editorial-gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: clamp(1.25rem, 4vw, 3.5rem);
+            align-items: start;
+        }
+        .np-editorial-gallery figure { margin: 0; }
+        .np-editorial-gallery figure:nth-child(even) { transform: translateY(4rem); }
+        .np-editorial-gallery img {
+            display: block;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 2 / 3;
+            object-fit: cover;
+            border-radius: 18px;
+            box-shadow: 0 18px 48px rgba(61, 38, 27, .12);
+        }
         @media (max-width: 560px) {
             .np-story-tabs { grid-template-columns: 1fr; }
             .np-story-tab.next { text-align: left; }
             .np-journal-cta { padding: 2.25rem 1.25rem; }
+            .np-editorial-gallery { margin: 3rem auto 4rem; padding: 2.25rem 0 0; }
+            .np-editorial-gallery-grid { grid-template-columns: 1fr; gap: 1.35rem; }
+            .np-editorial-gallery figure:nth-child(even) { transform: none; }
+            .np-editorial-gallery img { border-radius: 14px; }
         }
 
         /* FOOTER */
@@ -492,6 +526,11 @@
         <div class="article-body" id="articleBody">
             <p class="article-state">Loading post…</p>
         </div>
+
+        <section class="np-editorial-gallery" id="editorialGallery" aria-label="Photo journal" hidden>
+            <p class="np-editorial-gallery-label">Photo journal</p>
+            <div class="np-editorial-gallery-grid" id="editorialGalleryGrid"></div>
+        </section>
 
         <section class="np-story-navigation" id="storyNavigation" aria-label="Continue the Journey" hidden>
             <h2 class="np-journey-label">Continue the Journey</h2>
@@ -685,6 +724,15 @@
                 const coverHeight = imageHeightForWidth(post.imageAspect, coverWidth);
                 document.getElementById('articleCover').innerHTML =
                     `<img src="${escapeAttribute(optimizedImageUrl(post.image, coverWidth))}" srcset="${escapeAttribute(optimizedImageUrl(post.image, 640))} 640w, ${escapeAttribute(optimizedImageUrl(post.image, 1200))} 1200w, ${escapeAttribute(optimizedImageUrl(post.image, coverWidth))} 1600w" sizes="(max-width: 900px) 100vw, 900px" alt="${escapeAttribute(post.imageAlt || post.title)}" width="${coverWidth}" height="${coverHeight}" decoding="async" fetchpriority="high">`;
+            }
+
+            const pinterestImages = Array.isArray(post.pinterestImages) ? post.pinterestImages : [];
+            if (pinterestImages.length) {
+                const gallery = document.getElementById('editorialGallery');
+                document.getElementById('editorialGalleryGrid').innerHTML = pinterestImages.map((photo) =>
+                    `<figure><img src="${escapeAttribute(optimizedImageUrl(photo.image, 900))}" srcset="${escapeAttribute(optimizedImageUrl(photo.image, 560))} 560w, ${escapeAttribute(optimizedImageUrl(photo.image, 900))} 900w" sizes="(max-width: 560px) 92vw, 420px" alt="${escapeAttribute(photo.alt || post.title)}" width="1000" height="1500" loading="lazy" decoding="async"></figure>`
+                ).join('');
+                gallery.hidden = false;
             }
 
             // Post bodies are authored by the site owner in the CMS, so the

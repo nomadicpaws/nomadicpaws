@@ -33,3 +33,58 @@ collections:
       - { label: Publishing status — Keep as draft, name: draft, widget: boolean, default: true, required: false, hint: "ON = Draft: safely hidden and will not publish. OFF + a future date = Scheduled. OFF + the current or a past date = Published." }
       - { label: Publish date and time, name: date, widget: datetime, hint: "For a draft, this date does not publish anything. To schedule, choose a future date and turn Keep as draft OFF. To publish now, choose now and turn Keep as draft OFF." }
       - { label: Article body, name: body, widget: markdown, hint: "Write or dictate the story here. Add a photo at the cursor with the image option in the + menu." }
+
+  - name: pinterest
+    label: Pinterest Queue
+    label_singular: Pinterest Campaign
+    description: Upload and schedule the four Pinterest images for each Trail Journal story without reopening the article editor.
+    folder: _pinterest
+    create: true
+    format: json
+    extension: json
+    slug: "{{fields.post_slug}}"
+    identifier_field: campaign_title
+    summary: "{{campaign_title}} — {{board}}"
+    fields:
+      - label: Trail Journal story
+        name: post_slug
+        widget: relation
+        collection: blog
+        search_fields: [title]
+        display_fields: [title, date]
+        value_field: "{{slug}}"
+        hint: "Choose the article these Pins should link to."
+      - { label: Campaign name, name: campaign_title, widget: string, hint: "Usually the article title. This is only for organizing the CMS." }
+      - { label: Pinterest board, name: board, widget: string, default: "Cheeto's Trail Journal", hint: "Enter the board name exactly as it appears on Pinterest. Pinterest will create it if it does not exist." }
+      - { label: Keywords, name: keywords, widget: string, required: false, hint: "Comma-separated Pinterest search phrases shared by these four Pins." }
+      - { label: Include in Pinterest publishing, name: enabled, widget: boolean, default: true }
+      - { label: Retroactive article, name: retroactive, widget: boolean, default: false, required: false, hint: "Turn this ON for an older article. All four images will go into the catch-up CSV and will be placed on open dates between the regular Pin schedule." }
+      - label: Pin 1 — automatic RSS
+        name: rss_pin
+        widget: object
+        hint: "For a new article, this enters the RSS feed as soon as the article publishes. Pinterest normally creates the Pin within 24 hours. For a retroactive article, it goes into the CSV with the other three images."
+        fields:
+          - { label: Pinterest image, name: image, widget: image, hint: "Use a vertical 2:3 image when possible (for example 1000 × 1500)." }
+          - { label: Pin title, name: title, widget: string, hint: "Maximum 100 characters." }
+          - { label: Pin description, name: description, widget: text, required: false, hint: "Maximum 500 characters." }
+      - label: Pin 2 — 7 days
+        name: day_7_pin
+        widget: object
+        fields:
+          - { label: Pinterest image, name: image, widget: image }
+          - { label: Pin title, name: title, widget: string }
+          - { label: Pin description, name: description, widget: text, required: false }
+      - label: Pin 3 — 14 days
+        name: day_14_pin
+        widget: object
+        fields:
+          - { label: Pinterest image, name: image, widget: image }
+          - { label: Pin title, name: title, widget: string }
+          - { label: Pin description, name: description, widget: text, required: false }
+      - label: Pin 4 — 21 days
+        name: day_21_pin
+        widget: object
+        fields:
+          - { label: Pinterest image, name: image, widget: image }
+          - { label: Pin title, name: title, widget: string }
+          - { label: Pin description, name: description, widget: text, required: false }
