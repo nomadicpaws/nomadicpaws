@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Nomadic Paws Admin",
+    "slug": "nomadic-paws-admin",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#fdfaf5"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "co.nomadicpaws.admin",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Nomadic Paws uses Bluetooth to connect to the Stripe card reader.",
+        "NSLocationWhenInUseUsageDescription": "Location access is required by Stripe to accept in-person payments."
+      }
+    },
+    "android": {
+      "package": "co.nomadicpaws.admin"
+    },
+    "extra": {
+      "apiUrl": "https://nomadicpaws.co"
+    }
+  }
+}
