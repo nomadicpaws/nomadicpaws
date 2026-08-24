@@ -197,7 +197,7 @@ button {
   max-height: min(56dvh, 430px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 6px;
+  padding: 8px;
   -webkit-overflow-scrolling: touch;
 }
 .np-story-selector[data-open="true"] .np-story-list { display: block; }
@@ -209,14 +209,17 @@ button {
   display: block;
   font-weight: 600 !important;
   height: auto !important;
-  line-height: 1.45 !important;
-  min-height: 52px;
-  padding: 13px 14px !important;
+  line-height: 1.65 !important;
+  min-height: 64px;
+  padding: 16px 15px !important;
   text-align: left;
   white-space: normal !important;
   width: 100%;
 }
-.np-story-list [role="option"] + [role="option"] { border-top: 1px solid var(--np-sand-deep); }
+.np-story-list [role="option"] + [role="option"] {
+  border-top: 1px solid var(--np-sand-deep);
+  margin-top: 4px;
+}
 .np-story-list [role="option"].np-selected {
   background: var(--np-sand);
   box-shadow: inset 4px 0 0 var(--np-terracotta);
