@@ -153,25 +153,33 @@ button {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
+#nc-root [role="listbox"]:not(.np-story-list) {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
 #nc-root [role="option"],
 #nc-root div[id*="-option-"] {
   align-items: flex-start !important;
   display: block !important;
   height: auto !important;
-  min-height: 76px !important;
-  padding: 20px 16px !important;
+  inset: auto !important;
+  min-height: 96px !important;
+  padding: 24px 18px !important;
+  position: static !important;
+  transform: none !important;
   white-space: normal !important;
 }
 #nc-root [role="option"] + [role="option"],
 #nc-root div[id*="-option-"] + div[id*="-option-"] {
   border-top: 1px solid var(--np-sand-deep) !important;
-  margin-top: 8px !important;
+  margin-top: 10px !important;
 }
 #nc-root [role="option"] > *,
 #nc-root div[id*="-option-"] > * {
   display: block !important;
   height: auto !important;
-  line-height: 1.65 !important;
+  line-height: 1.8 !important;
   max-width: 100% !important;
   overflow: visible !important;
   overflow-wrap: anywhere !important;
@@ -216,16 +224,16 @@ button {
   display: block;
   font-weight: 600 !important;
   height: auto !important;
-  line-height: 1.75 !important;
-  min-height: 80px;
-  padding: 20px 16px !important;
+  line-height: 1.85 !important;
+  min-height: 96px;
+  padding: 24px 18px !important;
   text-align: left;
   white-space: normal !important;
   width: 100%;
 }
 .np-story-list [role="option"] + [role="option"] {
   border-top: 1px solid var(--np-sand-deep);
-  margin-top: 8px;
+  margin-top: 12px;
 }
 .np-story-list [role="option"].np-selected {
   background: var(--np-sand);
