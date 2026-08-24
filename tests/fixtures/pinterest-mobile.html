@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pinterest Queue mobile test</title>
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+  <div id="nc-root">
+    <main>
+      <label>Trail Journal story</label>
+      <div role="listbox" aria-label="Trail Journal story">
+        <div role="option"><span>How We Prepare for a Cat Hike: Cheeto’s Complete Pre-Hike Routine and Trail Checklist</span></div>
+        <div role="option"><span>Why Pezzy Is at the Top of Cheeto’s Treat List</span></div>
+        <div role="option"><span>A Short Trail Journal Story</span></div>
+      </div>
+      <section class="fixture-pin">
+        <label>Pin 1 — automatic RSS</label>
+        <div><label>Pinterest image</label><input value="/images/a36f812b-4d3b-4467-adff-8b581eca4c5b.jpg"></div>
+        <div><label>Nomadic Paws logo color</label><select><option value="bark">Bark</option><option value="sage">Sage</option><option value="sand">Cream</option><option value="terracotta">Terracotta</option></select></div>
+        <div><label>Logo size</label><select><option value="small">Small</option><option value="medium">Medium</option></select></div>
+        <div><label>Logo placement</label><select><option value="left">Left</option><option value="right">Right</option></select></div>
+        <div><label>Pin title</label><input value="Cheeto on the trail"></div>
+      </section>
+    </main>
+  </div>
+  <script>location.hash = '#/collections/pinterest/new';</script>
+  <script src="/admin/pinterest-preview.js"></script>
+</body>
+</html>

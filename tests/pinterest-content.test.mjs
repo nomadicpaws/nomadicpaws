@@ -16,11 +16,19 @@ const campaign = {
 
 const posts = new Map([[campaign.post_slug, { date: '2026-09-01T09:00:00-07:00' }]])
 
-test('branded media URLs preserve the original upload and selected logo color', () => {
-  const url = brandedMediaUrl({ image: '/images/uploads/cheeto.jpg', template: 'sage' })
+test('branded media URLs preserve the upload and selected logo treatment', () => {
+  const url = brandedMediaUrl({ image: '/images/uploads/cheeto.jpg', template: 'sage', logo_size: 'medium', logo_placement: 'right' })
   assert.match(url, /\/pinterest-image\.jpg\?/)
   assert.match(url, /template=sage/)
+  assert.match(url, /size=medium/)
+  assert.match(url, /placement=right/)
   assert.match(decodeURIComponent(url), /https:\/\/nomadicpaws\.co\/images\/uploads\/cheeto\.jpg/)
+})
+
+test('existing campaigns retain small left logo defaults', () => {
+  const url = brandedMediaUrl({ image: '/images/uploads/cheeto.jpg', template: 'bark' })
+  assert.match(url, /size=small/)
+  assert.match(url, /placement=left/)
 })
 
 test('RSS releases the first image when the article publishes', () => {

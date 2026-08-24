@@ -80,6 +80,98 @@ button {
   font-weight: 700 !important;
 }
 
+/* Pinterest Queue: live representation of the exported 2:3 image. */
+.np-pin-preview {
+  background: #fff;
+  border: 1px solid var(--np-sand-deep);
+  border-radius: 14px;
+  margin: 18px 0 8px;
+  max-width: 420px;
+  padding: 12px;
+  width: 100%;
+}
+.np-pin-preview-heading {
+  align-items: baseline;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.np-pin-preview-heading span { color: var(--np-bark-soft); font-size: 12px; }
+.np-pin-preview-canvas {
+  aspect-ratio: 2 / 3;
+  background: var(--np-sand);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+.np-pin-preview-photo {
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  object-position: center;
+  position: absolute;
+  width: 100%;
+}
+.np-pin-preview-logo {
+  bottom: 4%;
+  height: auto;
+  position: absolute;
+  width: 23%;
+  z-index: 2;
+}
+.np-pin-preview[data-size="medium"] .np-pin-preview-logo { width: 31%; }
+.np-pin-preview[data-placement="left"] .np-pin-preview-logo { left: 6%; right: auto; }
+.np-pin-preview[data-placement="right"] .np-pin-preview-logo { left: auto; right: 6%; }
+.np-pin-preview-message {
+  align-items: center;
+  background: rgb(253 250 245 / 94%);
+  color: var(--np-bark-soft);
+  display: none;
+  flex-direction: column;
+  font-size: 14px;
+  gap: 12px;
+  inset: 0;
+  justify-content: center;
+  line-height: 1.5;
+  padding: 24px;
+  position: absolute;
+  text-align: center;
+  z-index: 3;
+}
+.np-pin-preview[data-state="empty"] .np-pin-preview-message,
+.np-pin-preview[data-state="loading"] .np-pin-preview-message,
+.np-pin-preview[data-state="error"] .np-pin-preview-message { display: flex; }
+.np-pin-preview-message button { display: none; min-height: 44px; padding: 8px 18px; }
+.np-pin-preview[data-state="error"] .np-pin-preview-message button { display: block; }
+.np-pin-preview[data-state="error"] .np-pin-preview-photo { display: none; }
+
+/* Decap's relation widget uses a scrollable listbox rather than a native select. */
+#nc-root [role="listbox"] {
+  max-height: min(58vh, 420px) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+#nc-root [role="option"],
+#nc-root div[id*="-option-"] {
+  align-items: center !important;
+  min-height: 52px !important;
+  padding: 11px 14px !important;
+  white-space: normal !important;
+}
+#nc-root [role="option"] > *,
+#nc-root div[id*="-option-"] > * {
+  display: -webkit-box !important;
+  line-height: 1.35 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  overflow-wrap: anywhere !important;
+  white-space: normal !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 button:not(:disabled):hover {
   filter: brightness(0.96);
 }

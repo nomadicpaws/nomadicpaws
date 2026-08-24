@@ -51,7 +51,7 @@ collections:
         widget: relation
         collection: blog
         search_fields: [title]
-        display_fields: [title, date]
+        display_fields: [title]
         value_field: "{{slug}}"
         hint: "Choose the article these Pins should link to."
       - { label: Campaign name, name: campaign_title, widget: string, hint: "Usually the article title. This is only for organizing the CMS." }
@@ -78,7 +78,9 @@ collections:
         hint: "For a new article, this enters the RSS feed as soon as the article publishes. Pinterest normally creates the Pin within 24 hours. For a retroactive article, it goes into the CSV with the other three images."
         fields:
           - { label: Pinterest image, name: image, widget: image, hint: "Use a vertical 2:3 image when possible (for example 1000 × 1500)." }
-          - { label: Nomadic Paws logo color, name: template, widget: select, options: [{ label: Bark, value: bark }, { label: Sage, value: sage }, { label: Sand, value: sand }, { label: Terracotta, value: terracotta }], default: bark, hint: "The CMS places this transparent logo treatment over the uploaded photo automatically." }
+          - { label: Nomadic Paws logo color, name: template, widget: select, options: [{ label: Bark, value: bark }, { label: Sage, value: sage }, { label: Cream, value: sand }, { label: Terracotta, value: terracotta }], default: bark, hint: "The CMS places this transparent logo treatment over the uploaded photo automatically." }
+          - { label: Logo size, name: logo_size, widget: select, options: [{ label: Small, value: small }, { label: Medium, value: medium }], default: small }
+          - { label: Logo placement, name: logo_placement, widget: select, options: [{ label: Left, value: left }, { label: Right, value: right }], default: left }
           - { label: Pin title, name: title, widget: string, hint: "Maximum 100 characters." }
           - { label: Pin description, name: description, widget: text, required: false, hint: "Maximum 500 characters." }
       - label: Pin 2 — 7 days
@@ -86,7 +88,9 @@ collections:
         widget: object
         fields:
           - { label: Pinterest image, name: image, widget: image }
-          - { label: Nomadic Paws logo color, name: template, widget: select, options: [{ label: Bark, value: bark }, { label: Sage, value: sage }, { label: Sand, value: sand }, { label: Terracotta, value: terracotta }], default: sage }
+          - { label: Nomadic Paws logo color, name: template, widget: select, options: [{ label: Bark, value: bark }, { label: Sage, value: sage }, { label: Cream, value: sand }, { label: Terracotta, value: terracotta }], default: sage }
+          - { label: Logo size, name: logo_size, widget: select, options: [{ label: Small, value: small }, { label: Medium, value: medium }], default: small }
+          - { label: Logo placement, name: logo_placement, widget: select, options: [{ label: Left, value: left }, { label: Right, value: right }], default: left }
           - { label: Pin title, name: title, widget: string }
           - { label: Pin description, name: description, widget: text, required: false }
       - label: Pin 3 — 14 days
@@ -94,7 +98,9 @@ collections:
         widget: object
         fields:
           - { label: Pinterest image, name: image, widget: image }
-          - { label: Nomadic Paws logo color, name: template, widget: select, options: [{ label: Bark, value: bark }, { label: Sage, value: sage }, { label: Sand, value: sand }, { label: Terracotta, value: terracotta }], default: sand }
+          - { label: Nomadic Paws logo color, name: template, widget: select, options: [{ label: Bark, value: bark }, { label: Sage, value: sage }, { label: Cream, value: sand }, { label: Terracotta, value: terracotta }], default: sand }
+          - { label: Logo size, name: logo_size, widget: select, options: [{ label: Small, value: small }, { label: Medium, value: medium }], default: small }
+          - { label: Logo placement, name: logo_placement, widget: select, options: [{ label: Left, value: left }, { label: Right, value: right }], default: left }
           - { label: Pin title, name: title, widget: string }
           - { label: Pin description, name: description, widget: text, required: false }
       - label: Pin 4 — 21 days
@@ -102,6 +108,8 @@ collections:
         widget: object
         fields:
           - { label: Pinterest image, name: image, widget: image }
-          - { label: Nomadic Paws logo color, name: template, widget: select, options: [{ label: Bark, value: bark }, { label: Sage, value: sage }, { label: Sand, value: sand }, { label: Terracotta, value: terracotta }], default: terracotta }
+          - { label: Nomadic Paws logo color, name: template, widget: select, options: [{ label: Bark, value: bark }, { label: Sage, value: sage }, { label: Cream, value: sand }, { label: Terracotta, value: terracotta }], default: terracotta }
+          - { label: Logo size, name: logo_size, widget: select, options: [{ label: Small, value: small }, { label: Medium, value: medium }], default: small }
+          - { label: Logo placement, name: logo_placement, widget: select, options: [{ label: Left, value: left }, { label: Right, value: right }], default: left }
           - { label: Pin title, name: title, widget: string }
           - { label: Pin description, name: description, widget: text, required: false }

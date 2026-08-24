@@ -28,7 +28,9 @@ export function brandedMediaUrl(pin = {}) {
   const source = absoluteMediaUrl(pin.image || '')
   if (!pin.template) return source
   const template = ['bark', 'sage', 'sand', 'terracotta'].includes(pin.template) ? pin.template : 'bark'
-  return `${SITE_URL}/pinterest-image.jpg?image=${encodeURIComponent(source)}&template=${template}`
+  const size = ['small', 'medium'].includes(pin.logo_size) ? pin.logo_size : 'small'
+  const placement = ['left', 'right'].includes(pin.logo_placement) ? pin.logo_placement : 'left'
+  return `${SITE_URL}/pinterest-image.jpg?image=${encodeURIComponent(source)}&template=${template}&size=${size}&placement=${placement}`
 }
 
 export function addDays(date, days) {

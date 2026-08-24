@@ -5,13 +5,19 @@ import sharp from 'sharp'
 
 const SITE_ORIGIN = 'https://nomadicpaws.co'
 const TEMPLATES = new Set(['bark', 'sage', 'sand', 'terracotta'])
+const SIZES = new Set(['small', 'medium'])
+const PLACEMENTS = new Set(['left', 'right'])
 
 export default async (request: Request) => {
   const url = new URL(request.url)
   const template = url.searchParams.get('template') || 'bark'
   const imageValue = url.searchParams.get('image') || ''
+  const size = url.searchParams.get('size') || 'small'
+  const placement = url.searchParams.get('placement') || 'left'
 
   if (!TEMPLATES.has(template)) return new Response('Unknown logo template', { status: 400 })
+  if (!SIZES.has(size)) return new Response('Unknown logo size', { status: 400 })
+  if (!PLACEMENTS.has(placement)) return new Response('Unknown logo placement', { status: 400 })
 
   let imageUrl: URL
   try {
@@ -30,11 +36,17 @@ export default async (request: Request) => {
   if (!contentType.startsWith('image/')) return new Response('Unsupported image', { status: 415 })
 
   const source = Buffer.from(await sourceResponse.arrayBuffer())
-  const overlay = await readFile(join(process.cwd(), 'images', 'pinterest-templates', `pin-${template}.png`))
+  const logoSource = await readFile(join(process.cwd(), 'images', 'pinterest-logos', `logo-${template}.png`))
+  const logoWidth = size === 'medium' ? 310 : 230
+  const logo = await sharp(logoSource).resize({ width: logoWidth }).png().toBuffer()
+  const logoMetadata = await sharp(logo).metadata()
+  const logoHeight = logoMetadata.height || Math.round(logoWidth * 0.5)
+  const margin = 60
+  const left = placement === 'right' ? 1000 - logoWidth - margin : margin
   const finished = await sharp(source)
     .rotate()
-    .resize(1000, 1500, { fit: 'cover', position: 'attention' })
-    .composite([{ input: overlay, top: 0, left: 0 }])
+    .resize(1000, 1500, { fit: 'cover', position: 'centre' })
+    .composite([{ input: logo, top: 1500 - logoHeight - margin, left }])
     .jpeg({ quality: 88, progressive: true })
     .toBuffer()
 
