@@ -2,6 +2,9 @@ export type Person = 'Katie' | 'Trinitie' | 'Mom'
 export type ContentStatus = 'Idea' | 'Draft' | 'Ready' | 'Handed Off' | 'Posted'
 export type Platform = 'Trail Journal' | 'Instagram' | 'Pinterest' | 'TikTok' | 'YouTube Shorts'
 export type PreviewReaction = 'Love it' | 'Tiny change' | 'Left a note'
+export type InstagramDay = { day: string; theme: string; enabled: boolean }
+export type InstagramTemplateKind = 'Post overlay' | 'Carousel frame' | 'Story' | 'Reel cover' | 'Background' | 'Video end card'
+export type InstagramTemplate = { id: string; name: string; kind: InstagramTemplateKind; aspectRatio: string; favorite: boolean; previewUrl?: string }
 
 export type SharedPreview = {
   id: string
@@ -68,6 +71,18 @@ export const initialSchedule = {
   socialDay: 'Friday',
   journalDay: 'Sunday',
 }
+
+export const initialInstagramRhythm: InstagramDay[] = [
+  { day: 'Sunday', theme: 'Sabbath Sunday', enabled: true },
+  { day: 'Monday', theme: 'Mood Monday', enabled: true },
+  { day: 'Tuesday', theme: 'Training Tuesday', enabled: true },
+  { day: 'Wednesday', theme: 'Whisker Wisdom Wednesday', enabled: true },
+  { day: 'Thursday', theme: 'Trail Thursday', enabled: true },
+  { day: 'Friday', theme: 'Adventures', enabled: true },
+  { day: 'Saturday', theme: 'Adventures', enabled: true },
+]
+
+export const starterInstagramTemplates: InstagramTemplate[] = []
 
 export const starterPreviews: SharedPreview[] = [
   {

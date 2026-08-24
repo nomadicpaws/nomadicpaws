@@ -1,3 +1,5 @@
+import type { InstagramDay, InstagramTemplate } from './content'
+
 export const API_URL = 'https://nomadicpaws.co'
 
 export type JournalStory = {
@@ -55,5 +57,16 @@ export async function addReviewNote(token: string, input: { slug: string; versio
   return request<{ note: JournalReviewNote }>('/api/app/journal', token, {
     method: 'POST',
     body: JSON.stringify({ action: 'add-review-note', ...input }),
+  })
+}
+
+export async function loadInstagramStudio(token: string) {
+  const data = await request<{ rhythm: InstagramDay[] | null; templates: Array<{ id: string; name: string; kind: InstagramTemplate['kind']; aspect_ratio: string; source_url: string; favorite: boolean }> }>('/api/app/instagram', token)
+  return { rhythm: data.rhythm, templates: data.templates.map(template => ({ id: template.id, name: template.name, kind: template.kind, aspectRatio: template.aspect_ratio, previewUrl: template.source_url, favorite: template.favorite })) }
+}
+
+export async function saveInstagramRhythm(token: string, rhythm: InstagramDay[]) {
+  return request<{ weekly_rhythm: InstagramDay[]; updated_at: string }>('/api/app/instagram', token, {
+    method: 'PUT', body: JSON.stringify({ rhythm }),
   })
 }
