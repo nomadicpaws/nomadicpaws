@@ -199,10 +199,65 @@
   function enhance() {
     if (!/#\/(collections\/pinterest|edit\/pinterest)/.test(location.hash)) return;
     enhanceStorySelector();
+    enhanceOpenStoryMenu();
     pinGroups().forEach(group => {
       createPreview(group);
       updatePreview(group);
     });
+  }
+
+  function enhanceOpenStoryMenu() {
+    if (!window.matchMedia('(max-width: 767px)').matches) return;
+    const label = labelsWithin(document).find(item => item.textContent.trim().startsWith('Trail Journal story'));
+    if (!label) return;
+    let field = label.parentElement;
+    while (field && !field.querySelector('input, [role="combobox"]') && field !== document.body) field = field.parentElement;
+    const input = field?.querySelector('input, [role="combobox"]');
+    const existing = document.querySelector('.np-story-portal-list');
+    if (!input) { existing?.remove(); return; }
+
+    const inputBox = input.getBoundingClientRect();
+    const menus = Array.from(document.querySelectorAll('[role="listbox"]'))
+      .filter(menu => !menu.classList.contains('np-story-list') && !menu.classList.contains('np-story-portal-list'))
+      .filter(menu => {
+        const box = menu.getBoundingClientRect();
+        return box.width > 100 && box.height > 20 && box.bottom > 0 && box.top < window.innerHeight;
+      });
+    const source = menus.sort((a, b) => Math.abs(a.getBoundingClientRect().left - inputBox.left) - Math.abs(b.getBoundingClientRect().left - inputBox.left))[0];
+    if (!source) { existing?.remove(); return; }
+    const sourceOptions = Array.from(source.querySelectorAll('[role="option"]'));
+    if (!sourceOptions.length) return;
+
+    let proxy = existing;
+    if (!proxy) {
+      proxy = document.createElement('div');
+      proxy.className = 'np-story-portal-list';
+      proxy.setAttribute('role', 'listbox');
+      proxy.setAttribute('aria-label', 'Trail Journal stories');
+      document.body.appendChild(proxy);
+    }
+    source.classList.add('np-story-source-menu');
+    const signature = sourceOptions.map(option => option.textContent.trim()).join('|');
+    proxy.style.left = `${Math.max(8, inputBox.left)}px`;
+    proxy.style.top = `${Math.min(window.innerHeight - 210, inputBox.bottom + 6)}px`;
+    proxy.style.width = `${Math.min(window.innerWidth - 16, inputBox.width)}px`;
+    if (proxy.dataset.options === signature) return;
+    proxy.dataset.options = signature;
+    proxy.replaceChildren(...sourceOptions.map(sourceOption => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.role = 'option';
+      button.textContent = cleanStoryTitle(sourceOption.textContent);
+      button.setAttribute('aria-selected', sourceOption.getAttribute('aria-selected') || 'false');
+      button.addEventListener('pointerdown', event => event.preventDefault());
+      button.addEventListener('click', () => {
+        sourceOption.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        sourceOption.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+        sourceOption.click();
+        proxy.remove();
+      });
+      return button;
+    }));
   }
 
   function cleanStoryTitle(label) {

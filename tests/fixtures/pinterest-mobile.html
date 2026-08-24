@@ -10,7 +10,7 @@
   <div id="nc-root">
     <main>
       <label>Trail Journal story</label>
-      <div><select aria-label="Trail Journal story"><option value="hike">How We Prepare for a Cat Hike: Cheeto’s Complete Pre-Hike Routine and Trail Checklist — 2026-08-23T09:00:00-07:00</option><option value="pezzy">Why Pezzy Is at the Top of Cheeto’s Treat List — 2026-08-16T09:00:00-07:00</option><option value="short">A Short Trail Journal Story — 2026-08-09T09:00:00-07:00</option></select></div>
+      <div><input role="combobox" aria-label="Trail Journal story" value="How We Prepare for a Cat Hike"></div>
       <section class="fixture-pin">
         <label>Pin 1 — automatic RSS</label>
         <div><label>Pinterest image</label><input value="/images/a36f812b-4d3b-4467-adff-8b581eca4c5b.jpg"></div>
@@ -20,6 +20,11 @@
         <div><label>Pin title</label><input value="Cheeto on the trail"></div>
       </section>
     </main>
+  </div>
+  <div role="listbox" style="position:fixed;left:8px;top:120px;width:374px;height:300px">
+    <div role="option" aria-selected="true">How We Prepare for a Cat Hike: Cheeto’s Complete Pre-Hike Routine and Trail Checklist — 2026-08-23T09:00:00-07:00</div>
+    <div role="option">Why Pezzy Is at the Top of Cheeto’s Treat List — 2026-08-16T09:00:00-07:00</div>
+    <div role="option">A Short Trail Journal Story — 2026-08-09T09:00:00-07:00</div>
   </div>
   <script>location.hash = '#/collections/pinterest/new';</script>
   <script src="/admin/pinterest-preview.js"></script>
