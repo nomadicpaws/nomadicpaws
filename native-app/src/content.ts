@@ -1,6 +1,20 @@
 export type Person = 'Katie' | 'Trinitie' | 'Mom'
 export type ContentStatus = 'Idea' | 'Draft' | 'Ready' | 'Handed Off' | 'Posted'
 export type Platform = 'Trail Journal' | 'Instagram' | 'Pinterest' | 'TikTok' | 'YouTube Shorts'
+export type PreviewReaction = 'Love it' | 'Tiny change' | 'Left a note'
+
+export type SharedPreview = {
+  id: string
+  title: string
+  platform: Platform
+  creator: Person
+  sharedWith: Person[]
+  version: number
+  updatedAt: string
+  imageUrl: string
+  caption: string
+  details: string[]
+}
 
 export type ContentSeed = {
   id: string
@@ -54,3 +68,24 @@ export const initialSchedule = {
   socialDay: 'Friday',
   journalDay: 'Sunday',
 }
+
+export const starterPreviews: SharedPreview[] = [
+  {
+    id: 'window-instagram-v2', title: 'Window supervisor on duty', platform: 'Instagram', creator: 'Trinitie', sharedWith: ['Katie', 'Mom'], version: 2, updatedAt: 'Today · 9:42 AM',
+    imageUrl: 'https://nomadicpaws.co/images/products/scratcher/window-cheeto-clean-1200.jpg',
+    caption: 'Management would like everyone to know the sunset passed inspection. Barely.',
+    details: ['Carousel · 3 photos', '5 relevant hashtags', 'Friday target'],
+  },
+  {
+    id: 'pezzy-short-v1', title: 'Cheeto conducts a treat inspection', platform: 'YouTube Shorts', creator: 'Katie', sharedWith: ['Trinitie'], version: 1, updatedAt: 'Yesterday · 4:18 PM',
+    imageUrl: 'https://nomadicpaws.co/images/hero/cheeto-desert-sunset-mobile-720.jpg',
+    caption: 'A searchable little field test featuring one extremely motivated orange reviewer.',
+    details: ['Vertical video · 0:28', 'Cover selected', 'Audio note attached'],
+  },
+  {
+    id: 'morning-journal-v3', title: 'The morning I let Cheeto lead', platform: 'Trail Journal', creator: 'Katie', sharedWith: ['Trinitie', 'Mom'], version: 3, updatedAt: 'Sunday · 7:05 PM',
+    imageUrl: 'https://nomadicpaws.co/images/hero/cheeto-desert-sunset-mobile-720.jpg',
+    caption: 'A Trail Journal draft about what changed when I stopped choosing every turn.',
+    details: ['1,240 words', '7 photographs', 'Sunday target'],
+  },
+]

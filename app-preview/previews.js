@@ -1,0 +1,1 @@
+document.querySelectorAll('.reactions').forEach(group=>group.querySelectorAll('button').forEach(button=>button.onclick=()=>{group.querySelectorAll('button').forEach(item=>item.classList.remove('active'));button.classList.add('active')}));
