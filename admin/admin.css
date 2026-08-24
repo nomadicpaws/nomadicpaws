@@ -146,47 +146,6 @@ button {
 .np-pin-preview[data-state="error"] .np-pin-preview-message button { display: block; }
 .np-pin-preview[data-state="error"] .np-pin-preview-photo { display: none; }
 
-/* Decap's relation widget uses a scrollable listbox rather than a native select. */
-#nc-root [role="listbox"] {
-  max-height: min(58vh, 420px) !important;
-  overflow-y: auto !important;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-}
-#nc-root [role="listbox"]:not(.np-story-list) {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 12px !important;
-}
-#nc-root [role="option"],
-#nc-root div[id*="-option-"] {
-  align-items: flex-start !important;
-  display: block !important;
-  height: auto !important;
-  inset: auto !important;
-  min-height: 96px !important;
-  padding: 24px 18px !important;
-  position: static !important;
-  transform: none !important;
-  white-space: normal !important;
-}
-#nc-root [role="option"] + [role="option"],
-#nc-root div[id*="-option-"] + div[id*="-option-"] {
-  border-top: 1px solid var(--np-sand-deep) !important;
-  margin-top: 10px !important;
-}
-#nc-root [role="option"] > *,
-#nc-root div[id*="-option-"] > * {
-  display: block !important;
-  height: auto !important;
-  line-height: 1.8 !important;
-  max-width: 100% !important;
-  overflow: visible !important;
-  overflow-wrap: anywhere !important;
-  white-space: normal !important;
-  -webkit-line-clamp: unset !important;
-}
-
 .np-native-story-select { display: none !important; }
 .np-story-selector { margin-top: 8px; position: relative; width: 100%; }
 .np-story-trigger {
@@ -358,34 +317,42 @@ label,
 #np-mobile-dashboard { display: none; }
 
 @media (max-width: 767px) {
-  /* Decap renders relation results in a body-level portal on iOS, outside
-     #nc-root. Give those real menu rows normal document flow and enough room
-     for wrapped Trail Journal titles. */
+  /* Decap portals the relation menu outside #nc-root on iOS. Target the
+     actual role=option nodes and their immediate container, not the portal
+     wrapper, so every wrapped title owns its real height. */
   body [role="listbox"]:not(.np-story-list) {
+    max-height: min(52dvh, 440px) !important;
+    overflow-y: auto !important;
+    padding: 8px !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  body [role="listbox"]:not(.np-story-list) *:has(> [role="option"]) {
     display: flex !important;
     flex-direction: column !important;
     gap: 10px !important;
-    max-height: min(52dvh, 440px) !important;
-    overflow-y: auto !important;
-    padding: 10px !important;
-    -webkit-overflow-scrolling: touch;
+    height: auto !important;
+    position: static !important;
   }
-  body [role="listbox"]:not(.np-story-list) > * {
+  body [role="listbox"]:not(.np-story-list) [role="option"] {
+    align-items: flex-start !important;
     display: block !important;
     flex: 0 0 auto !important;
     height: auto !important;
     inset: auto !important;
-    line-height: 1.6 !important;
-    min-height: 76px !important;
+    line-height: 1.55 !important;
+    margin: 0 !important;
+    min-height: 68px !important;
     overflow: visible !important;
-    padding: 18px 16px !important;
+    padding: 16px !important;
     position: static !important;
     transform: none !important;
     white-space: normal !important;
   }
-  body [role="listbox"]:not(.np-story-list) > * * {
+  body [role="listbox"]:not(.np-story-list) [role="option"] > * {
+    display: block !important;
     height: auto !important;
-    line-height: 1.6 !important;
+    line-height: 1.55 !important;
+    max-width: 100% !important;
     overflow: visible !important;
     overflow-wrap: anywhere !important;
     position: static !important;
