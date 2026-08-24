@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { validInstagramRhythm } from '../netlify/functions/lib/instagram-settings.mjs'
+import { validInstagramPost, validInstagramRhythm } from '../netlify/functions/lib/instagram-settings.mjs'
 
 const rhythm = [
   ['Sunday', 'Sabbath Sunday'], ['Monday', 'Mood Monday'], ['Tuesday', 'Training Tuesday'],
@@ -12,4 +12,11 @@ test('Instagram rhythm preserves all seven editable themes in calendar order', (
   assert.equal(validInstagramRhythm(rhythm), true)
   assert.equal(validInstagramRhythm(rhythm.slice(0, 6)), false)
   assert.equal(validInstagramRhythm(rhythm.map((item, index) => index === 1 ? { ...item, theme: '' } : item)), false)
+})
+
+test('Instagram drafts support a target day without enabling automatic posting', () => {
+  const post = { title: 'Sabbath window', caption: 'Quiet supervision.', mediaUrls: ['/cheeto.jpg'], targetDate: '2026-08-30', theme: 'Sabbath Sunday', status: 'Ready' }
+  assert.equal(validInstagramPost(post), true)
+  assert.equal(validInstagramPost({ ...post, targetDate: 'Sunday' }), false)
+  assert.equal(validInstagramPost({ ...post, status: 'Scheduled' }), false)
 })

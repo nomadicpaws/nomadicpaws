@@ -5,6 +5,7 @@ export type PreviewReaction = 'Love it' | 'Tiny change' | 'Left a note'
 export type InstagramDay = { day: string; theme: string; enabled: boolean }
 export type InstagramTemplateKind = 'Post overlay' | 'Carousel frame' | 'Story' | 'Reel cover' | 'Background' | 'Video end card'
 export type InstagramTemplate = { id: string; name: string; kind: InstagramTemplateKind; aspectRatio: string; favorite: boolean; previewUrl?: string }
+export type InstagramPostDraft = { id: string; title: string; caption: string; mediaUrls: string[]; targetDate: string | null; theme: string; status: 'Draft' | 'Ready' | 'Posted'; updatedAt: string }
 
 export type SharedPreview = {
   id: string

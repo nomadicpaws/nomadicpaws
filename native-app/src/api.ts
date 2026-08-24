@@ -1,4 +1,4 @@
-import type { InstagramDay, InstagramTemplate } from './content'
+import type { InstagramDay, InstagramPostDraft, InstagramTemplate } from './content'
 
 export const API_URL = 'https://nomadicpaws.co'
 
@@ -78,14 +78,21 @@ export async function addReviewNote(token: string, input: { slug: string; versio
 }
 
 export async function loadInstagramStudio(token: string) {
-  const data = await request<{ rhythm: InstagramDay[] | null; templates: Array<{ id: string; name: string; kind: InstagramTemplate['kind']; aspect_ratio: string; source_url: string; favorite: boolean }> }>('/api/app/instagram', token)
-  return { rhythm: data.rhythm, templates: data.templates.map(template => ({ id: template.id, name: template.name, kind: template.kind, aspectRatio: template.aspect_ratio, previewUrl: template.source_url, favorite: template.favorite })) }
+  const data = await request<{ rhythm: InstagramDay[] | null; templates: Array<{ id: string; name: string; kind: InstagramTemplate['kind']; aspect_ratio: string; source_url: string; favorite: boolean }>; posts: Array<{ id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; updated_at: string }> }>('/api/app/instagram', token)
+  return { rhythm: data.rhythm, templates: data.templates.map(template => ({ id: template.id, name: template.name, kind: template.kind, aspectRatio: template.aspect_ratio, previewUrl: template.source_url, favorite: template.favorite })), posts: data.posts.map(post => ({ id: post.id, title: post.title, caption: post.caption, mediaUrls: post.media_urls, targetDate: post.target_date, theme: post.theme, status: post.status, updatedAt: post.updated_at })) }
 }
 
 export async function saveInstagramRhythm(token: string, rhythm: InstagramDay[]) {
   return request<{ weekly_rhythm: InstagramDay[]; updated_at: string }>('/api/app/instagram', token, {
     method: 'PUT', body: JSON.stringify({ rhythm }),
   })
+}
+
+export async function saveInstagramPost(token: string, post: Omit<InstagramPostDraft, 'updatedAt'>) {
+  const data = await request<{ post: { id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; updated_at: string } }>('/api/app/instagram', token, {
+    method: 'POST', body: JSON.stringify({ action: 'save-post', ...post }),
+  })
+  return { id: data.post.id, title: data.post.title, caption: data.post.caption, mediaUrls: data.post.media_urls, targetDate: data.post.target_date, theme: data.post.theme, status: data.post.status, updatedAt: data.post.updated_at }
 }
 
 export async function saveJournalWorkingDraft(token: string, input: { slug: string; title: string; description: string; category: string; image: string; imageAlt: string; body: string; isDraft: boolean; publishDate: string; expectedRevision: number }) {

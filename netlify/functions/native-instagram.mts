@@ -1,7 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { bearerToken, verifySellerToken } from './lib/event-auth.mjs'
-import { getInstagramStudio, saveInstagramRhythm } from './lib/instagram-db.mjs'
-import { validInstagramRhythm } from './lib/instagram-settings.mjs'
+import { getInstagramStudio, saveInstagramPost, saveInstagramRhythm } from './lib/instagram-db.mjs'
+import { validInstagramPost, validInstagramRhythm } from './lib/instagram-settings.mjs'
 
 const HEADERS = { 'Cache-Control': 'private, no-store, max-age=0', 'X-Content-Type-Options': 'nosniff' }
 
@@ -19,7 +19,12 @@ export default async (request: Request) => {
       if (!validInstagramRhythm(payload.rhythm)) return Response.json({ error: 'Instagram rhythm must include one valid theme for each day.' }, { status: 400, headers: HEADERS })
       return Response.json(await saveInstagramRhythm(payload.rhythm), { headers: HEADERS })
     }
-    return Response.json({ error: 'Method not allowed.' }, { status: 405, headers: { ...HEADERS, Allow: 'GET, PUT' } })
+    if (request.method === 'POST') {
+      const payload = await request.json().catch(() => ({})) as Record<string, unknown>
+      if (payload.action !== 'save-post' || !validInstagramPost(payload)) return Response.json({ error: 'This Instagram draft is incomplete or invalid.' }, { status: 400, headers: HEADERS })
+      return Response.json({ post: await saveInstagramPost(payload) }, { headers: HEADERS })
+    }
+    return Response.json({ error: 'Method not allowed.' }, { status: 405, headers: { ...HEADERS, Allow: 'GET, PUT, POST' } })
   } catch (error) {
     console.error('Instagram Studio failed', error)
     return Response.json({ error: 'Nomadic Paws could not open Instagram Studio right now.' }, { status: 500, headers: HEADERS })
