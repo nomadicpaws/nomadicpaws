@@ -114,7 +114,7 @@ function Today({ person, onPersonChange, seeds, onNewAdventure }: { person: Pers
     <View style={styles.readinessRow}><View style={styles.readinessCard}><Text style={styles.readinessNumber}>{person === 'Trinitie' ? readyInstagram : mine.length}</Text><Text style={styles.readinessLabel}>{person === 'Trinitie' ? 'Instagram ready' : person === 'Mom' ? 'Ready to review' : 'Assigned to you'}</Text></View><View style={styles.readinessCard}><Text style={styles.readinessNumber}>{initialSchedule.socialDay.slice(0, 3)}</Text><Text style={styles.readinessLabel}>Social target</Text></View><View style={styles.readinessCard}><Text style={styles.readinessNumber}>{initialSchedule.journalDay.slice(0, 3)}</Text><Text style={styles.readinessLabel}>Journal target</Text></View></View>
     <View style={styles.listHeading}><Text style={styles.listTitle}>{person === 'Trinitie' ? 'Your studio' : person === 'Mom' ? 'Ready to review' : 'In your hands'}</Text><Text style={styles.listCount}>{mine.length} items</Text></View>
     {mine.map(seed => <SeedCard key={seed.id} seed={seed} />)}
-    <Text style={styles.gentleNote}>{person === 'Trinitie' ? 'Nothing here requires Katie’s approval. Assignment shows responsibility, not ownership.' : person === 'Mom' ? 'Your notes support the story without changing Katie’s ownership or publishing schedule.' : 'No overdue alarms. If a queue is empty, the app will simply show where help may be useful.'}</Text>
+    {person !== 'Trinitie' ? <Text style={styles.gentleNote}>{person === 'Mom' ? 'Review notes won’t change the draft or publish anything.' : 'No overdue alarms. If a queue is empty, the app will simply show where help may be useful.'}</Text> : null}
   </ScrollView>
 }
 
