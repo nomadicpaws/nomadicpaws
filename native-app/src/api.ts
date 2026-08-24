@@ -3,9 +3,22 @@ export const API_URL = 'https://nomadicpaws.co'
 export type JournalStory = {
   slug: string
   title: string
+  description: string
+  category: string
   date: string
   draft: boolean
   status: 'Draft' | 'Scheduled' | 'Published'
+  version: string
+}
+
+export type JournalStoryDetail = JournalStory & { body: string }
+export type JournalReviewNote = {
+  id: string
+  story_slug: string
+  story_version: string
+  reviewer: 'Trinitie' | 'Mom'
+  note: string
+  created_at: string
 }
 
 async function request<T>(path: string, token: string, options: RequestInit = {}): Promise<T> {
@@ -32,4 +45,15 @@ export async function signIn(accessCode: string) {
 
 export async function loadStories(token: string) {
   return request<{ stories: JournalStory[] }>('/api/app/journal', token)
+}
+
+export async function loadStory(token: string, slug: string) {
+  return request<{ story: JournalStoryDetail; notes: JournalReviewNote[] }>(`/api/app/journal?slug=${encodeURIComponent(slug)}`, token)
+}
+
+export async function addReviewNote(token: string, input: { slug: string; version: string; reviewer: 'Trinitie' | 'Mom'; note: string }) {
+  return request<{ note: JournalReviewNote }>('/api/app/journal', token, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'add-review-note', ...input }),
+  })
 }
