@@ -1,5 +1,5 @@
-const CACHE = 'nomadic-paws-cms-v4';
-const SHELL = ['/admin/', '/admin/admin.css', '/admin/app.js', '/admin/review-utils.js', '/admin/photo-utils.js', '/admin/manifest.webmanifest', '/apple-touch-icon.png'];
+const CACHE = 'nomadic-paws-cms-v5';
+const SHELL = ['/admin/', '/admin/admin.css?v=5', '/admin/app.js?v=5', '/admin/pinterest-preview.js?v=5', '/admin/review-utils.js', '/admin/photo-utils.js', '/admin/manifest.webmanifest', '/apple-touch-icon.png'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));

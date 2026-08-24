@@ -5,6 +5,7 @@
   const SIZES = ['small', 'medium'];
   const PLACEMENTS = ['left', 'right'];
   let updateTimer;
+  let activeChoiceField = null;
   const liveSelections = new WeakMap();
 
   function labelsWithin(root) {
@@ -73,6 +74,35 @@
         return;
       }
     }
+  }
+
+  function rememberActiveChoiceField(target) {
+    for (const group of pinGroups()) {
+      const fields = [
+        ['Nomadic Paws logo color', COLORS],
+        ['Logo size', SIZES],
+        ['Logo placement', PLACEMENTS],
+      ];
+      for (const [labelText, allowed] of fields) {
+        const root = fieldRoot(group, labelText);
+        if (root?.contains(target)) {
+          activeChoiceField = { group, labelText, allowed };
+          return;
+        }
+      }
+    }
+  }
+
+  function rememberPortalOption(target) {
+    const option = target.closest?.('[role="option"]');
+    if (!option || !activeChoiceField) return;
+    const text = option.textContent.toLowerCase().replace(/\bcream\b/g, 'sand');
+    const choice = activeChoiceField.allowed.find(item => new RegExp(`(^|\\s)${item}(\\s|$)`, 'i').test(text));
+    if (!choice) return;
+    const state = liveSelections.get(activeChoiceField.group) || {};
+    state[activeChoiceField.labelText] = choice;
+    liveSelections.set(activeChoiceField.group, state);
+    updatePreview(activeChoiceField.group);
   }
 
   function normalizeImageSource(value) {
@@ -255,7 +285,9 @@
   function init() {
     document.addEventListener('input', event => { rememberLiveChoice(event.target); schedule(); }, true);
     document.addEventListener('change', event => { rememberLiveChoice(event.target); schedule(); }, true);
-    document.addEventListener('click', schedule, true);
+    document.addEventListener('focusin', event => rememberActiveChoiceField(event.target), true);
+    document.addEventListener('pointerdown', event => rememberActiveChoiceField(event.target), true);
+    document.addEventListener('click', event => { rememberPortalOption(event.target); schedule(); }, true);
     window.addEventListener('hashchange', schedule);
     new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
     schedule();
