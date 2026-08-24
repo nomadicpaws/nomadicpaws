@@ -7,6 +7,8 @@ export type JournalStory = {
   title: string
   description: string
   category: string
+  image: string
+  imageAlt: string
   date: string
   draft: boolean
   status: 'Draft' | 'Scheduled' | 'Published'
@@ -22,6 +24,21 @@ export type JournalReviewNote = {
   note: string
   created_at: string
 }
+export type JournalWorkingDraft = {
+  story_slug: string
+  base_version: string
+  title: string
+  description: string
+  category: string
+  image: string
+  image_alt: string
+  body: string
+  is_draft: boolean
+  publish_date: string
+  revision: number
+  updated_at: string
+}
+export type JournalWorkingVersion = { id: string; revision: number; snapshot: JournalWorkingDraft; created_at: string }
 
 async function request<T>(path: string, token: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
@@ -50,7 +67,7 @@ export async function loadStories(token: string) {
 }
 
 export async function loadStory(token: string, slug: string) {
-  return request<{ story: JournalStoryDetail; notes: JournalReviewNote[] }>(`/api/app/journal?slug=${encodeURIComponent(slug)}`, token)
+  return request<{ story: JournalStoryDetail; notes: JournalReviewNote[]; workingDraft: JournalWorkingDraft | null; versions: JournalWorkingVersion[] }>(`/api/app/journal?slug=${encodeURIComponent(slug)}`, token)
 }
 
 export async function addReviewNote(token: string, input: { slug: string; version: string; reviewer: 'Trinitie' | 'Mom'; note: string }) {
@@ -68,5 +85,11 @@ export async function loadInstagramStudio(token: string) {
 export async function saveInstagramRhythm(token: string, rhythm: InstagramDay[]) {
   return request<{ weekly_rhythm: InstagramDay[]; updated_at: string }>('/api/app/instagram', token, {
     method: 'PUT', body: JSON.stringify({ rhythm }),
+  })
+}
+
+export async function saveJournalWorkingDraft(token: string, input: { slug: string; title: string; description: string; category: string; image: string; imageAlt: string; body: string; isDraft: boolean; publishDate: string; expectedRevision: number }) {
+  return request<{ workingDraft: JournalWorkingDraft }>('/api/app/journal', token, {
+    method: 'POST', body: JSON.stringify({ action: 'save-working-draft', ...input }),
   })
 }
