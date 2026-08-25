@@ -13,6 +13,7 @@
     document.getElementById('listTitle').textContent=trin?'Your studio':mom?'Ready to review':'In your hands';
     document.getElementById('listCount').textContent=trin||mom?'1 item':'2 items';
     document.getElementById('adventureButton').hidden=trin||mom;
+    document.getElementById('libraryButton').hidden=trin||mom;
     document.getElementById('katieSeeds').hidden=trin||mom;
     document.getElementById('trinitieSeeds').hidden=!trin;
     document.getElementById('momSeeds').hidden=!mom;
