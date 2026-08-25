@@ -8,9 +8,22 @@
     { id: 'cheeto', name: 'Cheeto commentary', example: 'Obviously important', animation: 'Pop', text: 'I had this handled.', color: '#ffffff', accent: '#a85c39', boxed: true },
   ]
   const palette = [['White', '#ffffff'], ['Bark', '#3f352a'], ['Sand', '#f4eee1'], ['Terracotta', '#c1734b'], ['Sage', '#6f7e62'], ['Black', '#111111']]
+  const fonts = [
+    { id: 'clean', name: 'Clean', family: 'DM, sans-serif' },
+    { id: 'editorial', name: 'Trail Journal', family: 'Fraunces, serif' },
+    { id: 'typewriter', name: 'Typewriter', family: '"Special Elite", monospace' },
+    { id: 'handwritten', name: 'Handwritten', family: 'Caveat, cursive' },
+    { id: 'tall', name: 'Tall title', family: '"Bebas Neue", sans-serif' },
+    { id: 'bold', name: 'Bold Cheeto', family: 'Bungee, sans-serif' },
+    { id: 'classic', name: 'Classic story', family: '"Playfair Display", serif' },
+    { id: 'impact', name: 'Big emphasis', family: '"Archivo Black", sans-serif' },
+  ]
   const overlay = document.querySelector('#overlay'), input = document.querySelector('#overlayText'), tray = document.querySelector('#presets')
   const textTray = document.querySelector('#textColors'), accentTray = document.querySelector('#accentColors'), message = document.querySelector('#message')
-  let selected = presets[0], textColor = selected.color, accent = selected.accent, layers = []
+  const fontLabel = document.createElement('label'), fontTray = document.createElement('section')
+  fontLabel.textContent = 'Font'; fontTray.id = 'fonts'; fontTray.className = 'fonts'; fontTray.setAttribute('aria-label', 'Font choices')
+  document.querySelector('#textColors').previousElementSibling.before(fontLabel, fontTray)
+  let selected = presets[0], selectedFont = fonts[0], textColor = selected.color, accent = selected.accent, layers = []
   const safe = value => String(value || '').replace(/[<>&]/g, '')
   function colorButtons(host, kind) {
     host.innerHTML = ''
@@ -23,7 +36,7 @@
     })
   }
   function render() {
-    overlay.textContent = input.value || 'Your words appear here'; overlay.style.color = textColor
+    overlay.textContent = input.value || 'Your words appear here'; overlay.style.color = textColor; overlay.style.fontFamily = selectedFont.family
     overlay.style.setProperty('--accent', accent); overlay.style.background = selected.boxed ? accent + 'e8' : 'transparent'
     overlay.className = 'overlay' + (selected.boxed ? ' boxed' : '') + (selected.neon ? ' neon' : '') + (selected.upper ? ' upper' : '')
     document.querySelector('#presetName').textContent = selected.name
@@ -31,6 +44,8 @@
     document.querySelector('#accentLabel').textContent = selected.boxed ? 'Label color' : 'Outline or glow color'
     ;[...tray.children].forEach((button, index) => button.classList.toggle('active', presets[index] === selected))
     colorButtons(textTray, 'text'); colorButtons(accentTray, 'accent')
+    ;[...fontTray.children].forEach((button, index) => button.classList.toggle('active', fonts[index] === selectedFont))
+    ;[...fontTray.querySelectorAll('.font-sample')].forEach(sample => { sample.textContent = input.value || 'Cheeto said so.' })
   }
   presets.forEach(item => {
     const button = document.createElement('button'); button.className = 'preset'
@@ -38,16 +53,22 @@
     button.onclick = () => { selected = item; input.value = item.text; textColor = item.color; accent = item.accent; render() }
     tray.append(button)
   })
+  fonts.forEach(item => {
+    const button = document.createElement('button'); button.className = 'font-choice'; button.setAttribute('aria-label', item.name)
+    button.innerHTML = `<span class="check">✓</span><span class="font-sample" style="font-family:${item.family}">${safe(input.value || 'Cheeto said so.')}</span><small>${item.name}</small>`
+    button.onclick = () => { selectedFont = item; render() }
+    fontTray.append(button)
+  })
   function renderTimeline() {
     document.querySelector('#timeline').hidden = !layers.length
     document.querySelector('#layerCount').textContent = `${layers.length} layer${layers.length === 1 ? '' : 's'}`
-    document.querySelector('#layers').innerHTML = layers.map((layer, index) => `<div class="layer"><span class="layer-num" style="background:${layer.accent};color:${layer.textColor}">${index + 1}</span><span class="layer-copy"><b>${layer.name}</b><small>${safe(layer.text)}</small></span><span class="layer-time">${layer.start.toFixed(1)}–${layer.end.toFixed(1)}s</span></div>`).join('')
+    document.querySelector('#layers').innerHTML = layers.map((layer, index) => `<div class="layer"><span class="layer-num" style="background:${layer.accent};color:${layer.textColor}">${index + 1}</span><span class="layer-copy"><b>${layer.name} · ${layer.fontName}</b><small style="font-family:${layer.fontFamily}">${safe(layer.text)}</small></span><span class="layer-time">${layer.start.toFixed(1)}–${layer.end.toFixed(1)}s</span></div>`).join('')
   }
   input.oninput = render
   document.querySelector('#saveOverlay').onclick = () => {
     const start = Math.max(0, Number(document.querySelector('#startAt').value) || 0)
     const end = Math.max(start + .5, Number(document.querySelector('#endAt').value) || start + 5)
-    layers.push({ preset: selected.id, name: selected.name, text: input.value || 'Your words appear here', textColor, accent, start, end })
+    layers.push({ preset: selected.id, name: selected.name, text: input.value || 'Your words appear here', textColor, accent, fontId: selectedFont.id, fontName: selectedFont.name, fontFamily: selectedFont.family, start, end })
     renderTimeline(); message.textContent = 'Added to this video. Add another style whenever it needs one.'
   }
   document.querySelector('#saveDraft').onclick = () => {
