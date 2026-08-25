@@ -13,11 +13,12 @@
     document.getElementById('listTitle').textContent=trin?'Your studio':mom?'Ready to review':'In your hands';
     document.getElementById('listCount').textContent=trin||mom?'1 item':'2 items';
     document.getElementById('adventureButton').hidden=trin||mom;
-    document.getElementById('libraryButton').hidden=trin||mom;
+    const libraryButton=document.getElementById('libraryButton');libraryButton.hidden=mom;libraryButton.onclick=()=>location.href=trin?'/app-preview/library.html?for=trinitie':'/app-preview/library.html';document.getElementById('libraryTitle').textContent=trin?'Open shared Cheeto media':'Open the Media Library';document.getElementById('libraryCopy').textContent=trin?'Photos and videos available for Instagram.':'Find unused Cheeto photos without folder hunting.';
     document.getElementById('katieSeeds').hidden=trin||mom;
     document.getElementById('trinitieSeeds').hidden=!trin;
     document.getElementById('momSeeds').hidden=!mom;
     document.getElementById('pinterestTab').hidden=trin||mom;
     document.getElementById('registerTab').hidden=trin||mom;
   });
+  const requestedPerson=new URLSearchParams(location.search).get('person');if(requestedPerson){const requested=[...buttons].find(button=>button.dataset.person===requestedPerson);if(requested)requested.click()}
 })();
