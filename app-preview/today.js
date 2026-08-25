@@ -1,4 +1,6 @@
 (function(){
+  document.getElementById('adventureButton').onclick=()=>location.href='/app-preview/adventure.html';
+  try{const adventure=JSON.parse(localStorage.getItem('nomadic-paws-latest-adventure'));if(adventure&&adventure.name){const safe=value=>String(value||'').replace(/[<>&]/g,''),card=`<article class="seed adventure-seed"><div><b class="ready">Adventure</b><small>Katie</small></div><h3>${safe(adventure.name)}</h3><p>${safe(adventure.notes)||'New photos and videos gathered from the trail.'}</p><footer><span>${Number(adventure.mediaCount)||1} media</span>${adventure.uses.map(use=>`<span>${safe(use)}</span>`).join('')}</footer></article>`;document.getElementById('katieSeeds').insertAdjacentHTML('afterbegin',card);if(adventure.shareWithTrin)document.getElementById('trinitieSeeds').insertAdjacentHTML('afterbegin',card.replace('<small>Katie</small>','<small>From Katie · Instagram ready</small>'))}}catch(error){}
   const buttons=document.querySelectorAll('.role-switch button');
   buttons.forEach(button=>button.onclick=()=>{
     buttons.forEach(item=>item.classList.toggle('active',item===button));
