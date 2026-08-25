@@ -1,1 +1,58 @@
-(()=>{const presets=[{id:'clean',name:'Clean captions',example:'Easy to read',animation:'Word by word',text:'Cheeto would like the record corrected.',color:'#ffffff',accent:'#3f352a'},{id:'typewriter',name:'Trail typewriter',example:'Field notes',animation:'Typewriter',text:'Field note: the bird escaped again.',color:'#3f352a',accent:'#f4eee1',boxed:true},{id:'neon',name:'Desert neon',example:'After dark',animation:'Flicker',text:'TRAIL SUPERVISOR',color:'#fff4df',accent:'#c1734b',neon:true,upper:true},{id:'management',name:'Management update',example:'Official business',animation:'Pop',text:'MANAGEMENT UPDATE',color:'#ffffff',accent:'#6f7e62',boxed:true,upper:true},{id:'journal',name:'Journal title',example:'A quieter moment',animation:'Fade',text:'The morning I let Cheeto lead',color:'#ffffff',accent:'#3f352a'},{id:'cheeto',name:'Cheeto commentary',example:'Obviously important',animation:'Pop',text:'I had this handled.',color:'#ffffff',accent:'#a85c39',boxed:true}],palette=[['White','#ffffff'],['Bark','#3f352a'],['Sand','#f4eee1'],['Terracotta','#c1734b'],['Sage','#6f7e62'],['Black','#111111']],overlay=document.querySelector('#overlay'),input=document.querySelector('#overlayText'),tray=document.querySelector('#presets'),textTray=document.querySelector('#textColors'),accentTray=document.querySelector('#accentColors');let selected=presets[0],textColor=selected.color,accent=selected.accent;const colorButtons=(host,kind)=>{host.innerHTML='';palette.forEach(([name,value])=>{const button=document.createElement('button');button.className='color'+((kind==='text'?textColor:accent)===value?' active':'');button.style.background=value;button.setAttribute('aria-label',name);button.onclick=()=>{if(kind==='text')textColor=value;else accent=value;render()};host.append(button)})};const render=()=>{overlay.textContent=input.value||'Your words appear here';overlay.style.color=textColor;overlay.style.setProperty('--accent',accent);overlay.style.background=selected.boxed?accent+'e8':'transparent';overlay.className='overlay'+(selected.boxed?' boxed':'')+(selected.neon?' neon':'')+(selected.upper?' upper':'');document.querySelector('#presetName').textContent=selected.name;document.querySelector('#animationName').textContent=selected.animation+' · editable text · 9:16 safe';document.querySelector('#accentLabel').textContent=selected.boxed?'Label color':'Outline or glow color';[...tray.children].forEach((button,index)=>button.classList.toggle('active',presets[index]===selected));colorButtons(textTray,'text');colorButtons(accentTray,'accent')};presets.forEach(item=>{const button=document.createElement('button');button.className='preset';button.innerHTML=`<span class="preset-preview" style="background:${item.accent};color:${item.color}">${item.example}</span><b>${item.name}</b><small>${item.animation}</small>`;button.onclick=()=>{selected=item;input.value=item.text;textColor=item.color;accent=item.accent;render()};tray.append(button)});input.oninput=render;document.querySelector('#saveOverlay').onclick=()=>{localStorage.setItem('nomadic-paws-overlay',JSON.stringify({preset:selected.id,text:input.value,textColor,accent}));document.querySelector('#message').textContent='Saved to the shared Video Studio. The original clip was not changed.'};render()})();
+(() => {
+  const presets = [
+    { id: 'clean', name: 'Clean captions', example: 'Easy to read', animation: 'Word by word', text: 'Cheeto would like the record corrected.', color: '#ffffff', accent: '#3f352a' },
+    { id: 'typewriter', name: 'Trail typewriter', example: 'Field notes', animation: 'Typewriter', text: 'Field note: the bird escaped again.', color: '#3f352a', accent: '#f4eee1', boxed: true },
+    { id: 'neon', name: 'Desert neon', example: 'After dark', animation: 'Flicker', text: 'TRAIL SUPERVISOR', color: '#fff4df', accent: '#c1734b', neon: true, upper: true },
+    { id: 'management', name: 'Management update', example: 'Official business', animation: 'Pop', text: 'MANAGEMENT UPDATE', color: '#ffffff', accent: '#6f7e62', boxed: true, upper: true },
+    { id: 'journal', name: 'Journal title', example: 'A quieter moment', animation: 'Fade', text: 'The morning I let Cheeto lead', color: '#ffffff', accent: '#3f352a' },
+    { id: 'cheeto', name: 'Cheeto commentary', example: 'Obviously important', animation: 'Pop', text: 'I had this handled.', color: '#ffffff', accent: '#a85c39', boxed: true },
+  ]
+  const palette = [['White', '#ffffff'], ['Bark', '#3f352a'], ['Sand', '#f4eee1'], ['Terracotta', '#c1734b'], ['Sage', '#6f7e62'], ['Black', '#111111']]
+  const overlay = document.querySelector('#overlay'), input = document.querySelector('#overlayText'), tray = document.querySelector('#presets')
+  const textTray = document.querySelector('#textColors'), accentTray = document.querySelector('#accentColors'), message = document.querySelector('#message')
+  let selected = presets[0], textColor = selected.color, accent = selected.accent, layers = []
+  const safe = value => String(value || '').replace(/[<>&]/g, '')
+  function colorButtons(host, kind) {
+    host.innerHTML = ''
+    palette.forEach(([name, value]) => {
+      const button = document.createElement('button')
+      button.className = 'color' + ((kind === 'text' ? textColor : accent) === value ? ' active' : '')
+      button.style.background = value; button.setAttribute('aria-label', name)
+      button.onclick = () => { if (kind === 'text') textColor = value; else accent = value; render() }
+      host.append(button)
+    })
+  }
+  function render() {
+    overlay.textContent = input.value || 'Your words appear here'; overlay.style.color = textColor
+    overlay.style.setProperty('--accent', accent); overlay.style.background = selected.boxed ? accent + 'e8' : 'transparent'
+    overlay.className = 'overlay' + (selected.boxed ? ' boxed' : '') + (selected.neon ? ' neon' : '') + (selected.upper ? ' upper' : '')
+    document.querySelector('#presetName').textContent = selected.name
+    document.querySelector('#animationName').textContent = selected.animation + ' · editable text · 9:16 safe'
+    document.querySelector('#accentLabel').textContent = selected.boxed ? 'Label color' : 'Outline or glow color'
+    ;[...tray.children].forEach((button, index) => button.classList.toggle('active', presets[index] === selected))
+    colorButtons(textTray, 'text'); colorButtons(accentTray, 'accent')
+  }
+  presets.forEach(item => {
+    const button = document.createElement('button'); button.className = 'preset'
+    button.innerHTML = `<span class="preset-preview" style="background:${item.accent};color:${item.color}">${item.example}</span><b>${item.name}</b><small>${item.animation}</small>`
+    button.onclick = () => { selected = item; input.value = item.text; textColor = item.color; accent = item.accent; render() }
+    tray.append(button)
+  })
+  function renderTimeline() {
+    document.querySelector('#timeline').hidden = !layers.length
+    document.querySelector('#layerCount').textContent = `${layers.length} layer${layers.length === 1 ? '' : 's'}`
+    document.querySelector('#layers').innerHTML = layers.map((layer, index) => `<div class="layer"><span class="layer-num" style="background:${layer.accent};color:${layer.textColor}">${index + 1}</span><span class="layer-copy"><b>${layer.name}</b><small>${safe(layer.text)}</small></span><span class="layer-time">${layer.start.toFixed(1)}–${layer.end.toFixed(1)}s</span></div>`).join('')
+  }
+  input.oninput = render
+  document.querySelector('#saveOverlay').onclick = () => {
+    const start = Math.max(0, Number(document.querySelector('#startAt').value) || 0)
+    const end = Math.max(start + .5, Number(document.querySelector('#endAt').value) || start + 5)
+    layers.push({ preset: selected.id, name: selected.name, text: input.value || 'Your words appear here', textColor, accent, start, end })
+    renderTimeline(); message.textContent = 'Added to this video. Add another style whenever it needs one.'
+  }
+  document.querySelector('#saveDraft').onclick = () => {
+    localStorage.setItem('nomadic-paws-video-overlay-timeline', JSON.stringify(layers))
+    message.textContent = 'Shared video draft saved for Katie and Trinitie.'
+  }
+  render()
+})()
