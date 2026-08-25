@@ -2,7 +2,8 @@ import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Config } from '@netlify/functions'
 import { bearerToken, verifySellerToken } from './lib/event-auth.mjs'
-import { addJournalReviewNote, journalReviewNotes, journalWorkingDraft, journalWorkingVersions, saveJournalWorkingDraft } from './lib/journal-db.mjs'
+import { addJournalReviewNote, journalContributions, journalReviewNotes, journalWorkingDraft, journalWorkingVersions, saveJournalContribution, saveJournalWorkingDraft, updateJournalReviewNote } from './lib/journal-db.mjs'
+import { REVIEW_STATUSES, validContribution, validReviewAnchor } from './lib/journal-collaboration.mjs'
 import { journalStatus, journalVersion, parseJournalFile } from './lib/journal-content.mjs'
 
 const POSTS_DIR = join(process.cwd(), '_posts')
@@ -29,7 +30,9 @@ export default async (request: Request) => {
   if (!authenticated(request)) return Response.json({ error: 'Your session expired.' }, { status: 401, headers: HEADERS })
   try {
     if (request.method === 'GET') {
-      const requestedSlug = new URL(request.url).searchParams.get('slug')
+      const url = new URL(request.url)
+      if (url.searchParams.get('view') === 'contributions') return Response.json({ contributions: await journalContributions() }, { headers: HEADERS })
+      const requestedSlug = url.searchParams.get('slug')
       const stories = await readStories()
       if (requestedSlug) {
         const story = stories.find(item => item.slug === requestedSlug)
@@ -42,6 +45,17 @@ export default async (request: Request) => {
     }
     if (request.method === 'POST') {
       const payload = await request.json().catch(() => ({})) as Record<string, unknown>
+      if (payload.action === 'save-contribution') {
+        if (!validContribution(payload)) return Response.json({ error: 'Keep the contribution within the available fields and add a thought before sending it.' }, { status: 400, headers: HEADERS })
+        const contribution = await saveJournalContribution({ id: String(payload.id || ''), title: String(payload.title || ''), body: String(payload.body || ''), memoryClue: String(payload.memoryClue || ''), status: String(payload.status || 'draft') })
+        return Response.json({ contribution }, { status: 201, headers: HEADERS })
+      }
+      if (payload.action === 'update-review-note') {
+        const id = String(payload.id || ''), status = String(payload.status || ''), revisedText = String(payload.revisedText || '')
+        if (!id || !REVIEW_STATUSES.has(status) || revisedText.length > 10000) return Response.json({ error: 'Choose a valid review resolution.' }, { status: 400, headers: HEADERS })
+        const note = await updateJournalReviewNote({ id, status, revisedText })
+        return note ? Response.json({ note }, { headers: HEADERS }) : Response.json({ error: 'Review note not found.' }, { status: 404, headers: HEADERS })
+      }
       if (payload.action === 'save-working-draft') {
         const slug = String(payload.slug || ''), story = (await readStories()).find(item => item.slug === slug)
         if (!story) return Response.json({ error: 'Trail Journal story not found.' }, { status: 404, headers: HEADERS })
@@ -56,12 +70,13 @@ export default async (request: Request) => {
       const slug = String(payload.slug || ''), reviewer = String(payload.reviewer || ''), note = String(payload.note || '').trim(), suppliedVersion = String(payload.version || '')
       if (!['Trinitie', 'Mom'].includes(reviewer)) return Response.json({ error: 'Choose a Journal reviewer.' }, { status: 400, headers: HEADERS })
       if (!note || note.length > 3000) return Response.json({ error: 'Review notes must be between 1 and 3,000 characters.' }, { status: 400, headers: HEADERS })
+      if (!validReviewAnchor(payload)) return Response.json({ error: 'Attach this note to a valid passage or selected text.' }, { status: 400, headers: HEADERS })
       const story = (await readStories()).find(item => item.slug === slug)
       if (!story) return Response.json({ error: 'Trail Journal story not found.' }, { status: 404, headers: HEADERS })
       const working = await journalWorkingDraft(slug)
       const currentVersion = working ? `work-${working.revision}` : story.version
       if (currentVersion !== suppliedVersion) return Response.json({ error: 'Katie updated this draft. Refresh it before leaving a note.' }, { status: 409, headers: HEADERS })
-      const saved = await addJournalReviewNote({ slug, version: currentVersion, reviewer, note })
+      const saved = await addJournalReviewNote({ slug, version: currentVersion, reviewer, note, anchorType: String(payload.anchorType || 'general'), anchorId: String(payload.anchorId || ''), quotedText: String(payload.quotedText || '') })
       return Response.json({ note: saved }, { status: 201, headers: HEADERS })
     }
     return Response.json({ error: 'Method not allowed.' }, { status: 405, headers: { ...HEADERS, Allow: 'GET, POST' } })

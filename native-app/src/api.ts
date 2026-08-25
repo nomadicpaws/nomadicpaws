@@ -22,6 +22,11 @@ export type JournalReviewNote = {
   story_version: string
   reviewer: 'Trinitie' | 'Mom'
   note: string
+  anchor_type: 'general' | 'paragraph' | 'selection'
+  anchor_id: string | null
+  quoted_text: string | null
+  status: 'open' | 'resolved' | 'needs_work'
+  revised_text: string | null
   created_at: string
 }
 export type JournalWorkingDraft = {
@@ -70,11 +75,25 @@ export async function loadStory(token: string, slug: string) {
   return request<{ story: JournalStoryDetail; notes: JournalReviewNote[]; workingDraft: JournalWorkingDraft | null; versions: JournalWorkingVersion[] }>(`/api/app/journal?slug=${encodeURIComponent(slug)}`, token)
 }
 
-export async function addReviewNote(token: string, input: { slug: string; version: string; reviewer: 'Trinitie' | 'Mom'; note: string }) {
+export async function addReviewNote(token: string, input: { slug: string; version: string; reviewer: 'Trinitie' | 'Mom'; note: string; anchorType?: 'general' | 'paragraph' | 'selection'; anchorId?: string; quotedText?: string }) {
   return request<{ note: JournalReviewNote }>('/api/app/journal', token, {
     method: 'POST',
     body: JSON.stringify({ action: 'add-review-note', ...input }),
   })
+}
+
+export type JournalContribution = { id: string; contributor: 'Mom'; title: string; body: string; memory_clue: string; status: 'draft' | 'submitted' | 'editing' | 'archived'; needs_adventure_match: boolean; needs_photo_selection: boolean; updated_at: string }
+
+export async function loadJournalContributions(token: string) {
+  return request<{ contributions: JournalContribution[] }>('/api/app/journal?view=contributions', token)
+}
+
+export async function saveJournalContribution(token: string, input: { id?: string; title: string; body: string; memoryClue: string; status: 'draft' | 'submitted' }) {
+  return request<{ contribution: JournalContribution }>('/api/app/journal', token, { method: 'POST', body: JSON.stringify({ action: 'save-contribution', ...input }) })
+}
+
+export async function updateReviewNote(token: string, input: { id: string; status: 'open' | 'resolved' | 'needs_work'; revisedText?: string }) {
+  return request<{ note: JournalReviewNote }>('/api/app/journal', token, { method: 'POST', body: JSON.stringify({ action: 'update-review-note', ...input }) })
 }
 
 export async function loadInstagramStudio(token: string) {
