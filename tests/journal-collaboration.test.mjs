@@ -8,7 +8,7 @@ test('anchored review notes require a stable passage id', () => {
   assert.equal(validReviewAnchor({ anchorType: 'general' }), true)
 })
 
-test('Cat Nana may save an empty draft but cannot submit an empty contribution', () => {
+test('CatNana may save an empty draft but cannot submit an empty contribution', () => {
   assert.equal(validContribution({ title: '', body: '', memoryClue: '', status: 'draft' }), true)
   assert.equal(validContribution({ title: '', body: '', memoryClue: '', status: 'submitted' }), false)
   assert.equal(validContribution({ title: 'A memory', body: 'Cheeto knew.', memoryClue: 'That winter', status: 'submitted' }), true)
