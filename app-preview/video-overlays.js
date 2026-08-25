@@ -18,12 +18,16 @@
     { id: 'classic', name: 'Classic story', family: '"Playfair Display", serif' },
     { id: 'impact', name: 'Big emphasis', family: '"Archivo Black", sans-serif' },
   ]
-  const overlay = document.querySelector('#overlay'), input = document.querySelector('#overlayText'), tray = document.querySelector('#presets')
+  const preview = document.querySelector('.preview'), overlay = document.querySelector('#overlay'), input = document.querySelector('#overlayText'), tray = document.querySelector('#presets')
   const textTray = document.querySelector('#textColors'), accentTray = document.querySelector('#accentColors'), message = document.querySelector('#message')
   const fontLabel = document.createElement('label'), fontTray = document.createElement('section')
   fontLabel.textContent = 'Font'; fontTray.id = 'fonts'; fontTray.className = 'fonts'; fontTray.setAttribute('aria-label', 'Font choices')
   document.querySelector('#textColors').previousElementSibling.before(fontLabel, fontTray)
+  const playButton = document.createElement('button')
+  playButton.className = 'preview-play'; playButton.innerHTML = '<span>▶</span><b>Play animation preview</b>'
+  preview.after(playButton)
   let selected = presets[0], selectedFont = fonts[0], textColor = selected.color, accent = selected.accent, layers = []
+  let playing = false, startTimer = 0, playbackTimer = 0, revealTimer = 0
   const safe = value => String(value || '').replace(/[<>&]/g, '')
   function colorButtons(host, kind) {
     host.innerHTML = ''
@@ -47,10 +51,44 @@
     ;[...fontTray.children].forEach((button, index) => button.classList.toggle('active', fonts[index] === selectedFont))
     ;[...fontTray.querySelectorAll('.font-sample')].forEach(sample => { sample.textContent = input.value || 'Cheeto said so.' })
   }
+  function stopPreview(finished = false) {
+    window.clearTimeout(startTimer); window.clearTimeout(playbackTimer); window.clearInterval(revealTimer); playing = false
+    preview.classList.remove('playing'); overlay.classList.remove('preview-hidden', 'preview-pop', 'preview-fade', 'preview-flicker', 'preview-reveal')
+    overlay.textContent = input.value || 'Your words appear here'; playButton.classList.remove('playing')
+    playButton.innerHTML = `<span>▶</span><b>${finished ? 'Replay animation' : 'Play animation preview'}</b>`
+  }
+  function revealText(mode, duration) {
+    const source = input.value || 'Your words appear here'
+    const pieces = mode === 'words' ? source.split(/(\s+)/) : [...source]
+    let index = 0; overlay.textContent = ''
+    revealTimer = window.setInterval(() => {
+      index += 1; overlay.textContent = pieces.slice(0, index).join('')
+      if (index >= pieces.length) window.clearInterval(revealTimer)
+    }, Math.max(32, duration * 1000 / Math.max(1, pieces.length)))
+  }
+  function playPreview() {
+    if (playing) { stopPreview(); return }
+    const start = Math.max(0, Number(document.querySelector('#startAt').value) || 0)
+    const end = Math.max(start + .5, Number(document.querySelector('#endAt').value) || start + 5)
+    const duration = end + .45, revealDuration = Math.max(.5, end - start)
+    playing = true; preview.style.setProperty('--preview-duration', `${duration}s`); preview.classList.add('playing'); overlay.classList.add('preview-hidden')
+    playButton.classList.add('playing'); playButton.innerHTML = '<span>■</span><b>Stop preview</b>'
+    startTimer = window.setTimeout(() => {
+      if (!playing) return
+      overlay.classList.remove('preview-hidden'); overlay.classList.add('preview-reveal')
+      if (selected.animation === 'Typewriter') revealText('characters', revealDuration)
+      else if (selected.animation === 'Word by word') revealText('words', revealDuration)
+      else if (selected.animation === 'Flicker') overlay.classList.add('preview-flicker')
+      else if (selected.animation === 'Fade') overlay.classList.add('preview-fade')
+      else overlay.classList.add('preview-pop')
+    }, start * 1000)
+    playbackTimer = window.setTimeout(() => stopPreview(true), duration * 1000)
+  }
+  playButton.onclick = playPreview
   presets.forEach(item => {
     const button = document.createElement('button'); button.className = 'preset'
     button.innerHTML = `<span class="preset-preview" style="background:${item.accent};color:${item.color}">${item.example}</span><b>${item.name}</b><small>${item.animation}</small>`
-    button.onclick = () => { selected = item; input.value = item.text; textColor = item.color; accent = item.accent; render() }
+    button.onclick = () => { stopPreview(); selected = item; input.value = item.text; textColor = item.color; accent = item.accent; render() }
     tray.append(button)
   })
   fonts.forEach(item => {
