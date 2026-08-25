@@ -5,7 +5,7 @@ description: The practical cat-hiking gear that comes with Cheeto on every
   essentials.
 category: Tips
 draft: true
-date: 2026-08-30T13:33:00.000-07:00
+date: 2026-09-06T13:33:00.000-07:00
 ---
 The practical gear that comes with us on every adventure—and why Cheeto’s backpack carries much more than a cat.
 
