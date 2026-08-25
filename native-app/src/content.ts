@@ -6,6 +6,18 @@ export type InstagramDay = { day: string; theme: string; enabled: boolean }
 export type InstagramTemplateKind = 'Post overlay' | 'Carousel frame' | 'Story' | 'Reel cover' | 'Background' | 'Video end card'
 export type InstagramTemplate = { id: string; name: string; kind: InstagramTemplateKind; aspectRatio: string; favorite: boolean; previewUrl?: string }
 export type InstagramPostDraft = { id: string; title: string; caption: string; mediaUrls: string[]; targetDate: string | null; theme: string; status: 'Draft' | 'Ready' | 'Posted'; updatedAt: string }
+export type VideoOverlayAnimation = 'Typewriter' | 'Fade' | 'Pop' | 'Flicker' | 'Word by word'
+export type VideoOverlayPreset = {
+  id: string
+  name: string
+  example: string
+  animation: VideoOverlayAnimation
+  defaultText: string
+  defaultColor: string
+  defaultAccent: string
+  uppercase?: boolean
+  boxed?: boolean
+}
 
 export type SharedPreview = {
   id: string
@@ -84,6 +96,15 @@ export const initialInstagramRhythm: InstagramDay[] = [
 ]
 
 export const starterInstagramTemplates: InstagramTemplate[] = []
+
+export const videoOverlayPresets: VideoOverlayPreset[] = [
+  { id: 'clean-caption', name: 'Clean captions', example: 'Easy to read', animation: 'Word by word', defaultText: 'Cheeto would like the record corrected.', defaultColor: '#ffffff', defaultAccent: '#3f352a' },
+  { id: 'typewriter', name: 'Trail typewriter', example: 'Field notes', animation: 'Typewriter', defaultText: 'Field note: the bird escaped again.', defaultColor: '#3f352a', defaultAccent: '#f4eee1', boxed: true },
+  { id: 'neon', name: 'Desert neon', example: 'After dark', animation: 'Flicker', defaultText: 'TRAIL SUPERVISOR', defaultColor: '#fff4df', defaultAccent: '#c1734b', uppercase: true },
+  { id: 'management', name: 'Management update', example: 'Official business', animation: 'Pop', defaultText: 'MANAGEMENT UPDATE', defaultColor: '#ffffff', defaultAccent: '#6f7e62', uppercase: true, boxed: true },
+  { id: 'journal', name: 'Journal title', example: 'A quieter moment', animation: 'Fade', defaultText: 'The morning I let Cheeto lead', defaultColor: '#ffffff', defaultAccent: '#3f352a' },
+  { id: 'cheeto', name: 'Cheeto commentary', example: 'Obviously important', animation: 'Pop', defaultText: 'I had this handled.', defaultColor: '#ffffff', defaultAccent: '#a85c39', boxed: true },
+]
 
 export const starterPreviews: SharedPreview[] = [
   {
