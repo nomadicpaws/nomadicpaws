@@ -33,6 +33,11 @@
   let clipUrl = ''
   let selected = presets[0], selectedFont = fonts[0], textColor = selected.color, accent = selected.accent, layers = []
   let playing = false, startTimer = 0, playbackTimer = 0, revealTimer = 0
+  const exportButton = document.createElement('button'), exportNote = document.createElement('p'), exportProgress = document.createElement('div')
+  exportButton.className = 'export-video'; exportButton.textContent = 'Download finished video'; exportButton.disabled = true
+  exportNote.className = 'export-note'; exportNote.textContent = 'Choose a video and add at least one overlay to prepare the finished file.'
+  exportProgress.className = 'export-progress'; exportProgress.hidden = true; exportProgress.innerHTML = '<i></i>'
+  document.querySelector('#saveDraft').after(exportButton, exportProgress, exportNote)
   const safe = value => String(value || '').replace(/[<>&]/g, '')
   function colorButtons(host, kind) {
     host.innerHTML = ''
@@ -102,6 +107,7 @@
       const usableEnd = Math.max(.5, Math.min(mediaVideo.duration || 6, 60)); document.querySelector('#endAt').value = usableEnd.toFixed(1)
       document.querySelector('#clipStatus').textContent = `${mediaVideo.videoWidth}×${mediaVideo.videoHeight} · ${mediaVideo.duration.toFixed(1)} seconds · ready to edit`
       if (mediaVideo.videoWidth < 720 || mediaVideo.videoHeight < 720) document.querySelector('#clipStatus').textContent += ' · Bitch you blurry.'
+      exportButton.disabled = !layers.length
     }
     mediaVideo.onerror = () => { document.querySelector('#clipStatus').textContent = 'This video could not be previewed. Try the original file from Photos or Files.' }
   }
@@ -121,14 +127,78 @@
     document.querySelector('#timeline').hidden = !layers.length
     document.querySelector('#layerCount').textContent = `${layers.length} layer${layers.length === 1 ? '' : 's'}`
     document.querySelector('#layers').innerHTML = layers.map((layer, index) => `<div class="layer"><span class="layer-num" style="background:${layer.accent};color:${layer.textColor}">${index + 1}</span><span class="layer-copy"><b>${layer.name} · ${layer.fontName}</b><small style="font-family:${layer.fontFamily}">${safe(layer.text)}</small></span><span class="layer-time">${layer.start.toFixed(1)}–${layer.end.toFixed(1)}s</span></div>`).join('')
+    exportButton.disabled = !layers.length || !clipUrl
   }
   input.oninput = render
   document.querySelector('#saveOverlay').onclick = () => {
     const start = Math.max(0, Number(document.querySelector('#startAt').value) || 0)
     const end = Math.max(start + .5, Number(document.querySelector('#endAt').value) || start + 5)
-    layers.push({ preset: selected.id, name: selected.name, text: input.value || 'Your words appear here', textColor, accent, fontId: selectedFont.id, fontName: selectedFont.name, fontFamily: selectedFont.family, start, end })
+    layers.push({ preset: selected.id, name: selected.name, animation: selected.animation, boxed: Boolean(selected.boxed), neon: Boolean(selected.neon), upper: Boolean(selected.upper), text: input.value || 'Your words appear here', textColor, accent, fontId: selectedFont.id, fontName: selectedFont.name, fontFamily: selectedFont.family, start, end })
     renderTimeline(); message.textContent = 'Added to this video. Add another style whenever it needs one.'
   }
+  function roundedRect(context, x, y, width, height, radius) {
+    context.beginPath(); context.roundRect(x, y, width, height, radius); context.fill()
+  }
+  function drawCover(context, video, width, height) {
+    const scale = Math.max(width / video.videoWidth, height / video.videoHeight)
+    const drawWidth = video.videoWidth * scale, drawHeight = video.videoHeight * scale
+    context.drawImage(video, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight)
+  }
+  function visibleLayerText(layer, time) {
+    const elapsed = Math.max(0, time - layer.start), duration = Math.max(.2, layer.end - layer.start), progress = Math.min(1, elapsed / duration)
+    if (layer.animation === 'Typewriter') return [...layer.text].slice(0, Math.ceil(layer.text.length * progress)).join('')
+    if (layer.animation === 'Word by word') { const words = layer.text.split(/(\s+)/); return words.slice(0, Math.ceil(words.length * progress)).join('') }
+    return layer.text
+  }
+  function wrapText(context, text, maxWidth) {
+    const words = text.split(/\s+/), lines = []; let line = ''
+    words.forEach(word => { const next = line ? `${line} ${word}` : word; if (line && context.measureText(next).width > maxWidth) { lines.push(line); line = word } else line = next })
+    if (line) lines.push(line); return lines.slice(0, 5)
+  }
+  function drawLayer(context, layer, time, width, height) {
+    if (time < layer.start || time > layer.end) return
+    const elapsed = time - layer.start, progress = Math.min(1, elapsed / Math.max(.2, layer.end - layer.start)); let alpha = 1, scale = 1
+    if (layer.animation === 'Fade') alpha = Math.min(1, elapsed / .8)
+    if (layer.animation === 'Pop') scale = elapsed < .5 ? .6 + .45 * Math.min(1, elapsed / .5) : 1
+    if (layer.animation === 'Flicker' && elapsed < 1.2) alpha = Math.sin(elapsed * 38) > -.15 ? 1 : .16
+    const output = layer.upper ? visibleLayerText(layer, time).toUpperCase() : visibleLayerText(layer, time); if (!output) return
+    context.save(); context.globalAlpha = alpha; context.translate(width / 2, height * .76); context.scale(scale, scale)
+    const fontSize = Math.round(width * .061); context.font = `900 ${fontSize}px ${layer.fontFamily}`; context.textAlign = 'center'; context.textBaseline = 'middle'
+    const lines = wrapText(context, output, width * .82), lineHeight = fontSize * 1.16, blockHeight = lineHeight * lines.length, yStart = -(blockHeight - lineHeight) / 2
+    if (layer.boxed) { context.fillStyle = layer.accent; roundedRect(context, -width * .44, yStart - lineHeight * .7, width * .88, blockHeight + lineHeight * .4, 26) }
+    context.fillStyle = layer.textColor; context.strokeStyle = layer.accent; context.lineWidth = layer.boxed ? 0 : Math.max(3, width * .006)
+    context.shadowColor = layer.neon ? layer.accent : 'transparent'; context.shadowBlur = layer.neon ? 34 : 0
+    lines.forEach((line, index) => { const y = yStart + index * lineHeight; if (!layer.boxed) context.strokeText(line, 0, y); context.fillText(line, 0, y) })
+    context.restore()
+  }
+  async function exportFinishedVideo() {
+    if (!clipUrl || !layers.length) return
+    if (!HTMLCanvasElement.prototype.captureStream || !window.MediaRecorder) { exportNote.textContent = 'This browser cannot finish the video here yet. The signed iPhone app will use Apple’s native renderer.'; return }
+    exportButton.disabled = true; exportButton.textContent = 'Rendering video…'; exportProgress.hidden = false; exportNote.textContent = 'Keep this screen open while Nomadic Paws builds the finished copy.'
+    await document.fonts.ready
+    const canvas = document.createElement('canvas'); canvas.width = 1080; canvas.height = 1920; const context = canvas.getContext('2d')
+    const stream = canvas.captureStream(30), sourceCapture = typeof mediaVideo.captureStream === 'function' ? mediaVideo.captureStream() : null
+    if (sourceCapture) sourceCapture.getAudioTracks().forEach(track => stream.addTrack(track))
+    const mime = ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'].find(type => MediaRecorder.isTypeSupported(type)) || ''
+    const recorder = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 8000000 } : { videoBitsPerSecond: 8000000 }), chunks = []
+    const finishAt = Math.min(mediaVideo.duration || Infinity, Math.max(...layers.map(layer => layer.end)) + .15)
+    let frameId = 0, finished = false
+    const finish = () => { if (finished) return; finished = true; cancelAnimationFrame(frameId); mediaVideo.pause(); if (recorder.state !== 'inactive') recorder.stop() }
+    const drawFrame = () => {
+      context.clearRect(0, 0, canvas.width, canvas.height); drawCover(context, mediaVideo, canvas.width, canvas.height); layers.forEach(layer => drawLayer(context, layer, mediaVideo.currentTime, canvas.width, canvas.height))
+      exportProgress.style.setProperty('--export-progress', `${Math.min(100, mediaVideo.currentTime / finishAt * 100)}%`)
+      if (mediaVideo.currentTime >= finishAt || mediaVideo.ended) finish(); else frameId = requestAnimationFrame(drawFrame)
+    }
+    recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data) }
+    recorder.onerror = () => { exportButton.disabled = false; exportButton.textContent = 'Try video export again'; exportNote.textContent = 'The renderer paused unexpectedly. Your original and timeline are still safe.' }
+    recorder.onstop = () => {
+      const outputType = recorder.mimeType || mime || 'video/webm', extension = outputType.includes('mp4') ? 'mp4' : 'webm', blob = new Blob(chunks, { type: outputType }), url = URL.createObjectURL(blob), link = document.createElement('a')
+      link.href = url; link.download = `nomadic-paws-video-${Date.now()}.${extension}`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 60000)
+      exportButton.disabled = false; exportButton.textContent = 'Download another copy'; exportProgress.hidden = true; exportNote.textContent = 'Finished. The original clip was not changed.'
+    }
+    mediaVideo.pause(); mediaVideo.currentTime = 0; recorder.start(250); await mediaVideo.play(); drawFrame()
+  }
+  exportButton.onclick = exportFinishedVideo
   document.querySelector('#saveDraft').onclick = () => {
     localStorage.setItem('nomadic-paws-video-overlay-timeline', JSON.stringify(layers))
     message.textContent = 'Shared video draft saved for Katie and Trinitie.'
