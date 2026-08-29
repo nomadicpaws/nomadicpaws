@@ -114,6 +114,7 @@ export async function uploadAdventurePhoto(token: string, adventureId: string, f
 }
 
 export function privateMediaUrl(id: string) { return `${API_URL}/api/app/media/file/${encodeURIComponent(id)}` }
+export function workingImageUrl(id: string) { return `${API_URL}/api/app/media/working/${encodeURIComponent(id)}` }
 
 export async function updateSharedMedia(token: string, mediaId: string, tags: string[], notes: string) {
   const data = await request<{ media: SharedMediaAsset }>('/api/app/media', token, { method: 'POST', body: JSON.stringify({ action: 'update-media', mediaId, tags, notes }) })

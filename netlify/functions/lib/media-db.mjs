@@ -65,3 +65,13 @@ export async function saveWorkingVersion(mediaId, destination, treatment) {
   )
   return result.rows[0]
 }
+
+export async function workingVersionById(id) {
+  const result = await db().pool.query(
+    `SELECT u.*, m.blob_key, m.content_type, m.original_name
+     FROM media_usage u JOIN media_assets m ON m.id = u.media_id
+     WHERE u.id = $1 AND m.status = 'ready' LIMIT 1`,
+    [id],
+  )
+  return result.rows[0] || null
+}

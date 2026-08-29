@@ -2,8 +2,9 @@ import { randomUUID } from 'node:crypto'
 import { getStore } from '@netlify/blobs'
 import type { Config } from '@netlify/functions'
 import { requireAppUser } from './lib/app-auth.mjs'
-import { addMediaAsset, adventureExists, adventuresWithMedia, createAdventure, mediaById, saveWorkingVersion, updateMediaDetails } from './lib/media-db.mjs'
+import { addMediaAsset, adventureExists, adventuresWithMedia, createAdventure, mediaById, saveWorkingVersion, updateMediaDetails, workingVersionById } from './lib/media-db.mjs'
 import { MAX_DIRECT_PHOTO_BYTES, validAdventure, validDirectPhoto, validMediaDetails, validWorkingVersion } from './lib/media-settings.mjs'
+import { renderWorkingImage, workingFilename } from './lib/media-render.mjs'
 
 const HEADERS = { 'Cache-Control': 'private, no-store, max-age=0', 'X-Content-Type-Options': 'nosniff' }
 const store = () => getStore('nomadic-paws-original-media')
@@ -12,6 +13,21 @@ export default async (request: Request) => {
   try {
     const user = await requireAppUser(request, ['katie', 'trinitie'])
     const url = new URL(request.url)
+    const workingMatch = url.pathname.match(/\/working\/([0-9a-f-]+)$/i)
+    if (request.method === 'GET' && workingMatch) {
+      const version = await workingVersionById(workingMatch[1])
+      if (!version) return new Response('Working version not found.', { status: 404, headers: HEADERS })
+      const cacheKey = `working/${version.id}.jpg`
+      let finished = await store().get(cacheKey, { type: 'arrayBuffer', consistency: 'strong' })
+      if (!finished) {
+        const original = await store().get(version.blob_key, { type: 'arrayBuffer', consistency: 'strong' })
+        if (!original) return new Response('Original is temporarily unavailable.', { status: 404, headers: HEADERS })
+        const rendered = await renderWorkingImage(Buffer.from(original), version)
+        await store().set(cacheKey, rendered, { metadata: { workingVersionId: version.id, mediaId: version.media_id }, onlyIfNew: true })
+        finished = rendered.buffer.slice(rendered.byteOffset, rendered.byteOffset + rendered.byteLength)
+      }
+      return new Response(finished, { headers: { ...HEADERS, 'Content-Type': 'image/jpeg', 'Content-Disposition': `attachment; filename="${workingFilename(version)}"` } })
+    }
     const fileMatch = url.pathname.match(/\/file\/([0-9a-f-]+)$/i)
     if (request.method === 'GET' && fileMatch) {
       const asset = await mediaById(fileMatch[1])
@@ -53,4 +69,4 @@ export default async (request: Request) => {
   }
 }
 
-export const config: Config = { path: ['/api/app/media', '/api/app/media/file/*'] }
+export const config: Config = { path: ['/api/app/media', '/api/app/media/file/*', '/api/app/media/working/*'] }
