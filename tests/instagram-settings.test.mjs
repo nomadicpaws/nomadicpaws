@@ -15,8 +15,9 @@ test('Instagram rhythm preserves all seven editable themes in calendar order', (
 })
 
 test('Instagram drafts support a target day without enabling automatic posting', () => {
-  const post = { title: 'Sabbath window', caption: 'Quiet supervision.', mediaUrls: ['/cheeto.jpg'], targetDate: '2026-08-30', theme: 'Sabbath Sunday', status: 'Ready' }
+  const post = { title: 'Sabbath window', caption: 'Quiet supervision.', mediaUrls: ['/cheeto.jpg'], targetDate: '2026-08-30', theme: 'Sabbath Sunday', status: 'Ready', assignedTo: 'Trinitie', handoffNote: '' }
   assert.equal(validInstagramPost(post), true)
   assert.equal(validInstagramPost({ ...post, targetDate: 'Sunday' }), false)
   assert.equal(validInstagramPost({ ...post, status: 'Scheduled' }), false)
+  assert.equal(validInstagramPost({ ...post, assignedTo: 'Katie', handoffNote: 'Caption needs help' }), true)
 })

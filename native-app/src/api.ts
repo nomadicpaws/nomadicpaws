@@ -8,6 +8,8 @@ export type AppleSignInPayload = { identityToken: string; nonce: string; email?:
 export type SharedAdventure = { id: string; title: string; notes: string; private_location: string; public_location: string; captured_at: string; assigned_to: 'Katie' | 'Trinitie'; status: 'Idea' | 'Draft' | 'Ready' | 'Handed Off' | 'Posted'; platforms: string[]; media_count: number; created_at: string; updated_at: string }
 export type SharedMediaAsset = { id: string; adventure_id: string | null; original_name: string; content_type: string; byte_size: number; width: number | null; height: number | null; kind: 'photo' | 'video'; tags: string[]; notes: string; usage_count: number; created_at: string }
 export type WorkingVersion = { id: string; media_id: string; destination_type: string; destination_id: string; treatment: { logoColor: string; logoSize: string; logoSide: string; focus: string }; created_at: string }
+export type PinterestPin = { image: string; title: string; description: string; template: 'bark' | 'sage' | 'sand' | 'terracotta'; logo_size: 'small' | 'medium'; logo_placement: 'left' | 'right' }
+export type PinterestCampaign = { post_slug: string; campaign_title: string; board: string; keywords: string; retroactive: boolean; enabled: boolean; rss_pin: PinterestPin; day_7_pin: PinterestPin; day_14_pin: PinterestPin; day_21_pin: PinterestPin; updated_at?: string }
 
 export type JournalStory = {
   slug: string
@@ -115,6 +117,7 @@ export async function uploadAdventurePhoto(token: string, adventureId: string, f
 
 export function privateMediaUrl(id: string) { return `${API_URL}/api/app/media/file/${encodeURIComponent(id)}` }
 export function workingImageUrl(id: string) { return `${API_URL}/api/app/media/working/${encodeURIComponent(id)}` }
+export function publicWorkingImagePath(id: string) { return `/media/working/${encodeURIComponent(id)}.jpg` }
 
 export async function updateSharedMedia(token: string, mediaId: string, tags: string[], notes: string) {
   const data = await request<{ media: SharedMediaAsset }>('/api/app/media', token, { method: 'POST', body: JSON.stringify({ action: 'update-media', mediaId, tags, notes }) })
@@ -156,8 +159,8 @@ export async function updateReviewNote(token: string, input: { id: string; statu
 }
 
 export async function loadInstagramStudio(token: string) {
-  const data = await request<{ rhythm: InstagramDay[] | null; templates: Array<{ id: string; name: string; kind: InstagramTemplate['kind']; aspect_ratio: string; source_url: string; favorite: boolean }>; posts: Array<{ id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; updated_at: string }> }>('/api/app/instagram', token)
-  return { rhythm: data.rhythm, templates: data.templates.map(template => ({ id: template.id, name: template.name, kind: template.kind, aspectRatio: template.aspect_ratio, previewUrl: template.source_url, favorite: template.favorite })), posts: data.posts.map(post => ({ id: post.id, title: post.title, caption: post.caption, mediaUrls: post.media_urls, targetDate: post.target_date, theme: post.theme, status: post.status, updatedAt: post.updated_at })) }
+  const data = await request<{ rhythm: InstagramDay[] | null; templates: Array<{ id: string; name: string; kind: InstagramTemplate['kind']; aspect_ratio: string; source_url: string; favorite: boolean }>; posts: Array<{ id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; assigned_to: InstagramPostDraft['assignedTo']; handoff_note: string; updated_at: string }> }>('/api/app/instagram', token)
+  return { rhythm: data.rhythm, templates: data.templates.map(template => ({ id: template.id, name: template.name, kind: template.kind, aspectRatio: template.aspect_ratio, previewUrl: template.source_url, favorite: template.favorite })), posts: data.posts.map(post => ({ id: post.id, title: post.title, caption: post.caption, mediaUrls: post.media_urls, targetDate: post.target_date, theme: post.theme, status: post.status, assignedTo: post.assigned_to, handoffNote: post.handoff_note, updatedAt: post.updated_at })) }
 }
 
 export async function saveInstagramRhythm(token: string, rhythm: InstagramDay[]) {
@@ -167,10 +170,18 @@ export async function saveInstagramRhythm(token: string, rhythm: InstagramDay[])
 }
 
 export async function saveInstagramPost(token: string, post: Omit<InstagramPostDraft, 'updatedAt'>) {
-  const data = await request<{ post: { id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; updated_at: string } }>('/api/app/instagram', token, {
+  const data = await request<{ post: { id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; assigned_to: InstagramPostDraft['assignedTo']; handoff_note: string; updated_at: string } }>('/api/app/instagram', token, {
     method: 'POST', body: JSON.stringify({ action: 'save-post', ...post }),
   })
-  return { id: data.post.id, title: data.post.title, caption: data.post.caption, mediaUrls: data.post.media_urls, targetDate: data.post.target_date, theme: data.post.theme, status: data.post.status, updatedAt: data.post.updated_at }
+  return { id: data.post.id, title: data.post.title, caption: data.post.caption, mediaUrls: data.post.media_urls, targetDate: data.post.target_date, theme: data.post.theme, status: data.post.status, assignedTo: data.post.assigned_to, handoffNote: data.post.handoff_note, updatedAt: data.post.updated_at }
+}
+
+export async function loadPinterestCampaigns(token: string) {
+  return request<{ campaigns: PinterestCampaign[] }>('/api/app/pinterest', token)
+}
+
+export async function savePinterestCampaign(token: string, campaign: PinterestCampaign) {
+  return request<{ campaign: PinterestCampaign }>('/api/app/pinterest', token, { method: 'POST', body: JSON.stringify(campaign) })
 }
 
 export async function saveJournalWorkingDraft(token: string, input: { slug: string; title: string; description: string; category: string; image: string; imageAlt: string; body: string; isDraft: boolean; publishDate: string; expectedRevision: number }) {

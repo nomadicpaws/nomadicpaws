@@ -13,11 +13,13 @@
   "dependencies": {
     "expo": "^57.0.0",
     "expo-apple-authentication": "~57.0.1",
+    "expo-clipboard": "~57.0.1",
     "expo-crypto": "~57.0.2",
     "expo-document-picker": "^57.0.1",
     "expo-file-system": "~57.0.6",
     "expo-image-picker": "~57.0.14",
     "expo-local-authentication": "~57.0.2",
+    "expo-media-library": "~57.0.4",
     "expo-secure-store": "~57.0.2",
     "expo-sharing": "~57.0.16",
     "expo-status-bar": "~3.0.0",

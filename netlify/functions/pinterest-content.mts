@@ -2,6 +2,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Config } from '@netlify/functions'
 import { buildCsv, buildRss } from './lib/pinterest-content.mjs'
+import { getPinterestCampaigns } from './lib/pinterest-db.mjs'
 
 const POSTS_DIR = join(process.cwd(), '_posts')
 const PINTEREST_DIR = join(process.cwd(), '_pinterest')
@@ -35,7 +36,12 @@ async function loadCampaigns() {
 
 export default async (request: Request) => {
   const { pathname } = new URL(request.url)
-  const [campaigns, posts] = await Promise.all([loadCampaigns(), loadPosts()])
+  const [fileCampaigns, appCampaigns, posts] = await Promise.all([
+    loadCampaigns(),
+    getPinterestCampaigns().catch(() => []),
+    loadPosts(),
+  ])
+  const campaigns = [...new Map([...fileCampaigns, ...appCampaigns].map((campaign) => [campaign.post_slug, campaign])).values()]
 
   if (pathname.endsWith('.csv')) {
     return new Response(buildCsv(campaigns, posts), {

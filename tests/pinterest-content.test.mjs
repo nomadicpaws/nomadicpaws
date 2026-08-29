@@ -1,4 +1,5 @@
 import test from 'node:test'
+import { validPinterestCampaign } from '../netlify/functions/lib/pinterest-settings.mjs'
 import assert from 'node:assert/strict'
 import { brandedMediaUrl, buildCsv, buildRss } from '../netlify/functions/lib/pinterest-content.mjs'
 
@@ -58,6 +59,14 @@ test('retroactive campaigns put all four images into open CSV dates', () => {
   assert.match(csv, /2026-10-02/)
   assert.match(csv, /2026-10-03/)
   assert.match(csv, /2026-10-04/)
+})
+
+test('native Pinterest campaigns require four complete branded images', () => {
+  const pin = { image: '/media/working/123.jpg', title: 'Cheeto on the trail', description: 'A desert field note.', template: 'bark', logo_size: 'small', logo_placement: 'left' }
+  const campaign = { post_slug: 'cheeto-on-the-trail', campaign_title: 'Cheeto on the trail', board: 'Trail Life with Cheeto', keywords: 'hiking with cats', retroactive: false, enabled: true, rss_pin: pin, day_7_pin: { ...pin, template: 'sage' }, day_14_pin: { ...pin, template: 'sand' }, day_21_pin: { ...pin, template: 'terracotta' } }
+  assert.equal(validPinterestCampaign(campaign), true)
+  assert.equal(validPinterestCampaign({ ...campaign, day_14_pin: { ...pin, title: '' } }), false)
+  assert.equal(validPinterestCampaign({ ...campaign, rss_pin: { ...pin, template: 'cream' } }), false)
 })
 
 test('retroactive dates skip the regular RSS window and weekly follow-ups', () => {
