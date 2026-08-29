@@ -5,3 +5,5 @@
 !.env.example
 tmp/
 node_modules/
+native-app/.expo/
+native-app/.expo-build-check/

@@ -121,6 +121,15 @@ type PinterestPinDraft = {
   focus: "top" | "center" | "bottom";
 };
 
+type CalendarItem = {
+  id: string;
+  date: string;
+  title: string;
+  platform: "Trail Journal" | "Instagram" | "Pinterest";
+  status: string;
+  detail: string;
+};
+
 const colors = {
   cream: "#fdfaf5",
   sand: "#f4eee1",
@@ -197,6 +206,41 @@ const APP_SESSION_KEY = "nomadic-paws-private-session";
 const TRINITIE_WELCOME_KEY = "nomadic-paws-trinitie-studio-welcome";
 const INSTAGRAM_REMINDER_SETTING = "nomadic-paws-instagram-reminder";
 const INSTAGRAM_REMINDER_ID = "nomadic-paws-instagram-reminder-id";
+
+type LocalJournalDraft = {
+  storySlug: string;
+  serverRevision: number;
+  savedAt: string;
+  title: string;
+  description: string;
+  category: string;
+  image: string;
+  imageAlt: string;
+  body: string;
+  isDraft: boolean;
+  publishDate: string;
+};
+
+type LocalInstagramDraft = {
+  draftKey: string;
+  savedAt: string;
+  title: string;
+  caption: string;
+  mediaUrls: string[];
+  targetDate: string;
+  theme: string;
+  handoffNote: string;
+};
+
+function localJournalDraftPath(slug: string) {
+  const safeSlug = slug.replace(/[^a-z0-9-]/gi, "-");
+  return `${FileSystem.documentDirectory || FileSystem.cacheDirectory}journal-${safeSlug}.json`;
+}
+
+function localInstagramDraftPath(key: string) {
+  const safeKey = key.replace(/[^a-z0-9-]/gi, "-");
+  return `${FileSystem.documentDirectory || FileSystem.cacheDirectory}instagram-${safeKey}.json`;
+}
 
 async function syncInstagramReminder(
   posts: InstagramPostDraft[],
@@ -617,6 +661,28 @@ function JournalEditor({
     [publishing, setPublishing] = useState(false),
     [publishState, setPublishState] = useState<"" | "committed">("");
   const editVersion = useRef(0);
+  const localDraftLoaded = useRef(false);
+  function localSnapshot(): LocalJournalDraft {
+    return {
+      storySlug: story.slug,
+      serverRevision: revision,
+      savedAt: new Date().toISOString(),
+      title,
+      description,
+      category,
+      image,
+      imageAlt,
+      body,
+      isDraft,
+      publishDate,
+    };
+  }
+  async function persistLocalDraft() {
+    await FileSystem.writeAsStringAsync(
+      localJournalDraftPath(story.slug),
+      JSON.stringify(localSnapshot()),
+    );
+  }
   function markChanged() {
     editVersion.current += 1;
     setDirty(true);
@@ -650,6 +716,9 @@ function JournalEditor({
       if (editVersion.current === savingEdit) {
         setDirty(false);
         setSaveState("Synchronized");
+        await FileSystem.deleteAsync(localJournalDraftPath(story.slug), {
+          idempotent: true,
+        });
       } else setSaveState("Saved on this device");
       return true;
     } catch (reason) {
@@ -684,6 +753,44 @@ function JournalEditor({
       setPublishing(false);
     }
   }
+  useEffect(() => {
+    let active = true;
+    FileSystem.readAsStringAsync(localJournalDraftPath(story.slug))
+      .then((raw) => {
+        if (!active || localDraftLoaded.current) return;
+        const saved = JSON.parse(raw) as LocalJournalDraft;
+        if (
+          saved.storySlug !== story.slug ||
+          saved.serverRevision !== revision
+        )
+          return;
+        setTitle(saved.title);
+        setDescription(saved.description);
+        setCategory(saved.category);
+        setImage(saved.image);
+        setImageAlt(saved.imageAlt);
+        setBody(saved.body);
+        setIsDraft(saved.isDraft);
+        setPublishDate(saved.publishDate);
+        editVersion.current += 1;
+        setDirty(true);
+        setSaveState("Restored from this device");
+      })
+      .catch(() => {})
+      .finally(() => {
+        localDraftLoaded.current = true;
+      });
+    return () => {
+      active = false;
+    };
+  }, [revision, story.slug]);
+  useEffect(() => {
+    if (!dirty || !localDraftLoaded.current) return;
+    const timer = setTimeout(() => {
+      persistLocalDraft().catch(() => {});
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [dirty, title, description, category, image, imageAlt, body, publishDate, isDraft, revision]);
   useEffect(() => {
     if (!dirty) return;
     const timer = setTimeout(() => {
@@ -755,7 +862,12 @@ function JournalEditor({
   return (
     <View style={styles.editorShell}>
       <View style={styles.editorTop}>
-        <Pressable onPress={onBack}>
+        <Pressable
+          onPress={() => {
+            if (dirty) persistLocalDraft().finally(onBack);
+            else onBack();
+          }}
+        >
           <Text style={styles.backText}>‹ Stories</Text>
         </Pressable>
         <View style={styles.saveState}>
@@ -1985,18 +2097,256 @@ function SeedCard({ seed }: { seed: ContentSeed }) {
   );
 }
 
+function dateKeyFrom(value: string) {
+  return value.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || "";
+}
+
+function shiftedDateKey(value: string, days: number) {
+  const key = dateKeyFrom(value);
+  if (!key) return "";
+  const date = new Date(`${key}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  return localDateKey(date);
+}
+
+function calendarHeading(value: string) {
+  const date = new Date(`${value}T12:00:00`);
+  const today = localDateKey();
+  const tomorrow = shiftedDateKey(today, 1);
+  const prefix = value === today ? "Today · " : value === tomorrow ? "Tomorrow · " : "";
+  return `${prefix}${date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  })}`;
+}
+
+function ContentCalendar({
+  token,
+  person,
+  onClose,
+}: {
+  token: string;
+  person: Person;
+  onClose: () => void;
+}) {
+  const [stories, setStories] = useState<JournalStory[]>([]);
+  const [posts, setPosts] = useState<InstagramPostDraft[]>([]);
+  const [campaigns, setCampaigns] = useState<PinterestCampaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError("");
+    Promise.all([
+      loadStories(token),
+      person === "Mom"
+        ? Promise.resolve({ posts: [] as InstagramPostDraft[] })
+        : loadInstagramStudio(token),
+      person === "Katie"
+        ? loadPinterestCampaigns(token)
+        : Promise.resolve({ campaigns: [] as PinterestCampaign[] }),
+    ])
+      .then(([journal, instagram, pinterest]) => {
+        if (!active) return;
+        setStories(journal.stories);
+        setPosts(instagram.posts);
+        setCampaigns(pinterest.campaigns);
+      })
+      .catch((reason) => {
+        if (active)
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : "The shared calendar could not synchronize.",
+          );
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [person, token]);
+
+  const items = useMemo(() => {
+    const next: CalendarItem[] = stories
+      .map((story) => ({
+        id: `journal-${story.slug}`,
+        date: dateKeyFrom(story.date),
+        title: story.title,
+        platform: "Trail Journal" as const,
+        status: story.status,
+        detail:
+          story.status === "Published"
+            ? "Public Trail Journal story"
+            : story.status === "Scheduled"
+              ? "Scheduled publication"
+              : "Working publication date",
+      }))
+      .filter((item) => item.date);
+
+    if (person !== "Mom") {
+      posts.forEach((post) => {
+        if (!post.targetDate) return;
+        next.push({
+          id: `instagram-${post.id}`,
+          date: post.targetDate,
+          title: post.title,
+          platform: "Instagram",
+          status: post.status,
+          detail: `${post.theme || "Instagram"} · ${post.assignedTo}`,
+        });
+      });
+    }
+
+    if (person === "Katie") {
+      const storyDates = new Map(stories.map((story) => [story.slug, story.date]));
+      campaigns.forEach((campaign) => {
+        if (!campaign.enabled || campaign.retroactive) return;
+        const articleDate = storyDates.get(campaign.post_slug) || "";
+        [
+          { days: 0, label: "RSS Pin" },
+          { days: 7, label: "+7 day Pin" },
+          { days: 14, label: "+14 day Pin" },
+          { days: 21, label: "+21 day Pin" },
+        ].forEach(({ days, label }) => {
+          const date = shiftedDateKey(articleDate, days);
+          if (!date) return;
+          next.push({
+            id: `pinterest-${campaign.post_slug}-${days}`,
+            date,
+            title: campaign.campaign_title,
+            platform: "Pinterest",
+            status: label,
+            detail:
+              days === 0
+                ? "Releases only after the article is public"
+                : `${campaign.board} · CSV`,
+          });
+        });
+      });
+    }
+
+    const recentCutoff = shiftedDateKey(localDateKey(), -7);
+    return next
+      .filter((item) => item.date >= recentCutoff)
+      .sort((a, b) =>
+        a.date === b.date
+          ? a.platform.localeCompare(b.platform)
+          : a.date.localeCompare(b.date),
+      );
+  }, [campaigns, person, posts, stories]);
+
+  const grouped = useMemo(() => {
+    const groups = new Map<string, CalendarItem[]>();
+    items.forEach((item) =>
+      groups.set(item.date, [...(groups.get(item.date) || []), item]),
+    );
+    return [...groups.entries()];
+  }, [items]);
+  const retroactive = campaigns.filter(
+    (campaign) => campaign.enabled && campaign.retroactive,
+  ).length;
+
+  return (
+    <ScrollView contentContainerStyle={styles.page}>
+      <Pressable onPress={onClose} style={styles.backButton}>
+        <Text style={styles.backText}>‹ Today</Text>
+      </Pressable>
+      <Text style={styles.eyebrow}>SHARED CONTENT CALENDAR</Text>
+      <Text style={styles.pageTitle}>
+        {person === "Trinitie"
+          ? "Your Instagram days, in one place."
+          : person === "Mom"
+            ? "Journal dates at a glance."
+            : "The whole trail ahead."}
+      </Text>
+      <Text style={styles.copy}>
+        Dates stay connected to the real Journal and studio records. Moving a
+        story date moves its regular Pinterest follow-ups automatically.
+      </Text>
+      {loading ? (
+        <View style={styles.calendarLoading}>
+          <ActivityIndicator color={colors.terracotta} />
+          <Text style={styles.helper}>Gathering the real schedule…</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.calendarNotice}>
+          <Text style={styles.calendarNoticeTitle}>Calendar paused</Text>
+          <Text style={styles.calendarNoticeCopy}>{error}</Text>
+        </View>
+      ) : grouped.length ? (
+        grouped.map(([date, dateItems]) => (
+          <View key={date} style={styles.calendarDay}>
+            <Text style={styles.calendarDate}>{calendarHeading(date)}</Text>
+            {dateItems.map((item) => (
+              <View key={item.id} style={styles.calendarItem}>
+                <View
+                  style={[
+                    styles.calendarMarker,
+                    item.platform === "Instagram"
+                      ? styles.calendarMarkerInstagram
+                      : item.platform === "Pinterest"
+                        ? styles.calendarMarkerPinterest
+                        : styles.calendarMarkerJournal,
+                  ]}
+                />
+                <View style={{ flex: 1 }}>
+                  <View style={styles.calendarItemTop}>
+                    <Text style={styles.calendarPlatform}>{item.platform}</Text>
+                    <Text style={styles.calendarStatus}>{item.status}</Text>
+                  </View>
+                  <Text style={styles.calendarTitle}>{item.title}</Text>
+                  <Text style={styles.calendarDetail}>{item.detail}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        ))
+      ) : (
+        <View style={styles.calendarNotice}>
+          <Text style={styles.calendarNoticeTitle}>The trail ahead is open.</Text>
+          <Text style={styles.calendarNoticeCopy}>
+            Scheduled Journal stories and Instagram posts will gather here.
+          </Text>
+        </View>
+      )}
+      {person === "Katie" && retroactive ? (
+        <View style={styles.calendarNotice}>
+          <Text style={styles.calendarNoticeTitle}>
+            {retroactive} retroactive Pinterest campaign
+            {retroactive === 1 ? "" : "s"}
+          </Text>
+          <Text style={styles.calendarNoticeCopy}>
+            Their exact dates are assigned to the next open CSV slots when the
+            export is generated, so the calendar does not invent dates for them.
+          </Text>
+        </View>
+      ) : null}
+      <Text style={styles.gentleNote}>
+        No overdue language. This is a map, not a manager.
+      </Text>
+    </ScrollView>
+  );
+}
+
 function Today({
   token,
   person,
   seeds,
   onNewAdventure,
   onOpenPreviews,
+  onOpenCalendar,
 }: {
   token: string;
   person: Person;
   seeds: ContentSeed[];
   onNewAdventure: () => void;
   onOpenPreviews: () => void;
+  onOpenCalendar: () => void;
 }) {
   const [rhythm, setRhythm] = useState<InstagramDay[]>(initialInstagramRhythm);
   const [posts, setPosts] = useState<InstagramPostDraft[]>([]);
@@ -2041,6 +2391,10 @@ function Today({
             Good morning, {person === "Mom" ? "CatNana" : person}.
           </Text>
         </View>
+        <Pressable onPress={onOpenCalendar} style={styles.calendarButton}>
+          <Text style={styles.calendarButtonDay}>{new Date().getDate()}</Text>
+          <Text style={styles.calendarButtonLabel}>Calendar</Text>
+        </Pressable>
       </View>
       <Text style={styles.copy}>
         {person === "Trinitie"
@@ -2499,6 +2853,7 @@ function InstagramPostEditor({
   const today = new Date().toLocaleDateString("en-US", { weekday: "long" }),
     defaultTheme =
       rhythm.find((item) => item.day === today)?.theme || "Adventures";
+  const draftKey = post?.id || "new-post";
   const [title, setTitle] = useState(post?.title || ""),
     [caption, setCaption] = useState(post?.caption || ""),
     [mediaUrls, setMediaUrls] = useState(post?.mediaUrls || []),
@@ -2512,7 +2867,60 @@ function InstagramPostEditor({
     [welcomeAsset, setWelcomeAsset] = useState<SharedMediaAsset>(),
     [welcomeBlurred, setWelcomeBlurred] = useState(false),
     [assistantBusy, setAssistantBusy] = useState(false),
-    [suggestion, setSuggestion] = useState<CheetoSuggestion>();
+    [suggestion, setSuggestion] = useState<CheetoSuggestion>(),
+    [localSaveState, setLocalSaveState] = useState("Opening local safety copy…");
+  const localInstagramLoaded = useRef(false);
+  function instagramSnapshot(): LocalInstagramDraft {
+    return {
+      draftKey,
+      savedAt: new Date().toISOString(),
+      title,
+      caption,
+      mediaUrls,
+      targetDate,
+      theme,
+      handoffNote,
+    };
+  }
+  async function persistInstagramLocal() {
+    await FileSystem.writeAsStringAsync(
+      localInstagramDraftPath(draftKey),
+      JSON.stringify(instagramSnapshot()),
+    );
+    setLocalSaveState("Saved on this iPhone");
+  }
+  useEffect(() => {
+    let active = true;
+    FileSystem.readAsStringAsync(localInstagramDraftPath(draftKey))
+      .then((raw) => {
+        if (!active || localInstagramLoaded.current) return;
+        const saved = JSON.parse(raw) as LocalInstagramDraft;
+        if (saved.draftKey !== draftKey) return;
+        setTitle(saved.title);
+        setCaption(saved.caption);
+        setMediaUrls(saved.mediaUrls);
+        setTargetDate(saved.targetDate);
+        setTheme(saved.theme);
+        setHandoffNote(saved.handoffNote);
+        setLocalSaveState("Restored from this iPhone");
+      })
+      .catch(() => setLocalSaveState(post ? "Synchronized" : "New local draft"))
+      .finally(() => {
+        localInstagramLoaded.current = true;
+      });
+    return () => {
+      active = false;
+    };
+  }, [draftKey]);
+  useEffect(() => {
+    if (!localInstagramLoaded.current) return;
+    const timer = setTimeout(() => {
+      persistInstagramLocal().catch(() =>
+        setLocalSaveState("Keep this screen open while saving"),
+      );
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [title, caption, mediaUrls, targetDate, theme, handoffNote]);
   async function save(
     status: InstagramPostDraft["status"],
     close = true,
@@ -2533,6 +2941,10 @@ function InstagramPostEditor({
           handoffNote,
         });
       onSaved(saved);
+      await FileSystem.deleteAsync(localInstagramDraftPath(draftKey), {
+        idempotent: true,
+      });
+      setLocalSaveState("Synchronized");
       if (close) onCancel();
     } catch (reason) {
       setError(
@@ -2647,6 +3059,9 @@ function InstagramPostEditor({
         handoffNote,
       });
       onSaved(saved);
+      await FileSystem.deleteAsync(localInstagramDraftPath(draftKey), {
+        idempotent: true,
+      });
       onCancel();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "This post could not be handed to Katie.");
@@ -2680,6 +3095,7 @@ function InstagramPostEditor({
       <Text style={styles.pageTitle}>
         {post ? "Keep shaping it." : "Prepare a post."}
       </Text>
+      <Text style={styles.localSaveState}>{localSaveState}</Text>
       <Text style={styles.controlLabel}>Working title</Text>
       <TextInput
         value={title}
@@ -2880,7 +3296,7 @@ function InstagramPostEditor({
       >
         <Text style={styles.secondaryText}>Save cloud draft</Text>
       </Pressable>
-      <Pressable onPress={onCancel}>
+      <Pressable onPress={() => persistInstagramLocal().finally(onCancel)}>
         <Text style={styles.laterText}>Cancel</Text>
       </Pressable>
       <Modal visible={Boolean(welcomeAsset)} transparent animationType="fade">
@@ -4628,6 +5044,7 @@ export default function App() {
     [media, setMedia] = useState<SharedMediaAsset[]>([]),
     [creatingAdventure, setCreatingAdventure] = useState(false),
     [viewingPreviews, setViewingPreviews] = useState(false),
+    [viewingCalendar, setViewingCalendar] = useState(false),
     [teamOpen, setTeamOpen] = useState(false);
   useEffect(() => {
     SecureStore.getItemAsync(APP_SESSION_KEY)
@@ -4643,10 +5060,19 @@ export default function App() {
           if (!check.success) return;
         }
         const stored = JSON.parse(saved) as SignedInAccount;
-        const restored = await restoreAppSession(stored.token);
-        setAccount({ token: stored.token, user: restored.user });
+        try {
+          const restored = await restoreAppSession(stored.token);
+          setAccount({ token: stored.token, user: restored.user });
+        } catch (reason) {
+          const message = reason instanceof Error ? reason.message : "";
+          if (/network|offline|internet|fetch/i.test(message)) {
+            setAccount(stored);
+            return;
+          }
+          await SecureStore.deleteItemAsync(APP_SESSION_KEY);
+        }
       })
-      .catch(() => SecureStore.deleteItemAsync(APP_SESSION_KEY))
+      .catch(() => {})
       .finally(() => setRestoring(false));
   }, []);
   async function signedIn(next: SignedInAccount) {
@@ -4717,6 +5143,12 @@ export default function App() {
       previews={starterPreviews}
       onClose={() => setViewingPreviews(false)}
     />
+  ) : viewingCalendar ? (
+    <ContentCalendar
+      token={token}
+      person={person}
+      onClose={() => setViewingCalendar(false)}
+    />
   ) : creatingAdventure ? (
     <NewAdventure
       token={token}
@@ -4733,6 +5165,7 @@ export default function App() {
       seeds={seeds}
       onNewAdventure={() => setCreatingAdventure(true)}
       onOpenPreviews={() => setViewingPreviews(true)}
+      onOpenCalendar={() => setViewingCalendar(true)}
     />
   ) : tab === "Media" ? (
     <MediaLibrary
@@ -4809,6 +5242,7 @@ export default function App() {
               setTeamOpen((value) => !value);
               setCreatingAdventure(false);
               setViewingPreviews(false);
+              setViewingCalendar(false);
             }}
             style={styles.teamHeaderButton}
           >
@@ -4827,6 +5261,7 @@ export default function App() {
               setTeamOpen(false);
               setCreatingAdventure(false);
               setViewingPreviews(false);
+              setViewingCalendar(false);
               setTab(item);
             }}
             style={styles.tab}
@@ -5384,6 +5819,105 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 11, fontWeight: "700", color: colors.barkSoft },
   tabTextActive: { color: colors.terracottaDeep },
   todayHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  calendarButton: {
+    minWidth: 70,
+    minHeight: 62,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 18,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  calendarButtonDay: {
+    fontSize: 20,
+    lineHeight: 22,
+    fontWeight: "900",
+    color: colors.terracottaDeep,
+  },
+  calendarButtonLabel: {
+    marginTop: 2,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    color: colors.barkSoft,
+  },
+  calendarLoading: { paddingVertical: 50, alignItems: "center" },
+  calendarDay: { marginTop: 21 },
+  calendarDate: {
+    marginBottom: 9,
+    fontSize: 13,
+    fontWeight: "900",
+    color: colors.bark,
+  },
+  calendarItem: {
+    flexDirection: "row",
+    gap: 11,
+    marginBottom: 9,
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+  },
+  calendarMarker: { width: 5, borderRadius: 999 },
+  calendarMarkerJournal: { backgroundColor: colors.terracotta },
+  calendarMarkerInstagram: { backgroundColor: colors.sageDeep },
+  calendarMarkerPinterest: { backgroundColor: colors.barkSoft },
+  calendarItemTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 9,
+  },
+  calendarPlatform: {
+    flexShrink: 1,
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0.7,
+    textTransform: "uppercase",
+    color: colors.terracottaDeep,
+  },
+  calendarStatus: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: colors.sageDeep,
+  },
+  calendarTitle: {
+    marginTop: 6,
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: "900",
+    color: colors.bark,
+  },
+  calendarDetail: {
+    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.barkSoft,
+  },
+  calendarNotice: {
+    marginTop: 18,
+    padding: 17,
+    borderRadius: 18,
+    backgroundColor: colors.sand,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+  },
+  calendarNoticeTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: colors.bark,
+  },
+  calendarNoticeCopy: {
+    marginTop: 5,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.barkSoft,
+  },
   roleSwitch: {
     flexDirection: "row",
     backgroundColor: colors.sand,
@@ -6013,6 +6547,13 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 17,
     marginBottom: 24,
+  },
+  localSaveState: {
+    marginTop: -8,
+    marginBottom: 14,
+    fontSize: 11,
+    fontWeight: "800",
+    color: colors.sageDeep,
   },
   helperCopy: {
     color: colors.barkSoft,

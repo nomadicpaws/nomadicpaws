@@ -1,4 +1,5 @@
 import type { InstagramDay, InstagramPostDraft, InstagramTemplate } from './content'
+import * as FileSystem from 'expo-file-system/legacy'
 
 export const API_URL = 'https://nomadicpaws.co'
 
@@ -69,6 +70,25 @@ async function request<T>(path: string, token: string, options: RequestInit = {}
   return data as T
 }
 
+function privateCachePath(key: string) {
+  const safeKey = key.replace(/[^a-z0-9-]/gi, '-')
+  return `${FileSystem.documentDirectory || FileSystem.cacheDirectory}private-${safeKey}.json`
+}
+
+async function cachedRequest<T>(key: string, load: () => Promise<T>): Promise<T> {
+  try {
+    const data = await load()
+    await FileSystem.writeAsStringAsync(privateCachePath(key), JSON.stringify(data)).catch(() => {})
+    return data
+  } catch (networkError) {
+    try {
+      return JSON.parse(await FileSystem.readAsStringAsync(privateCachePath(key))) as T
+    } catch {
+      throw networkError
+    }
+  }
+}
+
 export async function signInWithApple(payload: AppleSignInPayload) {
   return request<{ token?: string; user: AppUser; setupRequired?: boolean; pending?: boolean }>('/api/app/auth', '', {
     method: 'POST',
@@ -132,11 +152,15 @@ export async function saveWorkingVersion(token: string, mediaId: string, destina
 }
 
 export async function loadStories(token: string) {
-  return request<{ stories: JournalStory[] }>('/api/app/journal', token)
+  return cachedRequest('journal-stories', () =>
+    request<{ stories: JournalStory[] }>('/api/app/journal', token),
+  )
 }
 
 export async function loadStory(token: string, slug: string) {
-  return request<{ story: JournalStoryDetail; notes: JournalReviewNote[]; workingDraft: JournalWorkingDraft | null; versions: JournalWorkingVersion[] }>(`/api/app/journal?slug=${encodeURIComponent(slug)}`, token)
+  return cachedRequest(`journal-story-${slug}`, () =>
+    request<{ story: JournalStoryDetail; notes: JournalReviewNote[]; workingDraft: JournalWorkingDraft | null; versions: JournalWorkingVersion[] }>(`/api/app/journal?slug=${encodeURIComponent(slug)}`, token),
+  )
 }
 
 export async function addReviewNote(token: string, input: { slug: string; version: string; reviewer: 'Trinitie' | 'Mom'; note: string; anchorType?: 'general' | 'paragraph' | 'selection'; anchorId?: string; quotedText?: string }) {
@@ -161,7 +185,9 @@ export async function updateReviewNote(token: string, input: { id: string; statu
 }
 
 export async function loadInstagramStudio(token: string) {
-  const data = await request<{ rhythm: InstagramDay[] | null; templates: Array<{ id: string; name: string; kind: InstagramTemplate['kind']; aspect_ratio: string; source_url: string; favorite: boolean }>; posts: Array<{ id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; assigned_to: InstagramPostDraft['assignedTo']; handoff_note: string; updated_at: string }> }>('/api/app/instagram', token)
+  const data = await cachedRequest('instagram-studio', () =>
+    request<{ rhythm: InstagramDay[] | null; templates: Array<{ id: string; name: string; kind: InstagramTemplate['kind']; aspect_ratio: string; source_url: string; favorite: boolean }>; posts: Array<{ id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; assigned_to: InstagramPostDraft['assignedTo']; handoff_note: string; updated_at: string }> }>('/api/app/instagram', token),
+  )
   return { rhythm: data.rhythm, templates: data.templates.map(template => ({ id: template.id, name: template.name, kind: template.kind, aspectRatio: template.aspect_ratio, previewUrl: template.source_url, favorite: template.favorite })), posts: data.posts.map(post => ({ id: post.id, title: post.title, caption: post.caption, mediaUrls: post.media_urls, targetDate: post.target_date, theme: post.theme, status: post.status, assignedTo: post.assigned_to, handoffNote: post.handoff_note, updatedAt: post.updated_at })) }
 }
 
@@ -197,7 +223,9 @@ export async function askCheetoAssistant(token: string, input: { title: string; 
 }
 
 export async function loadPinterestCampaigns(token: string) {
-  return request<{ campaigns: PinterestCampaign[] }>('/api/app/pinterest', token)
+  return cachedRequest('pinterest-campaigns', () =>
+    request<{ campaigns: PinterestCampaign[] }>('/api/app/pinterest', token),
+  )
 }
 
 export async function savePinterestCampaign(token: string, campaign: PinterestCampaign) {
