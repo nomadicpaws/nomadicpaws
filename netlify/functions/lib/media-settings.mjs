@@ -18,3 +18,14 @@ export function validMediaDetails(input) {
     && input.tags.every(tag => MEDIA_TAGS.includes(tag))
     && typeof input.notes === 'string' && input.notes.length <= 500
 }
+
+const destinations = ['trail-hero', 'trail-article', 'pinterest', 'instagram']
+const logoColors = ['bark', 'sage', 'sand', 'terracotta']
+export function validWorkingVersion(input) {
+  return typeof input?.mediaId === 'string' && /^[0-9a-f-]{36}$/i.test(input.mediaId)
+    && destinations.includes(input.destination)
+    && logoColors.includes(input?.treatment?.logoColor)
+    && ['small', 'medium'].includes(input?.treatment?.logoSize)
+    && ['left', 'right'].includes(input?.treatment?.logoSide)
+    && ['top', 'center', 'bottom'].includes(input?.treatment?.focus)
+}

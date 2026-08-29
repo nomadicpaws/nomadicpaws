@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { getStore } from '@netlify/blobs'
 import type { Config } from '@netlify/functions'
 import { requireAppUser } from './lib/app-auth.mjs'
-import { addMediaAsset, adventureExists, adventuresWithMedia, createAdventure, mediaById, updateMediaDetails } from './lib/media-db.mjs'
-import { MAX_DIRECT_PHOTO_BYTES, validAdventure, validDirectPhoto, validMediaDetails } from './lib/media-settings.mjs'
+import { addMediaAsset, adventureExists, adventuresWithMedia, createAdventure, mediaById, saveWorkingVersion, updateMediaDetails } from './lib/media-db.mjs'
+import { MAX_DIRECT_PHOTO_BYTES, validAdventure, validDirectPhoto, validMediaDetails, validWorkingVersion } from './lib/media-settings.mjs'
 
 const HEADERS = { 'Cache-Control': 'private, no-store, max-age=0', 'X-Content-Type-Options': 'nosniff' }
 const store = () => getStore('nomadic-paws-original-media')
@@ -38,6 +38,10 @@ export default async (request: Request) => {
       if (!validMediaDetails(body)) return Response.json({ error: 'Those photo details could not be saved.' }, { status: 400, headers: HEADERS })
       const media = await updateMediaDetails(String(body.mediaId), body.tags as string[], String(body.notes))
       return media ? Response.json({ media }, { headers: HEADERS }) : Response.json({ error: 'That photo is no longer available.' }, { status: 404, headers: HEADERS })
+    }
+    if (body.action === 'save-working-version') {
+      if (!validWorkingVersion(body) || !(await mediaById(String(body.mediaId)))) return Response.json({ error: 'That working version could not be saved.' }, { status: 400, headers: HEADERS })
+      return Response.json({ workingVersion: await saveWorkingVersion(String(body.mediaId), String(body.destination), body.treatment) }, { status: 201, headers: HEADERS })
     }
     if (user.role !== 'katie') return Response.json({ error: 'Adventure creation belongs to Katie’s workspace.' }, { status: 403, headers: HEADERS })
     if (body.action !== 'create-adventure' || !validAdventure(body)) return Response.json({ error: 'Give this adventure a short name before saving it.' }, { status: 400, headers: HEADERS })

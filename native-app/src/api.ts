@@ -7,6 +7,7 @@ export type AppUser = { id: string; email: string; name: string; role: AppRole; 
 export type AppleSignInPayload = { identityToken: string; nonce: string; email?: string; name?: string }
 export type SharedAdventure = { id: string; title: string; notes: string; private_location: string; public_location: string; captured_at: string; assigned_to: 'Katie' | 'Trinitie'; status: 'Idea' | 'Draft' | 'Ready' | 'Handed Off' | 'Posted'; platforms: string[]; media_count: number; created_at: string; updated_at: string }
 export type SharedMediaAsset = { id: string; adventure_id: string | null; original_name: string; content_type: string; byte_size: number; width: number | null; height: number | null; kind: 'photo' | 'video'; tags: string[]; notes: string; usage_count: number; created_at: string }
+export type WorkingVersion = { id: string; media_id: string; destination_type: string; destination_id: string; treatment: { logoColor: string; logoSize: string; logoSide: string; focus: string }; created_at: string }
 
 export type JournalStory = {
   slug: string
@@ -94,7 +95,7 @@ export async function signOutApp(token: string) {
 }
 
 export async function loadSharedMedia(token: string) {
-  return request<{ adventures: SharedAdventure[]; media: SharedMediaAsset[] }>('/api/app/media', token)
+  return request<{ adventures: SharedAdventure[]; media: SharedMediaAsset[]; workingVersions: WorkingVersion[] }>('/api/app/media', token)
 }
 
 export async function createSharedAdventure(token: string, input: { title: string; notes: string; privateLocation: string; capturedAt?: string }) {
@@ -117,6 +118,11 @@ export function privateMediaUrl(id: string) { return `${API_URL}/api/app/media/f
 export async function updateSharedMedia(token: string, mediaId: string, tags: string[], notes: string) {
   const data = await request<{ media: SharedMediaAsset }>('/api/app/media', token, { method: 'POST', body: JSON.stringify({ action: 'update-media', mediaId, tags, notes }) })
   return data.media
+}
+
+export async function saveWorkingVersion(token: string, mediaId: string, destination: string, treatment: WorkingVersion['treatment']) {
+  const data = await request<{ workingVersion: WorkingVersion }>('/api/app/media', token, { method: 'POST', body: JSON.stringify({ action: 'save-working-version', mediaId, destination, treatment }) })
+  return data.workingVersion
 }
 
 export async function loadStories(token: string) {

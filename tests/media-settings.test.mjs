@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { MAX_DIRECT_PHOTO_BYTES, validAdventure, validDirectPhoto, validMediaDetails } from '../netlify/functions/lib/media-settings.mjs'
+import { MAX_DIRECT_PHOTO_BYTES, validAdventure, validDirectPhoto, validMediaDetails, validWorkingVersion } from '../netlify/functions/lib/media-settings.mjs'
 
 test('adventures require a useful bounded title', () => {
   assert.equal(validAdventure({ title: 'Cheeto discovers a cactus shadow' }), true)
@@ -13,6 +13,14 @@ test('shared media details accept only the small approved tag vocabulary', () =>
   assert.equal(validMediaDetails({ mediaId, tags: ['Cheeto', 'Trail'], notes: 'Golden hour.' }), true)
   assert.equal(validMediaDetails({ mediaId, tags: ['Secret location'], notes: '' }), false)
   assert.equal(validMediaDetails({ mediaId, tags: [], notes: 'x'.repeat(501) }), false)
+})
+
+test('working versions keep destination and treatment choices bounded', () => {
+  const mediaId = '11111111-1111-4111-8111-111111111111'
+  const treatment = { logoColor: 'sand', logoSize: 'medium', logoSide: 'right', focus: 'center' }
+  assert.equal(validWorkingVersion({ mediaId, destination: 'pinterest', treatment }), true)
+  assert.equal(validWorkingVersion({ mediaId, destination: 'somewhere-else', treatment }), false)
+  assert.equal(validWorkingVersion({ mediaId, destination: 'instagram', treatment: { ...treatment, logoColor: 'purple' } }), false)
 })
 
 test('direct uploads preserve supported photos within the safe function limit', () => {
