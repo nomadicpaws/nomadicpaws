@@ -1,8 +1,10 @@
+node_modules
 node_modules/
+**/node_modules
+.pnpm-store
 .expo/
 .expo-build-check/
 dist/
 web-build/
 *.log
 .DS_Store
-
