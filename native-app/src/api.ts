@@ -2,6 +2,10 @@ import type { InstagramDay, InstagramPostDraft, InstagramTemplate } from './cont
 
 export const API_URL = 'https://nomadicpaws.co'
 
+export type AppRole = 'pending' | 'katie' | 'trinitie' | 'mom'
+export type AppUser = { id: string; email: string; name: string; role: AppRole; status: 'pending' | 'active' | 'revoked' }
+export type AppleSignInPayload = { identityToken: string; nonce: string; email?: string; name?: string }
+
 export type JournalStory = {
   slug: string
   title: string
@@ -60,11 +64,31 @@ async function request<T>(path: string, token: string, options: RequestInit = {}
   return data as T
 }
 
-export async function signIn(accessCode: string) {
-  return request<{ token: string }>('/api/event/auth/session', '', {
+export async function signInWithApple(payload: AppleSignInPayload) {
+  return request<{ token?: string; user: AppUser; setupRequired?: boolean; pending?: boolean }>('/api/app/auth', '', {
     method: 'POST',
-    body: JSON.stringify({ accessCode }),
+    body: JSON.stringify({ action: 'apple', ...payload }),
   })
+}
+
+export async function claimKatieAccount(payload: AppleSignInPayload & { accessCode: string }) {
+  return request<{ token: string; user: AppUser }>('/api/app/auth', '', { method: 'POST', body: JSON.stringify({ action: 'claim-katie', ...payload }) })
+}
+
+export async function restoreAppSession(token: string) {
+  return request<{ user: AppUser }>('/api/app/auth', token)
+}
+
+export async function loadTeamAccess(token: string) {
+  return request<{ user: AppUser; pending: AppUser[] }>('/api/app/auth?view=team', token)
+}
+
+export async function approveTeamAccess(token: string, userId: string, role: 'trinitie' | 'mom') {
+  return request<{ user: AppUser }>('/api/app/auth', token, { method: 'POST', body: JSON.stringify({ action: 'approve', userId, role }) })
+}
+
+export async function signOutApp(token: string) {
+  return request<{ signedOut: boolean }>('/api/app/auth', token, { method: 'POST', body: JSON.stringify({ action: 'signout' }) })
 }
 
 export async function loadStories(token: string) {

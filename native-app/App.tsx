@@ -18,9 +18,13 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native'
-import { addReviewNote, API_URL, JournalContribution, JournalReviewNote, JournalStory, JournalStoryDetail, JournalWorkingDraft, JournalWorkingVersion, loadInstagramStudio, loadJournalContributions, loadStories, loadStory, saveInstagramPost, saveInstagramRhythm, saveJournalContribution, saveJournalWorkingDraft, signIn, updateReviewNote } from './src/api'
+import { addReviewNote, API_URL, AppUser, AppleSignInPayload, approveTeamAccess, claimKatieAccount, JournalContribution, JournalReviewNote, JournalStory, JournalStoryDetail, JournalWorkingDraft, JournalWorkingVersion, loadInstagramStudio, loadJournalContributions, loadStories, loadStory, loadTeamAccess, restoreAppSession, saveInstagramPost, saveInstagramRhythm, saveJournalContribution, saveJournalWorkingDraft, signInWithApple, signOutApp, updateReviewNote } from './src/api'
 import { ContentSeed, initialInstagramRhythm, initialSchedule, InstagramDay, InstagramPostDraft, InstagramTemplate, Person, PreviewReaction, SharedPreview, starterInstagramTemplates, starterPreviews, starterSeeds, videoOverlayPresets } from './src/content'
 import * as DocumentPicker from 'expo-document-picker'
+import * as AppleAuthentication from 'expo-apple-authentication'
+import * as Crypto from 'expo-crypto'
+import * as SecureStore from 'expo-secure-store'
+import * as LocalAuthentication from 'expo-local-authentication'
 import { useVideoPlayer, VideoView } from 'expo-video'
 
 type Tab = 'Today' | 'Studio' | 'Video' | 'Journal' | 'Pinterest' | 'Register'
@@ -51,6 +55,8 @@ const videoFonts = [
 ]
 
 const LOGIN_KEYBOARD_ACCESSORY = 'nomadic-paws-login-keyboard'
+const APP_SESSION_KEY = 'nomadic-paws-private-session'
+const DEVICE_LOCK_KEY = 'nomadic-paws-device-lock'
 
 function localDateKey(date = new Date()) {
   const year = date.getFullYear(), month = String(date.getMonth() + 1).padStart(2, '0'), day = String(date.getDate()).padStart(2, '0')
@@ -64,13 +70,38 @@ function Choice<T extends string>({ value, current, label, onPress }: { value: T
   </Pressable>
 }
 
-function Login({ onSignedIn }: { onSignedIn: (token: string) => void }) {
+type SignedInAccount = { token: string; user: AppUser }
+
+function Login({ onSignedIn }: { onSignedIn: (account: SignedInAccount) => void }) {
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  async function submit() {
+  const [applePayload, setApplePayload] = useState<AppleSignInPayload | null>(null)
+  const [setupRequired, setSetupRequired] = useState(false)
+  const [pending, setPending] = useState(false)
+  async function appleSignIn() {
     setBusy(true); setError('')
-    try { onSignedIn((await signIn(code)).token) } catch (reason) { setError(reason instanceof Error ? reason.message : 'Sign-in failed.') }
+    try {
+      const rawNonce = Crypto.randomUUID()
+      const nonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawNonce)
+      const credential = await AppleAuthentication.signInAsync({ requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL], nonce })
+      if (!credential.identityToken) throw new Error('Apple did not return the sign-in information the app needs.')
+      const name = [credential.fullName?.givenName, credential.fullName?.familyName].filter(Boolean).join(' ')
+      const payload = { identityToken: credential.identityToken, nonce, email: credential.email || undefined, name: name || undefined }
+      setApplePayload(payload)
+      const result = await signInWithApple(payload)
+      if (result.token && result.user.status === 'active') return onSignedIn({ token: result.token, user: result.user })
+      setSetupRequired(Boolean(result.setupRequired)); setPending(Boolean(result.pending))
+    } catch (reason) {
+      if ((reason as { code?: string })?.code !== 'ERR_REQUEST_CANCELED') setError(reason instanceof Error ? reason.message : 'Apple sign-in did not finish.')
+    }
+    finally { setBusy(false) }
+  }
+  async function claimOwner() {
+    if (!applePayload) return
+    setBusy(true); setError('')
+    try { onSignedIn(await claimKatieAccount({ ...applePayload, accessCode: code })) }
+    catch (reason) { setError(reason instanceof Error ? reason.message : 'Owner setup did not finish.') }
     finally { setBusy(false) }
   }
   return <KeyboardAvoidingView style={styles.loginKeyboard} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -78,11 +109,11 @@ function Login({ onSignedIn }: { onSignedIn: (token: string) => void }) {
       <SafeAreaView style={styles.login}>
         <ScrollView contentContainerStyle={styles.loginContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" showsVerticalScrollIndicator={false}>
           <Image source={require('./assets/icon.png')} style={styles.loginLogo} />
-          <Text style={styles.eyebrow}>PRIVATE NOMADIC PAWS WORKSPACE</Text><Text style={styles.heroTitle}>Ready when you are.</Text>
-          <Text style={styles.copy}>Use the same secure access code as the event register.</Text>
-          <TextInput value={code} onChangeText={setCode} secureTextEntry placeholder="Access code" placeholderTextColor="#8b8075" style={styles.input} inputAccessoryViewID={Platform.OS === 'ios' ? LOGIN_KEYBOARD_ACCESSORY : undefined} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
+          <Text style={styles.eyebrow}>PRIVATE NOMADIC PAWS WORKSPACE</Text><Text style={styles.heroTitle}>{pending ? 'You’re at the right door.' : setupRequired ? 'One tiny setup step.' : 'Ready when you are.'}</Text>
+          <Text style={styles.copy}>{pending ? 'Katie will choose the workspace that belongs to you. Once she does, tap Check again.' : setupRequired ? 'Use the event-register code once to establish Katie’s owner account. Trinitie and CatNana will never need it.' : 'Each person signs in privately. The app remembers you on this iPhone.'}</Text>
+          {setupRequired ? <><TextInput value={code} onChangeText={setCode} secureTextEntry placeholder="One-time owner setup code" placeholderTextColor="#8b8075" style={styles.input} inputAccessoryViewID={Platform.OS === 'ios' ? LOGIN_KEYBOARD_ACCESSORY : undefined} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} /><Pressable style={styles.primary} onPress={claimOwner} disabled={busy || code.length < 8}><Text style={styles.primaryText}>{busy ? 'Setting up…' : 'Make this Katie’s account'}</Text></Pressable></> : <AppleAuthentication.AppleAuthenticationButton buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN} buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK} cornerRadius={14} style={styles.appleButton} onPress={appleSignIn} />}
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Pressable style={styles.primary} onPress={submit} disabled={busy || code.length < 8}><Text style={styles.primaryText}>{busy ? 'Opening…' : 'Open Nomadic Paws'}</Text></Pressable>
+          {pending ? <Text style={styles.gentleNote}>No shared password. No mystery role picker. Just your own little door.</Text> : null}
         </ScrollView>
       </SafeAreaView>
     </TouchableWithoutFeedback>
@@ -222,11 +253,7 @@ function SeedCard({ seed }: { seed: ContentSeed }) {
   </Pressable>
 }
 
-function RoleSwitch({ person, onChange }: { person: Person; onChange: (person: Person) => void }) {
-  return <View style={styles.roleSwitch} accessibilityRole="tablist">{(['Katie', 'Trinitie', 'Mom'] as Person[]).map(name => <Pressable key={name} onPress={() => onChange(name)} style={[styles.roleButton, person === name && styles.roleButtonActive]}><Text style={[styles.roleText, person === name && styles.roleTextActive]}>{name}</Text></Pressable>)}</View>
-}
-
-function Today({ token, person, onPersonChange, seeds, onNewAdventure, onOpenPreviews }: { token: string; person: Person; onPersonChange: (person: Person) => void; seeds: ContentSeed[]; onNewAdventure: () => void; onOpenPreviews: () => void }) {
+function Today({ token, person, seeds, onNewAdventure, onOpenPreviews }: { token: string; person: Person; seeds: ContentSeed[]; onNewAdventure: () => void; onOpenPreviews: () => void }) {
   const [rhythm, setRhythm] = useState<InstagramDay[]>(initialInstagramRhythm)
   const [posts, setPosts] = useState<InstagramPostDraft[]>([])
   const weekday = new Date().toLocaleDateString('en-US', { weekday: 'long' })
@@ -236,7 +263,7 @@ function Today({ token, person, onPersonChange, seeds, onNewAdventure, onOpenPre
   const mine = person === 'Mom' ? seeds.filter(seed => seed.platforms.includes('Trail Journal') && seed.status !== 'Posted') : seeds.filter(seed => seed.assignedTo === person)
   const readyInstagram = posts.filter(post => post.status === 'Ready' && post.targetDate === localDateKey()).length
   return <ScrollView contentContainerStyle={styles.page}>
-    <View style={styles.todayHeader}><View style={{ flex: 1 }}><Text style={styles.eyebrow}>{dateHeading}</Text><Text style={styles.pageTitle}>Good morning, {person}.</Text></View><RoleSwitch person={person} onChange={onPersonChange} /></View>
+    <View style={styles.todayHeader}><View style={{ flex: 1 }}><Text style={styles.eyebrow}>{dateHeading}</Text><Text style={styles.pageTitle}>Good morning, {person === 'Mom' ? 'CatNana' : person}.</Text></View></View>
     <Text style={styles.copy}>{person === 'Trinitie' ? 'Your Instagram desk is calm and ready when inspiration arrives.' : person === 'Mom' ? 'A quiet place to read Katie’s Trail Journal drafts and leave review notes.' : 'Your stories, campaigns, and Cheeto adventures are gathered in one place.'}</Text>
     {person === 'Katie' ? <><Pressable style={styles.adventureButton} onPress={onNewAdventure}><View><Text style={styles.adventureEyebrow}>ADVENTURE INBOX</Text><Text style={styles.adventureTitle}>Start a new adventure</Text><Text style={styles.adventureCopy}>Add selected photos, videos, notes, and a private location.</Text></View><Text style={styles.adventurePlus}>＋</Text></Pressable><View style={styles.uploadReminder}><View style={{ flex: 1 }}><Text style={styles.uploadReminderTitle}>Yesterday’s adventure may have media to add.</Text><Text style={styles.uploadReminderCopy}>Add it when you have a quiet minute.</Text></View><Pressable onPress={onNewAdventure} style={styles.uploadReminderAction}><Text style={styles.uploadReminderActionText}>Add now</Text></Pressable></View></> : <View style={styles.trinitieFocus}><Text style={styles.trinitieFocusTitle}>{person === 'Mom' ? 'Trail Journal review only.' : todayTheme?.enabled ? todayTheme.theme : 'Today can stay open.'}</Text><Text style={styles.trinitieFocusCopy}>{person === 'Mom' ? 'Read drafts, leave notes, and mark your review complete without entering the publishing workflow.' : todayTheme?.enabled ? `${weekday}’s theme is ready, along with the Instagram-ready moments Katie has shared.` : `${weekday} is turned off in your weekly rhythm. Nothing needs to be filled just for the sake of posting.`}</Text></View>}
     <View style={styles.readinessRow}><Pressable onPress={onOpenPreviews} style={[styles.readinessCard, styles.readinessCardActive]}><Text style={styles.readinessNumber}>{person === 'Trinitie' ? readyInstagram : person === 'Mom' ? 2 : 3}</Text><Text style={styles.readinessLabel}>{person === 'Trinitie' ? readyInstagram === 1 ? 'Post ready' : 'Posts ready' : person === 'Mom' ? 'Shared previews' : 'Awaiting feedback'}</Text></Pressable><View style={styles.readinessCard}><Text style={styles.readinessNumber}>{initialSchedule.socialDay.slice(0, 3)}</Text><Text style={styles.readinessLabel}>Social target</Text></View><View style={styles.readinessCard}><Text style={styles.readinessNumber}>{initialSchedule.journalDay.slice(0, 3)}</Text><Text style={styles.readinessLabel}>Journal target</Text></View></View>
@@ -383,15 +410,36 @@ function Pinterest({ token }: { token: string }) {
 
 function Placeholder({ title, text }: { title: string; text: string }) { return <ScrollView contentContainerStyle={styles.page}><Text style={styles.eyebrow}>NOMADIC PAWS ADMIN</Text><Text style={styles.pageTitle}>{title}</Text><Text style={styles.copy}>{text}</Text></ScrollView> }
 
+function TeamAccess({ token, onSignOut }: { token: string; onSignOut: () => void }) {
+  const [pending, setPending] = useState<AppUser[]>([]), [message, setMessage] = useState(''), [busy, setBusy] = useState('')
+  const [deviceLock, setDeviceLock] = useState(false)
+  const refresh = () => loadTeamAccess(token).then(data => setPending(data.pending)).catch(reason => setMessage(reason instanceof Error ? reason.message : 'Team access could not load.'))
+  useEffect(() => { refresh() }, [token])
+  useEffect(() => { SecureStore.getItemAsync(DEVICE_LOCK_KEY).then(value => setDeviceLock(value === 'on')) }, [])
+  async function toggleDeviceLock() { const next = !deviceLock; await SecureStore.setItemAsync(DEVICE_LOCK_KEY, next ? 'on' : 'off'); setDeviceLock(next); setMessage(next ? 'Extra iPhone confirmation is on.' : 'Extra iPhone confirmation is off.') }
+  async function approve(user: AppUser, role: 'trinitie' | 'mom') { setBusy(user.id); setMessage(''); try { await approveTeamAccess(token, user.id, role); setMessage(`${role === 'mom' ? 'CatNana' : 'Trinitie'} has her own door now.`); refresh() } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Access could not be approved.') } finally { setBusy('') } }
+  return <ScrollView contentContainerStyle={styles.page}><Text style={styles.eyebrow}>PRIVATE TEAM ACCESS</Text><Text style={styles.pageTitle}>Their own little doors.</Text><Text style={styles.copy}>When Trinitie or CatNana signs in with Apple for the first time, her account will appear here. Choose the workspace that belongs to her.</Text>{pending.length ? pending.map(user => <View key={user.id} style={styles.teamCard}><Text style={styles.teamName}>{user.name || 'New team member'}</Text><Text style={styles.teamEmail}>{user.email || 'Apple private email'}</Text><View style={styles.teamActions}><Pressable disabled={Boolean(busy)} onPress={() => approve(user, 'trinitie')} style={styles.teamButton}><Text style={styles.teamButtonText}>Trinitie</Text></Pressable><Pressable disabled={Boolean(busy)} onPress={() => approve(user, 'mom')} style={styles.teamButton}><Text style={styles.teamButtonText}>CatNana</Text></Pressable></View></View>) : <View style={styles.teamEmpty}><Text style={styles.teamEmptyTitle}>Nobody is waiting.</Text><Text style={styles.teamEmptyCopy}>Their first Apple sign-in will place them here—no code to text, copy, or lose.</Text></View>}<Pressable onPress={toggleDeviceLock} style={styles.deviceLock}><View style={{ flex: 1 }}><Text style={styles.teamName}>Extra iPhone confirmation</Text><Text style={styles.teamEmail}>Uses Face ID when available, with the iPhone passcode as the fallback.</Text></View><Text style={styles.deviceLockState}>{deviceLock ? 'On' : 'Off'}</Text></Pressable>{message ? <Text style={styles.success}>{message}</Text> : null}<Pressable onPress={refresh} style={styles.secondary}><Text style={styles.secondaryText}>Check for new sign-ins</Text></Pressable><Pressable onPress={onSignOut} style={styles.secondary}><Text style={styles.secondaryText}>Sign out on this iPhone</Text></Pressable></ScrollView>
+}
+
 export default function App() {
-  const [token, setToken] = useState(''), [tab, setTab] = useState<Tab>('Today'), [person, setPerson] = useState<Person>('Katie'), [seeds, setSeeds] = useState(starterSeeds), [creatingAdventure, setCreatingAdventure] = useState(false), [viewingPreviews, setViewingPreviews] = useState(false)
-  const content = useMemo(() => viewingPreviews ? <SharedPreviews person={person} previews={starterPreviews} onClose={() => setViewingPreviews(false)} /> : creatingAdventure ? <NewAdventure onCancel={() => setCreatingAdventure(false)} onSave={seed => { setSeeds(current => [seed, ...current]); setCreatingAdventure(false) }} /> : tab === 'Today' ? <Today token={token} person={person} onPersonChange={next => { setPerson(next); setViewingPreviews(false) }} seeds={seeds} onNewAdventure={() => setCreatingAdventure(true)} onOpenPreviews={() => setViewingPreviews(true)} /> : tab === 'Studio' ? person === 'Trinitie' ? <InstagramStudio token={token} seeds={seeds.filter(seed => seed.platforms.includes('Instagram'))} onOpenPreviews={() => setViewingPreviews(true)} /> : <Studio seeds={seeds} /> : tab === 'Video' ? <VideoStudio person={person} /> : tab === 'Journal' ? <Journal token={token} person={person} /> : tab === 'Pinterest' ? <Pinterest token={token} /> : <Placeholder title="Event Register" text="The existing test register and Stripe Terminal connection will move into this native workspace after device signing is available." />, [creatingAdventure, person, seeds, tab, token, viewingPreviews])
-  if (!token) return <Login onSignedIn={setToken} />
+  const [account, setAccount] = useState<SignedInAccount | null>(null), [restoring, setRestoring] = useState(true), [tab, setTab] = useState<Tab>('Today'), [seeds, setSeeds] = useState(starterSeeds), [creatingAdventure, setCreatingAdventure] = useState(false), [viewingPreviews, setViewingPreviews] = useState(false), [teamOpen, setTeamOpen] = useState(false)
+  useEffect(() => { SecureStore.getItemAsync(APP_SESSION_KEY).then(async saved => { if (!saved) return; const locked = await SecureStore.getItemAsync(DEVICE_LOCK_KEY); if (locked === 'on') { const check = await LocalAuthentication.authenticateAsync({ promptMessage: 'Open Nomadic Paws', fallbackLabel: 'Use iPhone Passcode', disableDeviceFallback: false }); if (!check.success) return } const stored = JSON.parse(saved) as SignedInAccount; const restored = await restoreAppSession(stored.token); setAccount({ token: stored.token, user: restored.user }) }).catch(() => SecureStore.deleteItemAsync(APP_SESSION_KEY)).finally(() => setRestoring(false)) }, [])
+  async function signedIn(next: SignedInAccount) { await SecureStore.setItemAsync(APP_SESSION_KEY, JSON.stringify(next)); setAccount(next) }
+  async function signedOut() { if (account) await signOutApp(account.token).catch(() => {}); await SecureStore.deleteItemAsync(APP_SESSION_KEY); setAccount(null); setTeamOpen(false) }
+  if (restoring) return <View style={styles.centered}><ActivityIndicator color={colors.terracotta} /><Text style={styles.helper}>Opening your workspace…</Text></View>
+  if (!account) return <Login onSignedIn={signedIn} />
+  const token = account.token
+  const person: Person = account.user.role === 'trinitie' ? 'Trinitie' : account.user.role === 'mom' ? 'Mom' : 'Katie'
+  const content = teamOpen ? <TeamAccess token={token} onSignOut={signedOut} /> : viewingPreviews ? <SharedPreviews person={person} previews={starterPreviews} onClose={() => setViewingPreviews(false)} /> : creatingAdventure ? <NewAdventure onCancel={() => setCreatingAdventure(false)} onSave={seed => { setSeeds(current => [seed, ...current]); setCreatingAdventure(false) }} /> : tab === 'Today' ? <Today token={token} person={person} seeds={seeds} onNewAdventure={() => setCreatingAdventure(true)} onOpenPreviews={() => setViewingPreviews(true)} /> : tab === 'Studio' ? person === 'Trinitie' ? <InstagramStudio token={token} seeds={seeds.filter(seed => seed.platforms.includes('Instagram'))} onOpenPreviews={() => setViewingPreviews(true)} /> : <Studio seeds={seeds} /> : tab === 'Video' ? <VideoStudio person={person} /> : tab === 'Journal' ? <Journal token={token} person={person} /> : tab === 'Pinterest' ? <Pinterest token={token} /> : <Placeholder title="Event Register" text="The existing test register and Stripe Terminal connection will move into this native workspace after device signing is available." />
   const tabs: Tab[] = person === 'Trinitie' ? ['Today', 'Studio', 'Video', 'Journal'] : person === 'Mom' ? ['Today', 'Journal'] : ['Today', 'Studio', 'Video', 'Journal', 'Pinterest', 'Register']
-  return <SafeAreaView style={styles.shell}><StatusBar barStyle="dark-content" /><View style={styles.appHeader}><Image source={require('./assets/icon.png')} style={styles.headerLogo} /><View><Text style={styles.appName}>Nomadic Paws</Text><Text style={styles.appSubtitle}>{person === 'Trinitie' ? 'Instagram Studio' : person === 'Mom' ? 'Trail Journal Review' : 'Creative & Publishing'}</Text></View></View>{content}<View style={styles.tabs}>{tabs.map(item => <Pressable key={item} onPress={() => { setCreatingAdventure(false); setViewingPreviews(false); setTab(item) }} style={styles.tab}><Text style={[styles.tabText, tab === item && styles.tabTextActive]}>{item}</Text></Pressable>)}</View></SafeAreaView>
+  return <SafeAreaView style={styles.shell}><StatusBar barStyle="dark-content" /><View style={styles.appHeader}><Image source={require('./assets/icon.png')} style={styles.headerLogo} /><View><Text style={styles.appName}>Nomadic Paws</Text><Text style={styles.appSubtitle}>{person === 'Trinitie' ? 'Instagram Studio' : person === 'Mom' ? 'Trail Journal Review' : 'Creative & Publishing'}</Text></View>{person === 'Katie' ? <Pressable onPress={() => { setTeamOpen(value => !value); setCreatingAdventure(false); setViewingPreviews(false) }} style={styles.teamHeaderButton}><Text style={styles.teamHeaderText}>{teamOpen ? 'Studio' : 'Team'}</Text></Pressable> : null}</View>{content}<View style={styles.tabs}>{tabs.map(item => <Pressable key={item} onPress={() => { setTeamOpen(false); setCreatingAdventure(false); setViewingPreviews(false); setTab(item) }} style={styles.tab}><Text style={[styles.tabText, tab === item && styles.tabTextActive]}>{item}</Text></Pressable>)}</View></SafeAreaView>
 }
 
 const styles = StyleSheet.create({
+  appleButton:{width:'100%',height:56,marginBottom:14},
+  teamHeaderButton:{marginLeft:'auto',borderWidth:1,borderColor:colors.sandDeep,borderRadius:999,paddingHorizontal:13,paddingVertical:8},teamHeaderText:{fontSize:12,fontWeight:'900',color:colors.terracottaDeep},
+  teamCard:{backgroundColor:colors.white,borderWidth:1,borderColor:colors.sandDeep,borderRadius:18,padding:16,marginBottom:12},teamName:{fontSize:19,fontWeight:'900',color:colors.bark},teamEmail:{fontSize:12,color:colors.barkSoft,marginTop:4},teamActions:{flexDirection:'row',gap:8,marginTop:14},teamButton:{flex:1,minHeight:46,borderRadius:12,backgroundColor:colors.sageDeep,alignItems:'center',justifyContent:'center'},teamButtonText:{fontSize:13,fontWeight:'900',color:colors.white},teamEmpty:{backgroundColor:'#f0f3ec',borderRadius:18,padding:18,marginBottom:12},teamEmptyTitle:{fontSize:17,fontWeight:'900',color:colors.bark},teamEmptyCopy:{fontSize:13,lineHeight:20,color:colors.barkSoft,marginTop:5},
+  deviceLock:{backgroundColor:colors.white,borderWidth:1,borderColor:colors.sandDeep,borderRadius:18,padding:16,marginVertical:12,flexDirection:'row',alignItems:'center',gap:10},deviceLockState:{fontSize:13,fontWeight:'900',color:colors.terracottaDeep},
   shell:{flex:1,backgroundColor:colors.cream},loginKeyboard:{flex:1,backgroundColor:colors.cream},login:{flex:1,backgroundColor:colors.cream},loginContent:{flexGrow:1,padding:28,justifyContent:'center',paddingBottom:40},loginLogo:{width:92,height:92,borderRadius:28,marginBottom:24},keyboardBar:{minHeight:48,backgroundColor:colors.white,borderTopWidth:1,borderTopColor:colors.sandDeep,alignItems:'flex-end',justifyContent:'center',paddingHorizontal:14},keyboardDone:{minHeight:40,minWidth:68,alignItems:'center',justifyContent:'center'},keyboardDoneText:{fontSize:16,fontWeight:'800',color:colors.terracottaDeep},eyebrow:{color:colors.sageDeep,fontWeight:'800',fontSize:12,letterSpacing:1.5,marginBottom:8},heroTitle:{fontSize:38,lineHeight:44,fontWeight:'800',color:colors.bark,marginBottom:12},pageTitle:{fontSize:32,lineHeight:38,fontWeight:'800',color:colors.bark,marginBottom:10},copy:{fontSize:16,lineHeight:24,color:colors.barkSoft,marginBottom:22},input:{backgroundColor:colors.white,borderWidth:1,borderColor:colors.sandDeep,borderRadius:12,minHeight:52,paddingHorizontal:14,fontSize:16,color:colors.bark,marginBottom:12},primary:{backgroundColor:colors.terracotta,borderRadius:16,minHeight:56,alignItems:'center',justifyContent:'center',paddingHorizontal:20,marginTop:8},primaryText:{color:colors.white,fontSize:17,fontWeight:'800'},error:{color:'#a13d3d',lineHeight:22,marginBottom:12},appHeader:{height:64,paddingHorizontal:18,flexDirection:'row',alignItems:'center',borderBottomWidth:1,borderBottomColor:colors.sandDeep,backgroundColor:colors.white},headerLogo:{width:40,height:40,borderRadius:12,marginRight:11},appName:{fontSize:17,fontWeight:'800',color:colors.bark},appSubtitle:{fontSize:12,color:colors.barkSoft},page:{padding:20,paddingBottom:120},section:{marginVertical:8},sectionLabel:{fontSize:12,fontWeight:'800',letterSpacing:1.2,color:colors.sageDeep,marginBottom:8},selectedStory:{backgroundColor:colors.white,borderRadius:14,borderWidth:1,borderColor:colors.sandDeep,padding:16,flexDirection:'row',alignItems:'center'},change:{color:colors.terracottaDeep,fontWeight:'800',marginLeft:12},storyList:{gap:10},storyRow:{backgroundColor:colors.white,borderRadius:14,borderWidth:1,borderColor:colors.sandDeep,padding:16,minHeight:72,justifyContent:'center'},storyRowSelected:{borderColor:colors.terracotta,backgroundColor:'#fff8f3'},storyTitle:{fontSize:17,lineHeight:23,fontWeight:'700',color:colors.bark},storyMeta:{fontSize:13,color:colors.barkSoft,marginTop:5},pinCard:{backgroundColor:colors.white,borderRadius:18,borderWidth:1,borderColor:colors.sandDeep,padding:14,marginTop:18},pinHeading:{flexDirection:'row',justifyContent:'space-between',alignItems:'baseline',marginBottom:10},pinTitle:{fontSize:21,fontWeight:'800',color:colors.bark},pinTiming:{fontSize:12,color:colors.barkSoft},preview:{aspectRatio:2/3,borderRadius:14,overflow:'hidden',backgroundColor:colors.sand,position:'relative',marginBottom:12},previewPhoto:{...StyleSheet.absoluteFill,width:'100%',height:'100%'},emptyPreview:{flex:1,alignItems:'center',justifyContent:'center'},emptyIcon:{fontSize:34,color:colors.terracotta},emptyText:{fontSize:15,fontWeight:'700',color:colors.barkSoft,marginTop:5},previewLogo:{position:'absolute',bottom:'4%',height:80},logoSmall:{width:'23%'},logoMedium:{width:'31%'},logoLeft:{left:'6%'},logoRight:{right:'6%'},controlLabel:{fontSize:13,fontWeight:'800',color:colors.bark,marginTop:8,marginBottom:7},choiceRow:{flexDirection:'row',flexWrap:'wrap',gap:8,marginBottom:6},choice:{borderWidth:1,borderColor:colors.sandDeep,borderRadius:999,paddingHorizontal:13,paddingVertical:9,backgroundColor:colors.white},choiceSelected:{backgroundColor:colors.sageDeep,borderColor:colors.sageDeep},choiceText:{color:colors.bark,fontWeight:'700',fontSize:13},choiceTextSelected:{color:colors.white},helper:{fontSize:13,lineHeight:19,color:colors.barkSoft,textAlign:'center',marginTop:10},tabs:{position:'absolute',bottom:0,left:0,right:0,height:70,backgroundColor:colors.white,borderTopWidth:1,borderTopColor:colors.sandDeep,flexDirection:'row',paddingBottom:8},tab:{flex:1,alignItems:'center',justifyContent:'center'},tabText:{fontSize:11,fontWeight:'700',color:colors.barkSoft},tabTextActive:{color:colors.terracottaDeep},
   todayHeader:{flexDirection:'row',alignItems:'flex-start',gap:12},roleSwitch:{flexDirection:'row',backgroundColor:colors.sand,borderRadius:999,padding:3},roleButton:{paddingHorizontal:10,paddingVertical:7,borderRadius:999},roleButtonActive:{backgroundColor:colors.bark},roleText:{fontSize:12,fontWeight:'800',color:colors.barkSoft},roleTextActive:{color:colors.white},
   adventureButton:{backgroundColor:colors.bark,borderRadius:22,padding:20,marginBottom:18,flexDirection:'row',alignItems:'center',minHeight:132},adventureEyebrow:{fontSize:11,fontWeight:'900',letterSpacing:1.3,color:'#d9c9ae',marginBottom:7},adventureTitle:{fontSize:23,fontWeight:'800',color:colors.white,marginBottom:6},adventureCopy:{fontSize:14,lineHeight:20,color:'#e9dfd1',maxWidth:260},adventurePlus:{fontSize:38,color:colors.white,marginLeft:'auto'},

@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Config } from '@netlify/functions'
+import { requireAppUser } from './lib/app-auth.mjs'
 import { bearerToken, verifySellerToken } from './lib/event-auth.mjs'
 import { addJournalReviewNote, journalContributions, journalReviewNotes, journalWorkingDraft, journalWorkingVersions, saveJournalContribution, saveJournalWorkingDraft, updateJournalReviewNote } from './lib/journal-db.mjs'
 import { REVIEW_STATUSES, validContribution, validReviewAnchor } from './lib/journal-collaboration.mjs'
@@ -21,17 +22,23 @@ async function readStories() {
   }))
 }
 
-function authenticated(request: Request) {
-  const secret = process.env.EVENT_REGISTER_SESSION_SECRET || ''
-  return secret.length >= 32 && Boolean(verifySellerToken(bearerToken(request.headers), secret))
+async function nativeUser(request: Request) {
+  try { return await requireAppUser(request) } catch (error) {
+    const secret = process.env.EVENT_REGISTER_SESSION_SECRET || ''
+    if (secret.length >= 32 && verifySellerToken(bearerToken(request.headers), secret)) return { role: 'katie' }
+    throw error
+  }
 }
 
 export default async (request: Request) => {
-  if (!authenticated(request)) return Response.json({ error: 'Your session expired.' }, { status: 401, headers: HEADERS })
   try {
+    const user = await nativeUser(request)
     if (request.method === 'GET') {
       const url = new URL(request.url)
-      if (url.searchParams.get('view') === 'contributions') return Response.json({ contributions: await journalContributions() }, { headers: HEADERS })
+      if (url.searchParams.get('view') === 'contributions') {
+        if (!['katie', 'mom'].includes(user.role)) return Response.json({ error: 'This workspace is not part of your account.' }, { status: 403, headers: HEADERS })
+        return Response.json({ contributions: await journalContributions() }, { headers: HEADERS })
+      }
       const requestedSlug = url.searchParams.get('slug')
       const stories = await readStories()
       if (requestedSlug) {
@@ -46,17 +53,20 @@ export default async (request: Request) => {
     if (request.method === 'POST') {
       const payload = await request.json().catch(() => ({})) as Record<string, unknown>
       if (payload.action === 'save-contribution') {
+        if (user.role !== 'mom') return Response.json({ error: 'CatNana contributions belong to CatNana’s workspace.' }, { status: 403, headers: HEADERS })
         if (!validContribution(payload)) return Response.json({ error: 'Keep the contribution within the available fields and add a thought before sending it.' }, { status: 400, headers: HEADERS })
         const contribution = await saveJournalContribution({ id: String(payload.id || ''), title: String(payload.title || ''), body: String(payload.body || ''), memoryClue: String(payload.memoryClue || ''), status: String(payload.status || 'draft') })
         return Response.json({ contribution }, { status: 201, headers: HEADERS })
       }
       if (payload.action === 'update-review-note') {
+        if (!['katie', 'mom'].includes(user.role)) return Response.json({ error: 'This review action is not part of your account.' }, { status: 403, headers: HEADERS })
         const id = String(payload.id || ''), status = String(payload.status || ''), revisedText = String(payload.revisedText || '')
         if (!id || !REVIEW_STATUSES.has(status) || revisedText.length > 10000) return Response.json({ error: 'Choose a valid review resolution.' }, { status: 400, headers: HEADERS })
         const note = await updateJournalReviewNote({ id, status, revisedText })
         return note ? Response.json({ note }, { headers: HEADERS }) : Response.json({ error: 'Review note not found.' }, { status: 404, headers: HEADERS })
       }
       if (payload.action === 'save-working-draft') {
+        if (user.role !== 'katie') return Response.json({ error: 'Only Katie can change Trail Journal drafts.' }, { status: 403, headers: HEADERS })
         const slug = String(payload.slug || ''), story = (await readStories()).find(item => item.slug === slug)
         if (!story) return Response.json({ error: 'Trail Journal story not found.' }, { status: 404, headers: HEADERS })
         const body = String(payload.body || ''), title = String(payload.title || '').trim(), description = String(payload.description || ''), category = String(payload.category || 'Cheeto Diaries')
@@ -69,6 +79,8 @@ export default async (request: Request) => {
       if (payload.action !== 'add-review-note') return Response.json({ error: 'Unknown Journal action.' }, { status: 400, headers: HEADERS })
       const slug = String(payload.slug || ''), reviewer = String(payload.reviewer || ''), note = String(payload.note || '').trim(), suppliedVersion = String(payload.version || '')
       if (!['Trinitie', 'Mom'].includes(reviewer)) return Response.json({ error: 'Choose a Journal reviewer.' }, { status: 400, headers: HEADERS })
+      const expectedReviewer = user.role === 'trinitie' ? 'Trinitie' : user.role === 'mom' ? 'Mom' : ''
+      if (!expectedReviewer || reviewer !== expectedReviewer) return Response.json({ error: 'Review notes must use your own identity.' }, { status: 403, headers: HEADERS })
       if (!note || note.length > 3000) return Response.json({ error: 'Review notes must be between 1 and 3,000 characters.' }, { status: 400, headers: HEADERS })
       if (!validReviewAnchor(payload)) return Response.json({ error: 'Attach this note to a valid passage or selected text.' }, { status: 400, headers: HEADERS })
       const story = (await readStories()).find(item => item.slug === slug)

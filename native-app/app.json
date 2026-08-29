@@ -14,6 +14,7 @@
     },
     "ios": {
       "supportsTablet": false,
+      "usesAppleSignIn": true,
       "bundleIdentifier": "co.nomadicpaws.admin",
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "Nomadic Paws uses Bluetooth to connect to the Stripe card reader.",
@@ -21,6 +22,11 @@
         "ITSAppUsesNonExemptEncryption": false
       }
     },
+    "plugins": [
+      "expo-apple-authentication",
+      "expo-secure-store",
+      ["expo-local-authentication", { "faceIDPermission": "Use Face ID or your iPhone passcode to unlock the private Nomadic Paws workspace." }]
+    ],
     "android": {
       "package": "co.nomadicpaws.admin"
     },

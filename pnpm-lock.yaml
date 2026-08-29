@@ -11,6 +11,9 @@ importers:
       '@netlify/database':
         specifier: ^1.0.0
         version: 1.1.0
+      jose:
+        specifier: 6.1.0
+        version: 6.1.0
       sharp:
         specifier: ^0.35.3
         version: 0.35.3
@@ -197,6 +200,9 @@ packages:
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
+
+  jose@6.1.0:
+    resolution: {integrity: sha512-TTQJyoEoKcC1lscpVDCSsVgYzUDg/0Bt3WE//WiTPK6uOCQC2KZS4MpugbMWt/zyjkopgZoXhZuCi00gLudfUA==}
 
   pg-cloudflare@1.4.0:
     resolution: {integrity: sha512-Vo7z/6rrQYxpNRylp4Tlob2elzbh+N/MOQbxFVWCxS7oEx6jF53GTJFxK2WWpKuBRkmiin4Mt+xofFDjx09R0A==}
@@ -498,6 +504,8 @@ snapshots:
   '@netlify/runtime-utils@2.3.0': {}
 
   detect-libc@2.1.2: {}
+
+  jose@6.1.0: {}
 
   pg-cloudflare@1.4.0:
     optional: true
