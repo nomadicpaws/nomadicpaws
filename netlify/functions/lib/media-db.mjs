@@ -6,7 +6,12 @@ function db() { return getDatabase() }
 export async function adventuresWithMedia() {
   const [adventures, media] = await Promise.all([
     db().pool.query(`SELECT a.*, COUNT(m.id)::int AS media_count FROM adventures a LEFT JOIN media_assets m ON m.adventure_id = a.id AND m.status = 'ready' GROUP BY a.id ORDER BY a.captured_at DESC, a.created_at DESC`),
-    db().pool.query(`SELECT * FROM media_assets WHERE status = 'ready' ORDER BY created_at DESC`),
+    db().pool.query(`SELECT m.*, COUNT(u.id)::int AS usage_count
+      FROM media_assets m
+      LEFT JOIN media_usage u ON u.media_id = m.id
+      WHERE m.status = 'ready'
+      GROUP BY m.id
+      ORDER BY m.created_at DESC`),
   ])
   return { adventures: adventures.rows, media: media.rows }
 }

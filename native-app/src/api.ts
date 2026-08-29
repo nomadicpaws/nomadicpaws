@@ -6,7 +6,7 @@ export type AppRole = 'pending' | 'katie' | 'trinitie' | 'mom'
 export type AppUser = { id: string; email: string; name: string; role: AppRole; status: 'pending' | 'active' | 'revoked' }
 export type AppleSignInPayload = { identityToken: string; nonce: string; email?: string; name?: string }
 export type SharedAdventure = { id: string; title: string; notes: string; private_location: string; public_location: string; captured_at: string; assigned_to: 'Katie' | 'Trinitie'; status: 'Idea' | 'Draft' | 'Ready' | 'Handed Off' | 'Posted'; platforms: string[]; media_count: number; created_at: string; updated_at: string }
-export type SharedMediaAsset = { id: string; adventure_id: string | null; original_name: string; content_type: string; byte_size: number; width: number | null; height: number | null; kind: 'photo' | 'video'; tags: string[]; notes: string; created_at: string }
+export type SharedMediaAsset = { id: string; adventure_id: string | null; original_name: string; content_type: string; byte_size: number; width: number | null; height: number | null; kind: 'photo' | 'video'; tags: string[]; notes: string; usage_count: number; created_at: string }
 
 export type JournalStory = {
   slug: string
