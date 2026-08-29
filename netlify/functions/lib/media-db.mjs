@@ -45,3 +45,12 @@ export async function mediaById(id) {
   const result = await db().pool.query(`SELECT * FROM media_assets WHERE id = $1 AND status = 'ready' LIMIT 1`, [id])
   return result.rows[0] || null
 }
+
+export async function updateMediaDetails(id, tags, notes) {
+  const result = await db().pool.query(
+    `UPDATE media_assets SET tags = $2::jsonb, notes = $3, updated_at = NOW()
+     WHERE id = $1 AND status = 'ready' RETURNING *`,
+    [id, JSON.stringify(tags), notes.trim()],
+  )
+  return result.rows[0] || null
+}

@@ -1,4 +1,5 @@
 export const MAX_DIRECT_PHOTO_BYTES = 5 * 1024 * 1024
+export const MEDIA_TAGS = ['Cheeto', 'Trail', 'Wildlife', 'Product', 'Behind the Scenes']
 export const PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'])
 
 export function validAdventure(value = {}) {
@@ -9,4 +10,11 @@ export function validAdventure(value = {}) {
 
 export function validDirectPhoto(file) {
   return Boolean(file && PHOTO_TYPES.has(String(file.type || '').toLowerCase()) && Number(file.size) > 0 && Number(file.size) <= MAX_DIRECT_PHOTO_BYTES)
+}
+
+export function validMediaDetails(input) {
+  return typeof input?.mediaId === 'string' && /^[0-9a-f-]{36}$/i.test(input.mediaId)
+    && Array.isArray(input.tags) && input.tags.length <= MEDIA_TAGS.length
+    && input.tags.every(tag => MEDIA_TAGS.includes(tag))
+    && typeof input.notes === 'string' && input.notes.length <= 500
 }
