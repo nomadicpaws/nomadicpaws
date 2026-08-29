@@ -20,7 +20,7 @@ export function validMediaDetails(input) {
 }
 
 const destinations = ['trail-hero', 'trail-article', 'pinterest', 'instagram']
-const logoColors = ['bark', 'sage', 'sand', 'terracotta']
+const logoColors = ['none', 'bark', 'sage', 'sand', 'terracotta']
 export function validWorkingVersion(input) {
   return typeof input?.mediaId === 'string' && /^[0-9a-f-]{36}$/i.test(input.mediaId)
     && destinations.includes(input.destination)

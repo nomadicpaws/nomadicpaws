@@ -21,6 +21,7 @@ test('working versions keep destination and treatment choices bounded', () => {
   assert.equal(validWorkingVersion({ mediaId, destination: 'pinterest', treatment }), true)
   assert.equal(validWorkingVersion({ mediaId, destination: 'somewhere-else', treatment }), false)
   assert.equal(validWorkingVersion({ mediaId, destination: 'instagram', treatment: { ...treatment, logoColor: 'purple' } }), false)
+  assert.equal(validWorkingVersion({ mediaId, destination: 'trail-article', treatment: { ...treatment, logoColor: 'none' } }), true)
 })
 
 test('direct uploads preserve supported photos within the safe function limit', () => {

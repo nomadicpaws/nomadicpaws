@@ -101,7 +101,7 @@ type Tab =
   | "Journal"
   | "Pinterest"
   | "Register";
-type LogoColor = "bark" | "sage" | "sand" | "terracotta";
+type LogoColor = "none" | "bark" | "sage" | "sand" | "terracotta";
 type LogoSize = "small" | "medium";
 type LogoSide = "left" | "right";
 type JournalTab = "Write" | "Photos" | "Social" | "Publish";
@@ -115,10 +115,10 @@ type PinterestPinDraft = {
   finishedImage?: string;
   title: string;
   description: string;
-  logo: LogoColor;
+  logo: Exclude<LogoColor, "none">;
   size: LogoSize;
   side: LogoSide;
-  focus: "left" | "center" | "right";
+  focus: "top" | "center" | "bottom";
 };
 
 const colors = {
@@ -134,7 +134,10 @@ const colors = {
   white: "#ffffff",
 };
 
-const logoChoices: Array<{ label: string; value: LogoColor }> = [
+const logoChoices: Array<{
+  label: string;
+  value: Exclude<LogoColor, "none">;
+}> = [
   { label: "Bark", value: "bark" },
   { label: "Sage", value: "sage" },
   { label: "Sand", value: "sand" },
@@ -721,11 +724,15 @@ function JournalEditor({
       });
       const path = publicWorkingImagePath(version.id);
       if (destination === "trail-hero") setImage(path);
-      else
-        setBody(
-          (current) =>
-            `${current.trim()}\n\n![${imageAlt.trim() || "Nomadic Paws Trail Journal photo"}](${path})\n`,
-        );
+      else {
+        const position = Math.min(bodySelection.start, body.length);
+        const markdown = `\n\n![${imageAlt.trim() || "Nomadic Paws Trail Journal photo"}](${path})\n\n`;
+        setBody(`${body.slice(0, position)}${markdown}${body.slice(position)}`);
+        setBodySelection({
+          start: position + markdown.length,
+          end: position + markdown.length,
+        });
+      }
       markChanged();
       setSaveState("Saved on this device");
       setTab(destination === "trail-hero" ? "Photos" : "Write");
@@ -1814,8 +1821,8 @@ function PinCard({
             resizeMode="cover"
             style={[
               styles.previewPhoto,
-              value.focus === "left" && styles.previewFocusLeft,
-              value.focus === "right" && styles.previewFocusRight,
+              value.focus === "top" && styles.previewFocusTop,
+              value.focus === "bottom" && styles.previewFocusBottom,
             ]}
           />
         ) : value.finishedImage ? (
@@ -1915,7 +1922,7 @@ function PinCard({
       </View>
       <Text style={styles.controlLabel}>Protected focal point</Text>
       <View style={styles.choiceRow}>
-        {(["left", "center", "right"] as const).map((focus) => (
+        {(["top", "center", "bottom"] as const).map((focus) => (
           <Choice
             key={focus}
             value={focus}
@@ -3766,7 +3773,7 @@ function Pinterest({ token }: { token: string }) {
       ["bark", "sage", "sand", "terracotta"].map((color, index) => ({
         title: savedPins[index]?.title || story.title,
         description: savedPins[index]?.description || story.description,
-        logo: (savedPins[index]?.template || color) as LogoColor,
+        logo: (savedPins[index]?.template || color) as Exclude<LogoColor, "none">,
         size: savedPins[index]?.logo_size || "small",
         side: savedPins[index]?.logo_placement || "left",
         focus: "center",
@@ -4117,30 +4124,23 @@ function WorkingPhotoEditor({
       <Text style={styles.workingTitle}>Prepare it for somewhere.</Text>
       <Text style={styles.controlLabel}>Destination</Text>
       <View style={styles.choiceRow}>
-        <Choice
-          value="trail-hero"
-          current={destination}
-          label="Journal hero"
-          onPress={setDestination}
-        />
-        <Choice
-          value="trail-article"
-          current={destination}
-          label="Journal photo"
-          onPress={setDestination}
-        />
-        <Choice
-          value="pinterest"
-          current={destination}
-          label="Pinterest"
-          onPress={setDestination}
-        />
-        <Choice
-          value="instagram"
-          current={destination}
-          label="Instagram"
-          onPress={setDestination}
-        />
+        {destinations.map((item) => (
+          <Choice
+            key={item}
+            value={item}
+            current={destination}
+            label={
+              item === "trail-hero"
+                ? "Journal hero"
+                : item === "trail-article"
+                  ? "Journal photo"
+                  : item === "pinterest"
+                    ? "Pinterest"
+                    : "Instagram"
+            }
+            onPress={setDestination}
+          />
+        ))}
       </View>
       <View style={[styles.workingPreview, { aspectRatio: aspect }]}>
         <Image
@@ -4151,18 +4151,64 @@ function WorkingPhotoEditor({
           resizeMode="cover"
           style={[styles.workingPhoto, { top: focusTop as `${number}%` }]}
         />
-        <Image
-          source={{
-            uri: `${API_URL}/images/pinterest-logos/logo-${logoColor}.png`,
-          }}
-          resizeMode="contain"
-          style={[
-            styles.previewLogo,
-            logoSize === "medium" ? styles.logoMedium : styles.logoSmall,
-            logoSide === "right" ? styles.logoRight : styles.logoLeft,
-          ]}
-        />
+        {logoColor !== "none" ? (
+          <Image
+            source={{
+              uri: `${API_URL}/images/pinterest-logos/logo-${logoColor}.png`,
+            }}
+            resizeMode="contain"
+            style={[
+              styles.previewLogo,
+              logoSize === "medium" ? styles.logoMedium : styles.logoSmall,
+              logoSide === "right" ? styles.logoRight : styles.logoLeft,
+            ]}
+          />
+        ) : null}
       </View>
+      <Text style={styles.controlLabel}>Swipe through treatments</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterStrip}
+      >
+        {(["none", "bark", "sage", "sand", "terracotta"] as LogoColor[]).map(
+          (color) => (
+            <Pressable
+              key={color}
+              onPress={() => setLogoColor(color)}
+              style={[
+                styles.filterChoice,
+                logoColor === color && styles.filterChoiceActive,
+              ]}
+            >
+              <View style={styles.filterPreview}>
+                <Image
+                  source={{
+                    uri: privateMediaUrl(asset.id),
+                    headers: { Authorization: `Bearer ${token}` },
+                  }}
+                  resizeMode="cover"
+                  style={styles.filterPhoto}
+                />
+                {color !== "none" ? (
+                  <Image
+                    source={{
+                      uri: `${API_URL}/images/pinterest-logos/logo-${color}.png`,
+                    }}
+                    resizeMode="contain"
+                    style={styles.filterLogo}
+                  />
+                ) : null}
+              </View>
+              <Text style={styles.filterName}>
+                {color === "none"
+                  ? "Original"
+                  : color[0]!.toUpperCase() + color.slice(1)}
+              </Text>
+            </Pressable>
+          ),
+        )}
+      </ScrollView>
       <Text style={styles.controlLabel}>Crop focus</Text>
       <View style={styles.choiceRow}>
         <Choice value="top" current={focus} label="Top" onPress={setFocus} />
@@ -5057,6 +5103,38 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "125%",
   },
+  filterStrip: { gap: 10, paddingBottom: 14 },
+  filterChoice: {
+    width: 82,
+    borderWidth: 2,
+    borderColor: "transparent",
+    borderRadius: 14,
+    padding: 4,
+  },
+  filterChoiceActive: { borderColor: colors.terracotta },
+  filterPreview: {
+    width: 70,
+    height: 88,
+    borderRadius: 10,
+    overflow: "hidden",
+    position: "relative",
+    backgroundColor: colors.sand,
+  },
+  filterPhoto: { width: "100%", height: "100%" },
+  filterLogo: {
+    position: "absolute",
+    width: 24,
+    height: 24,
+    left: 5,
+    bottom: 4,
+  },
+  filterName: {
+    color: colors.bark,
+    fontSize: 10,
+    fontWeight: "700",
+    textAlign: "center",
+    marginTop: 5,
+  },
   shell: { flex: 1, backgroundColor: colors.cream },
   loginKeyboard: { flex: 1, backgroundColor: colors.cream },
   login: { flex: 1, backgroundColor: colors.cream },
@@ -5213,8 +5291,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   previewPhoto: { ...StyleSheet.absoluteFill, width: "100%", height: "100%" },
-  previewFocusLeft: { transform: [{ translateX: 18 }, { scale: 1.12 }] },
-  previewFocusRight: { transform: [{ translateX: -18 }, { scale: 1.12 }] },
+  previewFocusTop: { transform: [{ translateY: 18 }, { scale: 1.12 }] },
+  previewFocusBottom: { transform: [{ translateY: -18 }, { scale: 1.12 }] },
   pinMediaRow: { gap: 9, paddingBottom: 14 },
   pinMediaChoice: {
     borderWidth: 2,
