@@ -7,6 +7,7 @@
     "build": "node scripts/generate-sitemap.mjs"
   },
   "dependencies": {
+    "@netlify/blobs": "^11.0.2",
     "@netlify/database": "^1.0.0",
     "jose": "6.1.0",
     "sharp": "^0.35.3"

@@ -5,6 +5,8 @@ export const API_URL = 'https://nomadicpaws.co'
 export type AppRole = 'pending' | 'katie' | 'trinitie' | 'mom'
 export type AppUser = { id: string; email: string; name: string; role: AppRole; status: 'pending' | 'active' | 'revoked' }
 export type AppleSignInPayload = { identityToken: string; nonce: string; email?: string; name?: string }
+export type SharedAdventure = { id: string; title: string; notes: string; private_location: string; public_location: string; captured_at: string; assigned_to: 'Katie' | 'Trinitie'; status: 'Idea' | 'Draft' | 'Ready' | 'Handed Off' | 'Posted'; platforms: string[]; media_count: number; created_at: string; updated_at: string }
+export type SharedMediaAsset = { id: string; adventure_id: string | null; original_name: string; content_type: string; byte_size: number; width: number | null; height: number | null; kind: 'photo' | 'video'; tags: string[]; notes: string; created_at: string }
 
 export type JournalStory = {
   slug: string
@@ -90,6 +92,27 @@ export async function approveTeamAccess(token: string, userId: string, role: 'tr
 export async function signOutApp(token: string) {
   return request<{ signedOut: boolean }>('/api/app/auth', token, { method: 'POST', body: JSON.stringify({ action: 'signout' }) })
 }
+
+export async function loadSharedMedia(token: string) {
+  return request<{ adventures: SharedAdventure[]; media: SharedMediaAsset[] }>('/api/app/media', token)
+}
+
+export async function createSharedAdventure(token: string, input: { title: string; notes: string; privateLocation: string; capturedAt?: string }) {
+  const data = await request<{ adventure: SharedAdventure }>('/api/app/media', token, { method: 'POST', body: JSON.stringify({ action: 'create-adventure', ...input }) })
+  return data.adventure
+}
+
+export async function uploadAdventurePhoto(token: string, adventureId: string, file: { uri: string; name: string; mimeType?: string | null }) {
+  const form = new FormData()
+  form.append('adventureId', adventureId)
+  form.append('file', { uri: file.uri, name: file.name, type: file.mimeType || 'image/jpeg' } as any)
+  const response = await fetch(`${API_URL}/api/app/media`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` }, body: form })
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(data.error || 'That photo could not be added to the shared library.')
+  return data.media as SharedMediaAsset
+}
+
+export function privateMediaUrl(id: string) { return `${API_URL}/api/app/media/file/${encodeURIComponent(id)}` }
 
 export async function loadStories(token: string) {
   return request<{ stories: JournalStory[] }>('/api/app/journal', token)
