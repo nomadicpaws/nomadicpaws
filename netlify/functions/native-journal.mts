@@ -6,6 +6,7 @@ import { bearerToken, verifySellerToken } from './lib/event-auth.mjs'
 import { addJournalReviewNote, journalContributions, journalReviewNotes, journalWorkingDraft, journalWorkingVersions, saveJournalContribution, saveJournalWorkingDraft, updateJournalReviewNote } from './lib/journal-db.mjs'
 import { REVIEW_STATUSES, validContribution, validReviewAnchor } from './lib/journal-collaboration.mjs'
 import { journalStatus, journalVersion, parseJournalFile } from './lib/journal-content.mjs'
+import { commitJournalDraft } from './lib/journal-github.mjs'
 
 const POSTS_DIR = join(process.cwd(), '_posts')
 const HEADERS = { 'Cache-Control': 'private, no-store, max-age=0', 'X-Content-Type-Options': 'nosniff' }
@@ -75,6 +76,14 @@ export default async (request: Request) => {
         if (!['Trail Reports', 'Cheeto Diaries', 'Gear', 'Tips'].includes(category)) return Response.json({ error: 'Choose a valid Trail Journal category.' }, { status: 400, headers: HEADERS })
         const saved = await saveJournalWorkingDraft({ slug, baseVersion: story.version, title, description, category, image: String(payload.image || ''), imageAlt: String(payload.imageAlt || ''), body, isDraft: payload.isDraft !== false, publishDate: String(payload.publishDate || ''), expectedRevision: Number(payload.expectedRevision || 0) })
         return Response.json({ workingDraft: saved }, { headers: HEADERS })
+      }
+      if (payload.action === 'publish-working-draft') {
+        if (user.role !== 'katie') return Response.json({ error: 'Only Katie can publish Trail Journal stories.' }, { status: 403, headers: HEADERS })
+        const slug = String(payload.slug || ''), draft = await journalWorkingDraft(slug)
+        if (!draft) return Response.json({ error: 'Synchronize this draft before publishing.' }, { status: 400, headers: HEADERS })
+        if (!draft.title.trim() || !draft.description.trim() || !draft.image || !draft.image_alt || draft.body.trim().length < 100) return Response.json({ error: 'Finish the title, excerpt, hero image, alt text, and story before publishing.' }, { status: 400, headers: HEADERS })
+        const result = await commitJournalDraft(draft)
+        return Response.json({ ...result, state: 'committed' }, { headers: HEADERS })
       }
       if (payload.action !== 'add-review-note') return Response.json({ error: 'Unknown Journal action.' }, { status: 400, headers: HEADERS })
       const slug = String(payload.slug || ''), reviewer = String(payload.reviewer || ''), note = String(payload.note || '').trim(), suppliedVersion = String(payload.version || '')

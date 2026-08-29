@@ -22,11 +22,13 @@ import {
 } from "react-native";
 import {
   addReviewNote,
+  askCheetoAssistant,
   API_URL,
   AppUser,
   AppleSignInPayload,
   approveTeamAccess,
   claimKatieAccount,
+  CheetoSuggestion,
   createSharedAdventure,
   JournalContribution,
   JournalReviewNote,
@@ -42,6 +44,7 @@ import {
   loadStory,
   loadTeamAccess,
   privateMediaUrl,
+  publishJournalWorkingDraft,
   PinterestCampaign,
   publicWorkingImagePath,
   restoreAppSession,
@@ -58,6 +61,7 @@ import {
   updateReviewNote,
   updateSharedMedia,
   uploadAdventurePhoto,
+  uploadInstagramTemplate,
   workingImageUrl,
   WorkingVersion,
 } from "./src/api";
@@ -86,6 +90,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import * as Clipboard from "expo-clipboard";
 import * as ExpoMediaLibrary from "expo-media-library";
+import * as Notifications from "expo-notifications";
 import { useVideoPlayer, VideoView } from "expo-video";
 
 type Tab =
@@ -186,6 +191,45 @@ const mediaTags = [
 
 const LOGIN_KEYBOARD_ACCESSORY = "nomadic-paws-login-keyboard";
 const APP_SESSION_KEY = "nomadic-paws-private-session";
+const TRINITIE_WELCOME_KEY = "nomadic-paws-trinitie-studio-welcome";
+const INSTAGRAM_REMINDER_SETTING = "nomadic-paws-instagram-reminder";
+const INSTAGRAM_REMINDER_ID = "nomadic-paws-instagram-reminder-id";
+
+async function syncInstagramReminder(
+  posts: InstagramPostDraft[],
+  enabled: boolean,
+) {
+  const previous = await SecureStore.getItemAsync(INSTAGRAM_REMINDER_ID);
+  if (previous) {
+    await Notifications.cancelScheduledNotificationAsync(previous).catch(() => {});
+    await SecureStore.deleteItemAsync(INSTAGRAM_REMINDER_ID);
+  }
+  if (!enabled) return;
+  const today = localDateKey();
+  const alreadyPrepared = posts.some(
+    (post) =>
+      post.targetDate === today &&
+      ["Ready", "Handed Off", "Posted"].includes(post.status),
+  );
+  if (alreadyPrepared) return;
+  const permission = await Notifications.requestPermissionsAsync();
+  if (!permission.granted) return;
+  const target = new Date();
+  target.setHours(17, 30, 0, 0);
+  if (target.getTime() <= Date.now()) target.setDate(target.getDate() + 1);
+  const id = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "Today’s post is still available",
+      body: "Continue, ask Katie for help, hand it over, or skip today—whatever fits.",
+      data: { workspace: "instagram" },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: target,
+    },
+  });
+  await SecureStore.setItemAsync(INSTAGRAM_REMINDER_ID, id);
+}
 const DEVICE_LOCK_KEY = "nomadic-paws-device-lock";
 
 function localDateKey(date = new Date()) {
@@ -566,7 +610,9 @@ function JournalEditor({
     [saveState, setSaveState] = useState(
       working ? "Synchronized" : "Loaded from GitHub",
     ),
-    [saveError, setSaveError] = useState("");
+    [saveError, setSaveError] = useState(""),
+    [publishing, setPublishing] = useState(false),
+    [publishState, setPublishState] = useState<"" | "committed">("");
   const editVersion = useRef(0);
   function markChanged() {
     editVersion.current += 1;
@@ -580,7 +626,7 @@ function JournalEditor({
     };
   }
   async function synchronize() {
-    if (!dirty) return;
+    if (!dirty) return true;
     const savingEdit = editVersion.current;
     setSaveState("Synchronizing…");
     setSaveError("");
@@ -602,6 +648,7 @@ function JournalEditor({
         setDirty(false);
         setSaveState("Synchronized");
       } else setSaveState("Saved on this device");
+      return true;
     } catch (reason) {
       setSaveState("Saved on this device");
       setSaveError(
@@ -609,6 +656,29 @@ function JournalEditor({
           ? reason.message
           : "Unable to synchronize this draft.",
       );
+      return false;
+    }
+  }
+  async function publishThroughGitHub() {
+    if (!checks.every((check) => check.okay)) {
+      setSaveError("Finish the gentle review items above before publishing.");
+      return;
+    }
+    setPublishing(true);
+    setSaveError("");
+    try {
+      if (!(await synchronize())) return;
+      const result = await publishJournalWorkingDraft(token, story.slug);
+      setPublishState(result.state);
+      setSaveState("Committed to GitHub");
+    } catch (reason) {
+      setSaveError(
+        reason instanceof Error
+          ? reason.message
+          : "This story could not be committed to GitHub.",
+      );
+    } finally {
+      setPublishing(false);
     }
   }
   useEffect(() => {
@@ -991,9 +1061,11 @@ function JournalEditor({
               <Text style={styles.syncLadderItem}>
                 {saveState === "Synchronized" ? "✓" : "○"} Synchronized
               </Text>
-              <Text style={styles.syncLadderItem}>○ Committed to GitHub</Text>
               <Text style={styles.syncLadderItem}>
-                ○ Deployed through Netlify
+                {publishState === "committed" ? "✓" : "○"} Committed to GitHub
+              </Text>
+              <Text style={styles.syncLadderItem}>
+                {publishState === "committed" ? "◌" : "○"} {publishState === "committed" ? "Netlify deployment started" : "Deployed through Netlify"}
               </Text>
             </View>
             <Pressable
@@ -1005,9 +1077,26 @@ function JournalEditor({
                 {dirty ? "Synchronize draft now" : "Draft synchronized"}
               </Text>
             </Pressable>
+            <Pressable
+              onPress={publishThroughGitHub}
+              disabled={publishing || !checks.every((check) => check.okay)}
+              style={[
+                styles.publishButton,
+                (publishing || !checks.every((check) => check.okay)) &&
+                  styles.primaryDisabled,
+              ]}
+            >
+              <Text style={styles.publishButtonText}>
+                {publishing
+                  ? "Sending to GitHub…"
+                  : isDraft
+                    ? "Commit this draft to GitHub"
+                    : "Publish through GitHub"}
+              </Text>
+            </Pressable>
             <Text style={styles.gentleNote}>
-              Publishing remains protected until the signed app identity is
-              connected to the server-side Git bridge.
+              Your private publishing key stays on Netlify. The app never stores
+              or displays it.
             </Text>
           </>
         ) : null}
@@ -2245,6 +2334,8 @@ function NewAdventure({
           uri: file.uri,
           name: file.fileName || `Cheeto-photo-${index + 1}.jpg`,
           mimeType: file.mimeType,
+          width: file.width,
+          height: file.height,
         });
       }
       setProgress("Shared with the studio.");
@@ -2383,6 +2474,7 @@ function Studio({ seeds }: { seeds: ContentSeed[] }) {
 
 function InstagramPostEditor({
   token,
+  person,
   rhythm,
   post,
   media,
@@ -2390,6 +2482,7 @@ function InstagramPostEditor({
   onCancel,
 }: {
   token: string;
+  person: Person;
   rhythm: InstagramDay[];
   post?: InstagramPostDraft;
   media: SharedMediaAsset[];
@@ -2408,7 +2501,11 @@ function InstagramPostEditor({
     [addingMedia, setAddingMedia] = useState(""),
     [error, setError] = useState(""),
     [handoffNote, setHandoffNote] = useState(post?.handoffNote || ""),
-    [handoffMessage, setHandoffMessage] = useState("");
+    [handoffMessage, setHandoffMessage] = useState(""),
+    [welcomeAsset, setWelcomeAsset] = useState<SharedMediaAsset>(),
+    [welcomeBlurred, setWelcomeBlurred] = useState(false),
+    [assistantBusy, setAssistantBusy] = useState(false),
+    [suggestion, setSuggestion] = useState<CheetoSuggestion>();
   async function save(
     status: InstagramPostDraft["status"],
     close = true,
@@ -2449,6 +2546,24 @@ function InstagramPostEditor({
         focus: "center",
       });
       setMediaUrls((current) => [...current, `working:${version.id}`]);
+      if (
+        asset.width &&
+        asset.height &&
+        Math.min(asset.width, asset.height) < 1080
+      ) {
+        setHandoffMessage(
+          `Bitch, you blurry—for real this time. This copy is ${asset.width}×${asset.height}; use it intentionally or ask Katie for the higher-quality original.`,
+        );
+      }
+      if (
+        person === "Trinitie" &&
+        (await SecureStore.getItemAsync(TRINITIE_WELCOME_KEY)) !== "shown"
+      ) {
+        await SecureStore.setItemAsync(TRINITIE_WELCOME_KEY, "shown");
+        setWelcomeAsset(asset);
+        setWelcomeBlurred(true);
+        setTimeout(() => setWelcomeBlurred(false), 1200);
+      }
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -2532,6 +2647,26 @@ function InstagramPostEditor({
       setSaving(false);
     }
   }
+  async function askAssistant() {
+    setAssistantBusy(true);
+    setError("");
+    try {
+      const result = await askCheetoAssistant(token, {
+        title,
+        theme,
+        notes: caption,
+      });
+      setSuggestion(result.suggestion);
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "The Cheeto Assistant is resting right now.",
+      );
+    } finally {
+      setAssistantBusy(false);
+    }
+  }
   return (
     <View style={styles.instagramDraftEditor}>
       <Text style={styles.eyebrow}>CLOUD POST DRAFT</Text>
@@ -2546,6 +2681,38 @@ function InstagramPostEditor({
         placeholder="Sunday window supervisor"
         placeholderTextColor="#8b8075"
       />
+      <Pressable
+        disabled={assistantBusy || (!title.trim() && !caption.trim())}
+        onPress={askAssistant}
+        style={styles.assistantInlineButton}
+      >
+        <Text style={styles.assistantInlineButtonText}>
+          {assistantBusy ? "Cheeto is considering it…" : "Ask Cheeto Assistant"}
+        </Text>
+      </Pressable>
+      {suggestion ? (
+        <View style={styles.assistantSuggestion}>
+          <Text style={styles.assistantSuggestionLabel}>EDITABLE SUGGESTION</Text>
+          <Text style={styles.assistantSuggestionCaption}>{suggestion.caption}</Text>
+          {suggestion.hashtags.map((item) => (
+            <View key={item.tag} style={styles.assistantHashtagRow}>
+              <Text style={styles.assistantHashtag}>{item.tag}</Text>
+              <Text style={styles.assistantHashtagReason}>{item.reason}</Text>
+            </View>
+          ))}
+          <Pressable
+            onPress={() => {
+              setCaption(
+                `${suggestion.caption.trim()}\n\n${suggestion.hashtags.map((item) => item.tag).join(" ")}`,
+              );
+              setSuggestion(undefined);
+            }}
+            style={styles.assistantUseButton}
+          >
+            <Text style={styles.assistantUseButtonText}>Use and keep editing</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <Text style={styles.controlLabel}>Caption · Cheeto’s voice</Text>
       <TextInput
         value={caption}
@@ -2585,6 +2752,11 @@ function InstagramPostEditor({
             <Text numberOfLines={2} style={styles.instagramMediaName}>
               {asset.original_name}
             </Text>
+            {asset.width && asset.height ? (
+              <Text style={styles.instagramMediaDimensions}>
+                {asset.width}×{asset.height}
+              </Text>
+            ) : null}
             <Text style={styles.instagramMediaAdd}>
               {addingMedia === asset.id ? "Preparing…" : "Use photo"}
             </Text>
@@ -2704,16 +2876,50 @@ function InstagramPostEditor({
       <Pressable onPress={onCancel}>
         <Text style={styles.laterText}>Cancel</Text>
       </Pressable>
+      <Modal visible={Boolean(welcomeAsset)} transparent animationType="fade">
+        <View style={styles.studioWelcomeBackdrop}>
+          <View style={styles.studioWelcomeCard}>
+            {welcomeAsset ? (
+              <Image
+                source={{
+                  uri: privateMediaUrl(welcomeAsset.id),
+                  headers: { Authorization: `Bearer ${token}` },
+                }}
+                blurRadius={welcomeBlurred ? 24 : 0}
+                style={styles.studioWelcomeImage}
+              />
+            ) : null}
+            <Text style={styles.studioWelcomeTitle}>
+              {welcomeBlurred ? "Bitch, you blurry." : "Just kidding."}
+            </Text>
+            <Text style={styles.studioWelcomeCopy}>
+              {welcomeBlurred
+                ? "One tiny moment…"
+                : "Original quality preserved. Welcome to your studio, Trinitie. 💛"}
+            </Text>
+            {!welcomeBlurred ? (
+              <Pressable
+                onPress={() => setWelcomeAsset(undefined)}
+                style={styles.primary}
+              >
+                <Text style={styles.primaryText}>I love it</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 function InstagramStudio({
   token,
+  person,
   seeds,
   onOpenPreviews,
 }: {
   token: string;
+  person: Person;
   seeds: ContentSeed[];
   onOpenPreviews: () => void;
 }) {
@@ -2729,16 +2935,24 @@ function InstagramStudio({
     [editingRhythm, setEditingRhythm] = useState(false),
     [importMessage, setImportMessage] = useState(""),
     [saveMessage, setSaveMessage] = useState(""),
-    [savingRhythm, setSavingRhythm] = useState(false);
+    [savingRhythm, setSavingRhythm] = useState(false),
+    [reminderEnabled, setReminderEnabled] = useState(false);
   const weekday = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const today = rhythm.find((item) => item.day === weekday);
   useEffect(() => {
-    Promise.all([loadInstagramStudio(token), loadSharedMedia(token)])
-      .then(([data, mediaData]) => {
+    Promise.all([
+      loadInstagramStudio(token),
+      loadSharedMedia(token),
+      SecureStore.getItemAsync(INSTAGRAM_REMINDER_SETTING),
+    ])
+      .then(([data, mediaData, reminderSetting]) => {
         if (data.rhythm) setRhythm(data.rhythm);
         setTemplates(data.templates);
         setPosts(data.posts);
         setStudioMedia(mediaData.media);
+        const enabled = reminderSetting === "on";
+        setReminderEnabled(enabled);
+        syncInstagramReminder(data.posts, enabled).catch(() => {});
       })
       .catch(() =>
         setSaveMessage(
@@ -2781,6 +2995,48 @@ function InstagramStudio({
       setSavingRhythm(false);
     }
   }
+  async function addFavoriteTemplate() {
+    setImportMessage("");
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsMultipleSelection: false,
+        quality: 1,
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0]!;
+      setImportMessage("Saving your original template…");
+      const saved = await uploadInstagramTemplate(token, {
+        uri: asset.uri,
+        name: asset.fileName || "Instagram-template.png",
+        mimeType: asset.mimeType,
+        width: asset.width,
+        height: asset.height,
+      });
+      setTemplates((current) => [saved, ...current]);
+      setImportMessage("Template saved to your private Studio library.");
+    } catch (reason) {
+      setImportMessage(
+        reason instanceof Error ? reason.message : "That template could not be saved.",
+      );
+    }
+  }
+  async function toggleReminder() {
+    const next = !reminderEnabled;
+    setReminderEnabled(next);
+    await SecureStore.setItemAsync(INSTAGRAM_REMINDER_SETTING, next ? "on" : "off");
+    await syncInstagramReminder(posts, next);
+    setSaveMessage(
+      next
+        ? "One gentle 5:30 PM reminder is on when today has nothing ready."
+        : "Instagram reminders are off.",
+    );
+  }
+  function acceptSavedPost(saved: InstagramPostDraft) {
+    const next = [saved, ...posts.filter((item) => item.id !== saved.id)];
+    setPosts(next);
+    syncInstagramReminder(next, reminderEnabled).catch(() => {});
+  }
   return (
     <ScrollView
       contentContainerStyle={styles.page}
@@ -2816,16 +3072,12 @@ function InstagramStudio({
       {editingPost !== undefined ? (
         <InstagramPostEditor
           token={token}
+          person={person}
           rhythm={rhythm}
           post={editingPost || undefined}
           media={studioMedia}
           onCancel={() => setEditingPost(undefined)}
-          onSaved={(saved) =>
-            setPosts((current) => [
-              saved,
-              ...current.filter((item) => item.id !== saved.id),
-            ])
-          }
+          onSaved={acceptSavedPost}
         />
       ) : (
         <>
@@ -2867,22 +3119,37 @@ function InstagramStudio({
           )}
         </>
       )}
+      {templates.length && importMessage ? (
+        <Text style={styles.importMessage}>{importMessage}</Text>
+      ) : null}
       <View style={styles.listHeading}>
         <Text style={styles.listTitle}>Your templates</Text>
         <Pressable
-          onPress={() =>
-            setImportMessage(
-              "The iPhone Photos & Files picker will open here in the signed build. Your originals will remain untouched.",
-            )
-          }
+          onPress={addFavoriteTemplate}
         >
           <Text style={styles.editLink}>Add favorites</Text>
         </Pressable>
       </View>
       {templates.length ? (
-        templates.map((template) => (
-          <Text key={template.id}>{template.name}</Text>
-        ))
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.templateLibraryRow}>
+          {templates.map((template) => (
+            <View key={template.id} style={styles.templateLibraryCard}>
+              <Image
+                source={{
+                  uri: template.previewUrl
+                    ? template.previewUrl.startsWith("http")
+                      ? template.previewUrl
+                      : `${API_URL}${template.previewUrl}`
+                    : `${API_URL}/images/pinterest-logos/logo-terracotta.png`,
+                  headers: { Authorization: `Bearer ${token}` },
+                }}
+                resizeMode="contain"
+                style={styles.templateLibraryImage}
+              />
+              <Text numberOfLines={2} style={styles.templateLibraryName}>{template.name}</Text>
+            </View>
+          ))}
+        </ScrollView>
       ) : (
         <View style={styles.templateWelcome}>
           <Text style={styles.templateWelcomeTitle}>
@@ -2893,11 +3160,7 @@ function InstagramStudio({
             We’ll preserve the originals and keep them ready for future posts.
           </Text>
           <Pressable
-            onPress={() =>
-              setImportMessage(
-                "The iPhone Photos & Files picker will open here in the signed build. Your originals will remain untouched.",
-              )
-            }
+            onPress={addFavoriteTemplate}
             style={styles.templateButton}
           >
             <Text style={styles.templateButtonText}>Add my favorites</Text>
@@ -2918,6 +3181,15 @@ function InstagramStudio({
           </Text>
         </Pressable>
       </View>
+      <Pressable onPress={toggleReminder} style={styles.reminderSetting}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.reminderSettingTitle}>Gentle 5:30 PM reminder</Text>
+          <Text style={styles.reminderSettingCopy}>
+            Only when today still has no Ready, Handed Off, or Posted Instagram post.
+          </Text>
+        </View>
+        <Text style={styles.reminderSettingState}>{reminderEnabled ? "On" : "Off"}</Text>
+      </Pressable>
       <View style={styles.rhythmCard}>
         {rhythm.map((item, index) => (
           <View
@@ -4434,6 +4706,7 @@ export default function App() {
     person !== "Mom" ? (
       <InstagramStudio
         token={token}
+        person={person}
         seeds={seeds.filter((seed) => seed.platforms.includes("Instagram"))}
         onOpenPreviews={() => setViewingPreviews(true)}
       />
@@ -5214,6 +5487,65 @@ const styles = StyleSheet.create({
     marginTop: 13,
   },
   assistantButtonText: { fontSize: 13, fontWeight: "800", color: colors.white },
+  assistantInlineButton: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.sage,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 14,
+  },
+  assistantInlineButtonText: {
+    color: colors.bark,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+  assistantSuggestion: {
+    backgroundColor: "#eef2e8",
+    borderWidth: 1,
+    borderColor: colors.sage,
+    borderRadius: 17,
+    padding: 14,
+    marginBottom: 15,
+  },
+  assistantSuggestionLabel: {
+    color: colors.sageDeep,
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+  assistantSuggestionCaption: {
+    color: colors.bark,
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  assistantHashtagRow: { marginTop: 7 },
+  assistantHashtag: {
+    color: colors.terracottaDeep,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+  assistantHashtagReason: {
+    color: colors.barkSoft,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 1,
+  },
+  assistantUseButton: {
+    backgroundColor: colors.bark,
+    borderRadius: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 13,
+    marginTop: 13,
+  },
+  assistantUseButtonText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "900",
+    textAlign: "center",
+  },
   uploadReminder: {
     backgroundColor: "#f7f1e8",
     borderRadius: 16,
@@ -5458,6 +5790,28 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 24,
   },
+  templateLibraryRow: { gap: 11, paddingBottom: 12 },
+  templateLibraryCard: {
+    width: 128,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 16,
+    padding: 8,
+  },
+  templateLibraryImage: {
+    width: 110,
+    height: 134,
+    borderRadius: 11,
+    backgroundColor: colors.bark,
+  },
+  templateLibraryName: {
+    color: colors.bark,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: "700",
+    marginTop: 7,
+  },
   templateWelcomeTitle: { fontSize: 21, fontWeight: "900", color: colors.bark },
   templateWelcomeCopy: {
     fontSize: 14,
@@ -5494,6 +5848,31 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     paddingHorizontal: 15,
     marginBottom: 22,
+  },
+  reminderSetting: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#f2ede4",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 14,
+  },
+  reminderSettingTitle: {
+    color: colors.bark,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  reminderSettingCopy: {
+    color: colors.barkSoft,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 3,
+  },
+  reminderSettingState: {
+    color: colors.terracotta,
+    fontSize: 13,
+    fontWeight: "900",
   },
   rhythmRow: {
     minHeight: 56,
@@ -5588,6 +5967,11 @@ const styles = StyleSheet.create({
     marginTop: 7,
     minHeight: 30,
   },
+  instagramMediaDimensions: {
+    color: colors.barkSoft,
+    fontSize: 10,
+    marginTop: 2,
+  },
   instagramMediaAdd: {
     color: colors.terracotta,
     fontSize: 12,
@@ -5636,12 +6020,55 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     textAlign: "center",
   },
+  studioWelcomeBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(48, 34, 25, 0.72)",
+    justifyContent: "center",
+    padding: 24,
+  },
+  studioWelcomeCard: {
+    backgroundColor: colors.cream,
+    borderRadius: 26,
+    padding: 18,
+  },
+  studioWelcomeImage: {
+    width: "100%",
+    aspectRatio: 4 / 5,
+    borderRadius: 18,
+    backgroundColor: colors.sand,
+  },
+  studioWelcomeTitle: {
+    color: colors.bark,
+    fontSize: 27,
+    fontWeight: "900",
+    marginTop: 18,
+  },
+  studioWelcomeCopy: {
+    color: colors.barkSoft,
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 5,
+    marginBottom: 8,
+  },
   successText: {
     color: "#2f6b45",
     fontSize: 13,
     fontWeight: "700",
     lineHeight: 19,
     marginTop: 8,
+  },
+  publishButton: {
+    backgroundColor: colors.terracottaDeep,
+    borderRadius: 15,
+    paddingVertical: 15,
+    paddingHorizontal: 18,
+    marginTop: 11,
+  },
+  publishButtonText: {
+    color: colors.white,
+    fontSize: 15,
+    fontWeight: "900",
+    textAlign: "center",
   },
   preparedPost: {
     backgroundColor: colors.white,

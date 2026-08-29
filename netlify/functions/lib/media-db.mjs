@@ -30,9 +30,9 @@ export async function createAdventure(input, userId) {
 export async function addMediaAsset(input, userId) {
   const id = randomUUID()
   const result = await db().pool.query(
-    `INSERT INTO media_assets (id, adventure_id, blob_key, original_name, content_type, byte_size, kind, created_by)
-     VALUES ($1, $2, $3, $4, $5, $6, 'photo', $7) RETURNING *`,
-    [id, input.adventureId, input.blobKey, input.originalName, input.contentType, input.byteSize, userId],
+    `INSERT INTO media_assets (id, adventure_id, blob_key, original_name, content_type, byte_size, width, height, kind, created_by)
+     VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, 0), NULLIF($8, 0), 'photo', $9) RETURNING *`,
+    [id, input.adventureId, input.blobKey, input.originalName, input.contentType, input.byteSize, input.width || 0, input.height || 0, userId],
   )
   return result.rows[0]
 }

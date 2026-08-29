@@ -1,4 +1,5 @@
 import { getDatabase } from '@netlify/database'
+import { randomUUID } from 'node:crypto'
 
 export async function getInstagramStudio() {
   const [settings, templates, posts] = await Promise.all([
@@ -33,4 +34,23 @@ export async function saveInstagramPost(input) {
     [id, input.title.trim(), input.caption, JSON.stringify(input.mediaUrls), input.targetDate || '', input.theme.trim(), input.status, input.assignedTo, input.handoffNote],
   )
   return result.rows[0]
+}
+
+export async function saveInstagramTemplate(input) {
+  const id = randomUUID()
+  const result = await getDatabase().pool.query(
+    `INSERT INTO instagram_templates (id, owner_name, name, kind, aspect_ratio, source_url, has_transparency, favorite, created_at, updated_at)
+     VALUES ($1, 'Trinitie', $2, $3, $4, $5, $6, TRUE, NOW(), NOW())
+     RETURNING id, name, kind, aspect_ratio, source_url, has_transparency, favorite, created_at, updated_at`,
+    [id, input.name, input.kind, input.aspectRatio, `/api/app/instagram/template/${id}`, input.hasTransparency],
+  )
+  return { ...result.rows[0], blobKey: `templates/${id}` }
+}
+
+export async function instagramTemplateById(id) {
+  const result = await getDatabase().pool.query(
+    `SELECT id, source_url FROM instagram_templates WHERE id = $1 AND owner_name = 'Trinitie' LIMIT 1`,
+    [id],
+  )
+  return result.rows[0] || null
 }

@@ -42,11 +42,13 @@ export default async (request: Request) => {
     if (contentType.includes('multipart/form-data')) {
       if (user.role !== 'katie') return Response.json({ error: 'Adventure uploads belong to Katie’s workspace.' }, { status: 403, headers: HEADERS })
       const form = await request.formData(), file = form.get('file'), adventureId = String(form.get('adventureId') || '')
+      const width = Math.max(0, Math.min(50000, Number.parseInt(String(form.get('width') || '0'), 10) || 0))
+      const height = Math.max(0, Math.min(50000, Number.parseInt(String(form.get('height') || '0'), 10) || 0))
       if (!(file instanceof File) || !validDirectPhoto(file)) return Response.json({ error: `Choose a JPG, PNG, WebP, HEIC, or HEIF photo no larger than ${Math.floor(MAX_DIRECT_PHOTO_BYTES / 1024 / 1024)} MB.` }, { status: 400, headers: HEADERS })
       if (!/^[0-9a-f-]{36}$/i.test(adventureId) || !(await adventureExists(adventureId))) return Response.json({ error: 'Choose a saved adventure before adding photos.' }, { status: 400, headers: HEADERS })
       const blobKey = `originals/${adventureId}/${randomUUID()}`
       await store().set(blobKey, file, { metadata: { originalName: file.name, contentType: file.type, owner: user.id }, onlyIfNew: true })
-      const asset = await addMediaAsset({ adventureId, blobKey, originalName: file.name || 'Nomadic Paws photo', contentType: file.type, byteSize: file.size }, user.id)
+      const asset = await addMediaAsset({ adventureId, blobKey, originalName: file.name || 'Nomadic Paws photo', contentType: file.type, byteSize: file.size, width, height }, user.id)
       return Response.json({ media: asset }, { status: 201, headers: HEADERS })
     }
     const body = await request.json().catch(() => ({})) as Record<string, unknown>

@@ -105,9 +105,11 @@ export async function createSharedAdventure(token: string, input: { title: strin
   return data.adventure
 }
 
-export async function uploadAdventurePhoto(token: string, adventureId: string, file: { uri: string; name: string; mimeType?: string | null }) {
+export async function uploadAdventurePhoto(token: string, adventureId: string, file: { uri: string; name: string; mimeType?: string | null; width?: number; height?: number }) {
   const form = new FormData()
   form.append('adventureId', adventureId)
+  if (file.width) form.append('width', String(file.width))
+  if (file.height) form.append('height', String(file.height))
   form.append('file', { uri: file.uri, name: file.name, type: file.mimeType || 'image/jpeg' } as any)
   const response = await fetch(`${API_URL}/api/app/media`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` }, body: form })
   const data = await response.json().catch(() => ({}))
@@ -176,6 +178,24 @@ export async function saveInstagramPost(token: string, post: Omit<InstagramPostD
   return { id: data.post.id, title: data.post.title, caption: data.post.caption, mediaUrls: data.post.media_urls, targetDate: data.post.target_date, theme: data.post.theme, status: data.post.status, assignedTo: data.post.assigned_to, handoffNote: data.post.handoff_note, updatedAt: data.post.updated_at }
 }
 
+export async function uploadInstagramTemplate(token: string, file: { uri: string; name: string; mimeType?: string | null; width?: number; height?: number; kind?: InstagramTemplate['kind'] }) {
+  const form = new FormData()
+  form.append('file', { uri: file.uri, name: file.name, type: file.mimeType || 'image/png' } as any)
+  form.append('kind', file.kind || 'Post overlay')
+  if (file.width) form.append('width', String(file.width))
+  if (file.height) form.append('height', String(file.height))
+  const response = await fetch(`${API_URL}/api/app/instagram`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` }, body: form })
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(data.error || 'That template could not be saved.')
+  const template = data.template
+  return { id: template.id, name: template.name, kind: template.kind, aspectRatio: template.aspect_ratio, previewUrl: template.source_url, favorite: template.favorite } as InstagramTemplate
+}
+
+export type CheetoSuggestion = { caption: string; hashtags: Array<{ tag: string; reason: string }> }
+export async function askCheetoAssistant(token: string, input: { title: string; theme: string; notes: string }) {
+  return request<{ suggestion: CheetoSuggestion }>('/api/app/assistant', token, { method: 'POST', body: JSON.stringify(input) })
+}
+
 export async function loadPinterestCampaigns(token: string) {
   return request<{ campaigns: PinterestCampaign[] }>('/api/app/pinterest', token)
 }
@@ -187,5 +207,11 @@ export async function savePinterestCampaign(token: string, campaign: PinterestCa
 export async function saveJournalWorkingDraft(token: string, input: { slug: string; title: string; description: string; category: string; image: string; imageAlt: string; body: string; isDraft: boolean; publishDate: string; expectedRevision: number }) {
   return request<{ workingDraft: JournalWorkingDraft }>('/api/app/journal', token, {
     method: 'POST', body: JSON.stringify({ action: 'save-working-draft', ...input }),
+  })
+}
+
+export async function publishJournalWorkingDraft(token: string, slug: string) {
+  return request<{ commitSha: string; filePath: string; branch: string; state: 'committed' }>('/api/app/journal', token, {
+    method: 'POST', body: JSON.stringify({ action: 'publish-working-draft', slug }),
   })
 }

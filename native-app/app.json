@@ -45,7 +45,8 @@
           "photosPermission": "Choose and organize Cheeto photos for the private Nomadic Paws studio.",
           "savePhotosPermission": "Save finished Nomadic Paws images so they can be uploaded to Instagram."
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "android": {
       "package": "co.nomadicpaws.admin"
