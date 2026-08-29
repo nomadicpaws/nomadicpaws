@@ -22,6 +22,7 @@ import {
 import { addReviewNote, API_URL, AppUser, AppleSignInPayload, approveTeamAccess, claimKatieAccount, createSharedAdventure, JournalContribution, JournalReviewNote, JournalStory, JournalStoryDetail, JournalWorkingDraft, JournalWorkingVersion, loadInstagramStudio, loadJournalContributions, loadSharedMedia, loadStories, loadStory, loadTeamAccess, privateMediaUrl, restoreAppSession, saveInstagramPost, saveInstagramRhythm, saveJournalContribution, saveJournalWorkingDraft, SharedAdventure, SharedMediaAsset, signInWithApple, signOutApp, updateReviewNote, uploadAdventurePhoto } from './src/api'
 import { ContentSeed, initialInstagramRhythm, initialSchedule, InstagramDay, InstagramPostDraft, InstagramTemplate, Person, PreviewReaction, SharedPreview, starterInstagramTemplates, starterPreviews, starterSeeds, videoOverlayPresets } from './src/content'
 import * as DocumentPicker from 'expo-document-picker'
+import * as ImagePicker from 'expo-image-picker'
 import * as AppleAuthentication from 'expo-apple-authentication'
 import * as Crypto from 'expo-crypto'
 import * as SecureStore from 'expo-secure-store'
@@ -284,16 +285,16 @@ function SharedPreviews({ person, previews, onClose }: { person: Person; preview
 }
 
 function NewAdventure({ token, onSaved, onCancel }: { token: string; onSaved: () => void; onCancel: () => void }) {
-  const [title, setTitle] = useState(''), [note, setNote] = useState(''), [location, setLocation] = useState(''), [files, setFiles] = useState<DocumentPicker.DocumentPickerAsset[]>([]), [saving, setSaving] = useState(false), [progress, setProgress] = useState(''), [error, setError] = useState('')
+  const [title, setTitle] = useState(''), [note, setNote] = useState(''), [location, setLocation] = useState(''), [files, setFiles] = useState<ImagePicker.ImagePickerAsset[]>([]), [saving, setSaving] = useState(false), [progress, setProgress] = useState(''), [error, setError] = useState('')
   async function choosePhotos() {
-    const result = await DocumentPicker.getDocumentAsync({ type: 'image/*', multiple: true, copyToCacheDirectory: true })
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsMultipleSelection: true, selectionLimit: 0, quality: 1, orderedSelection: true })
     if (!result.canceled) setFiles(current => [...current, ...result.assets].filter((item, index, all) => all.findIndex(candidate => candidate.uri === item.uri) === index))
   }
   async function save() {
     setSaving(true); setError('')
     try {
       const adventure = await createSharedAdventure(token, { title, notes: note, privateLocation: location })
-      for (let index = 0; index < files.length; index += 1) { setProgress(`Adding photo ${index + 1} of ${files.length}…`); await uploadAdventurePhoto(token, adventure.id, files[index]!) }
+      for (let index = 0; index < files.length; index += 1) { const file = files[index]!; setProgress(`Adding photo ${index + 1} of ${files.length}…`); await uploadAdventurePhoto(token, adventure.id, { uri: file.uri, name: file.fileName || `Cheeto-photo-${index + 1}.jpg`, mimeType: file.mimeType }) }
       setProgress('Shared with the studio.'); onSaved()
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'This adventure could not be saved.') }
     finally { setSaving(false) }
@@ -302,8 +303,8 @@ function NewAdventure({ token, onSaved, onCancel }: { token: string; onSaved: ()
     <Text style={styles.controlLabel}>Adventure name</Text><TextInput value={title} onChangeText={setTitle} placeholder="Desert sunrise with Cheeto" placeholderTextColor="#8b8075" style={styles.input} />
     <Text style={styles.controlLabel}>Quick notes</Text><TextInput value={note} onChangeText={setNote} placeholder="What happened? What did Cheeto do?" placeholderTextColor="#8b8075" style={[styles.input, styles.notesInput]} multiline />
     <Text style={styles.controlLabel}>Exact location · private</Text><TextInput value={location} onChangeText={setLocation} placeholder="Never published unless you choose" placeholderTextColor="#8b8075" style={styles.input} />
-    <Pressable onPress={choosePhotos} style={styles.uploadWell}><Text style={styles.uploadIcon}>▧</Text><Text style={styles.uploadTitle}>{files.length ? `${files.length} photo${files.length === 1 ? '' : 's'} selected` : 'Add selected photos'}</Text><Text style={styles.uploadCopy}>Original files only. Nothing else from your camera roll is touched. Direct uploads currently accept individual photos up to 5 MB.</Text></Pressable>
-    {files.map(file => <View key={file.uri} style={styles.selectedFile}><Text numberOfLines={1} style={styles.selectedFileName}>{file.name}</Text><Pressable onPress={() => setFiles(current => current.filter(item => item.uri !== file.uri))}><Text style={styles.removeFile}>Remove</Text></Pressable></View>)}
+    <Pressable onPress={choosePhotos} style={styles.uploadWell}><Text style={styles.uploadIcon}>▧</Text><Text style={styles.uploadTitle}>{files.length ? `${files.length} photo${files.length === 1 ? '' : 's'} selected` : 'Choose from Photos'}</Text><Text style={styles.uploadCopy}>Opens your iPhone Photos library, including iCloud Photos. Original files only; nothing else in your library is touched. Direct uploads currently accept individual photos up to 5 MB.</Text></Pressable>
+    {files.map((file, index) => <View key={file.uri} style={styles.selectedFile}><Image source={{uri:file.uri}} style={{width:38,height:38,borderRadius:8}} /><Text numberOfLines={1} style={styles.selectedFileName}>{file.fileName || `Cheeto photo ${index + 1}`}</Text><Pressable onPress={() => setFiles(current => current.filter(item => item.uri !== file.uri))}><Text style={styles.removeFile}>Remove</Text></Pressable></View>)}
     {progress ? <Text style={styles.success}>{progress}</Text> : null}{error ? <Text style={styles.error}>{error}</Text> : null}
     <Pressable disabled={!title.trim() || saving} onPress={save} style={[styles.primary, (!title.trim() || saving) && styles.primaryDisabled]}><Text style={styles.primaryText}>{saving ? progress || 'Saving…' : 'Save shared adventure'}</Text></Pressable>
     <Pressable onPress={onCancel} style={styles.secondary}><Text style={styles.secondaryText}>Cancel</Text></Pressable>

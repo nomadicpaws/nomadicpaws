@@ -24,6 +24,7 @@
     },
     "plugins": [
       "expo-apple-authentication",
+      ["expo-image-picker", { "photosPermission": "Choose Cheeto photos and adventure images to add to your private Nomadic Paws Media Library." }],
       "expo-secure-store",
       ["expo-local-authentication", { "faceIDPermission": "Use Face ID or your iPhone passcode to unlock the private Nomadic Paws workspace." }]
     ],
