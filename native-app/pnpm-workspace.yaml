@@ -1,5 +1,5 @@
 packages:
   - .
 
-onlyBuiltDependencies:
+ignoredBuiltDependencies:
   - '@stripe/stripe-terminal-react-native'
