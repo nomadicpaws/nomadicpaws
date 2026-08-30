@@ -79,10 +79,8 @@ import {
   InstagramPostDraft,
   InstagramTemplate,
   Person,
-  PreviewReaction,
   SharedPreview,
   starterInstagramTemplates,
-  starterPreviews,
   starterSeeds,
   videoOverlayPresets,
 } from "./src/content";
@@ -1639,10 +1637,14 @@ function Journal({
   token,
   person,
   onAdapt,
+  initialStorySlug,
+  onInitialStoryOpened,
 }: {
   token: string;
   person: Person;
   onAdapt: (adaptation: JournalAdaptation) => void;
+  initialStorySlug?: string;
+  onInitialStoryOpened: () => void;
 }) {
   const [stories, setStories] = useState<JournalStory[]>([]),
     [selected, setSelected] = useState<JournalStoryDetail>(),
@@ -1703,6 +1705,13 @@ function Journal({
       setOpening(false);
     }
   }
+  useEffect(() => {
+    if (!initialStorySlug || !stories.length || selected) return;
+    const story = stories.find((item) => item.slug === initialStorySlug);
+    if (!story) return;
+    open(story);
+    onInitialStoryOpened();
+  }, [initialStorySlug, onInitialStoryOpened, selected, stories]);
   async function beginStory() {
     if (!newStoryTitle.trim()) return;
     setOpening(true);
@@ -2740,21 +2749,96 @@ function Today({
 }
 
 function SharedPreviews({
+  token,
   person,
-  previews,
   onClose,
+  onOpenInstagramPost,
+  onOpenJournalStory,
 }: {
+  token: string;
   person: Person;
-  previews: SharedPreview[];
   onClose: () => void;
+  onOpenInstagramPost: (postId: string) => void;
+  onOpenJournalStory: (slug: string) => void;
 }) {
-  const visible = previews.filter(
-    (preview) =>
-      preview.creator === person || preview.sharedWith.includes(person),
-  );
-  const [reactions, setReactions] = useState<Record<string, PreviewReaction>>(
-    {},
-  );
+  const [visible, setVisible] = useState<
+    Array<SharedPreview & { sourceId: string }>
+  >([]);
+  const [loading, setLoading] = useState(true),
+    [error, setError] = useState("");
+  useEffect(() => {
+    const instagram =
+      person === "Mom"
+        ? Promise.resolve({ posts: [] as InstagramPostDraft[] })
+        : loadInstagramStudio(token);
+    Promise.all([instagram, loadStories(token)])
+      .then(([instagramData, journalData]) => {
+        const instagramPreviews = instagramData.posts
+          .filter((post) => post.status !== "Posted")
+          .map((post) => {
+            const first = post.mediaUrls[0] || "";
+            const imageUrl = first.startsWith("working:")
+              ? workingImageUrl(first.slice(8))
+              : first.startsWith("http")
+                ? first
+                : `${API_URL}/apple-touch-icon.png`;
+            return {
+              id: `instagram-${post.id}`,
+              sourceId: post.id,
+              title: post.title,
+              platform: "Instagram" as const,
+              creator: post.assignedTo as Person,
+              sharedWith: [post.assignedTo === "Katie" ? "Trinitie" : "Katie"] as Person[],
+              version: 1,
+              updatedAt: new Date(post.updatedAt).toLocaleString("en-US", {
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              }),
+              imageUrl,
+              caption: post.caption || "Caption still in progress.",
+              details: [
+                post.status,
+                post.theme || "Instagram",
+                post.targetDate || "No target date",
+              ],
+            };
+          });
+        const journalPreviews = journalData.stories
+          .filter((story) => story.status !== "Published")
+          .map((story) => ({
+            id: `journal-${story.slug}`,
+            sourceId: story.slug,
+            title: story.title,
+            platform: "Trail Journal" as const,
+            creator: "Katie" as Person,
+            sharedWith: ["Trinitie", "Mom"] as Person[],
+            version: 1,
+            updatedAt: new Date(story.date).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            }),
+            imageUrl: story.image
+              ? story.image.startsWith("http")
+                ? story.image
+                : `${API_URL}${story.image}`
+              : `${API_URL}/apple-touch-icon.png`,
+            caption: story.description || "Story still in progress.",
+            details: [story.status, story.category || "Trail Journal"],
+          }));
+        setVisible([...instagramPreviews, ...journalPreviews]);
+      })
+      .catch((reason) =>
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : "Shared previews could not synchronize.",
+        ),
+      )
+      .finally(() => setLoading(false));
+  }, [person, token]);
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <Pressable onPress={onClose} style={styles.backButton}>
@@ -2772,6 +2856,16 @@ function SharedPreviews({
         Feedback is optional and attached to the exact version shown. Sharing
         never changes who is creating the post.
       </Text>
+      {loading ? <ActivityIndicator color={colors.terracotta} /> : null}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {!loading && !error && !visible.length ? (
+        <View style={styles.teamEmpty}>
+          <Text style={styles.teamEmptyTitle}>Nothing is waiting here.</Text>
+          <Text style={styles.teamEmptyCopy}>
+            Real unpublished Journal and Instagram previews will gather here.
+          </Text>
+        </View>
+      ) : null}
       {visible.map((preview) => (
         <View key={preview.id} style={styles.previewShareCard}>
           <View style={styles.previewShareTop}>
@@ -2784,7 +2878,10 @@ function SharedPreviews({
             <Text style={styles.previewCreator}>by {preview.creator}</Text>
           </View>
           <Image
-            source={{ uri: preview.imageUrl }}
+            source={{
+              uri: preview.imageUrl,
+              headers: { Authorization: `Bearer ${token}` },
+            }}
             style={styles.previewShareImage}
           />
           <Text style={styles.previewShareTitle}>{preview.title}</Text>
@@ -2796,36 +2893,16 @@ function SharedPreviews({
               </Text>
             ))}
           </View>
-          <View style={styles.reactionRow}>
-            {(
-              ["Love it", "Tiny change", "Left a note"] as PreviewReaction[]
-            ).map((reaction) => (
-              <Pressable
-                key={reaction}
-                onPress={() =>
-                  setReactions((current) => ({
-                    ...current,
-                    [preview.id]: reaction,
-                  }))
-                }
-                style={[
-                  styles.reactionButton,
-                  reactions[preview.id] === reaction &&
-                    styles.reactionButtonActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.reactionText,
-                    reactions[preview.id] === reaction &&
-                      styles.reactionTextActive,
-                  ]}
-                >
-                  {reaction}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          <Pressable
+            onPress={() =>
+              preview.platform === "Instagram"
+                ? onOpenInstagramPost(preview.sourceId)
+                : onOpenJournalStory(preview.sourceId)
+            }
+            style={styles.secondary}
+          >
+            <Text style={styles.secondaryText}>Open the real draft</Text>
+          </Pressable>
         </View>
       ))}
     </ScrollView>
@@ -5831,6 +5908,7 @@ export default function App() {
     [teamOpen, setTeamOpen] = useState(false),
     [adaptation, setAdaptation] = useState<JournalAdaptation>(),
     [initialInstagramPostId, setInitialInstagramPostId] = useState<string>(),
+    [initialJournalStorySlug, setInitialJournalStorySlug] = useState<string>(),
     [keyboardHeight, setKeyboardHeight] = useState(0);
   useEffect(() => {
     const show = Keyboard.addListener(
@@ -5940,6 +6018,15 @@ export default function App() {
     setAdaptation(undefined);
     setTab("Studio");
   }
+  function openJournalStory(slug: string) {
+    setInitialJournalStorySlug(slug);
+    setTeamOpen(false);
+    setCreatingAdventure(false);
+    setViewingPreviews(false);
+    setViewingCalendar(false);
+    setAdaptation(undefined);
+    setTab("Journal");
+  }
   useEffect(() => {
     refreshShared().catch(() => {});
   }, [account?.token, account?.user.role]);
@@ -5962,9 +6049,11 @@ export default function App() {
     <TeamAccess token={token} onSignOut={signedOut} />
   ) : viewingPreviews ? (
     <SharedPreviews
+      token={token}
       person={person}
-      previews={starterPreviews}
       onClose={() => setViewingPreviews(false)}
+      onOpenInstagramPost={openInstagramPost}
+      onOpenJournalStory={openJournalStory}
     />
   ) : viewingCalendar ? (
     <ContentCalendar
@@ -6038,6 +6127,8 @@ export default function App() {
       token={token}
       person={person}
       onAdapt={beginJournalAdaptation}
+      initialStorySlug={initialJournalStorySlug}
+      onInitialStoryOpened={() => setInitialJournalStorySlug(undefined)}
     />
   ) : tab === "Pinterest" ? (
     <Pinterest
@@ -6119,6 +6210,7 @@ export default function App() {
               setViewingCalendar(false);
               setAdaptation(undefined);
               setInitialInstagramPostId(undefined);
+              setInitialJournalStorySlug(undefined);
               setTab(item);
             }}
             style={styles.tab}
