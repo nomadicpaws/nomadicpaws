@@ -27,3 +27,12 @@ test('GitHub publishing preserves unrelated frontmatter while applying the synch
   assert.match(output, /New story body/)
   assert.doesNotMatch(output, /Old body/)
 })
+
+test('a brand-new synchronized Journal draft can become its first GitHub file', () => {
+  const source = `---\nlayout: post\n---\n\n`
+  const output = buildMarkdown(source, { title: 'A New Cheeto Story', description: 'Fresh from the trail', category: 'Cheeto Diaries', image: '/hero.jpg', image_alt: 'Cheeto watching the desert', publish_date: '2026-09-13', is_draft: true, body: 'The first recoverable version of a brand-new story.' })
+  assert.match(output, /layout: post/)
+  assert.match(output, /title: "A New Cheeto Story"/)
+  assert.match(output, /draft: true/)
+  assert.match(output, /first recoverable version/)
+})

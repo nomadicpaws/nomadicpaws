@@ -72,6 +72,15 @@ export async function journalWorkingDraft(slug) {
   return result.rows[0] || null
 }
 
+export async function allJournalWorkingDrafts() {
+  const result = await getDatabase().pool.query(
+    `SELECT story_slug, base_version, title, description, category, image, image_alt, body,
+            is_draft, publish_date, revision, updated_at
+       FROM journal_working_drafts ORDER BY updated_at DESC`,
+  )
+  return result.rows
+}
+
 export async function saveJournalWorkingDraft(input) {
   const client = await getDatabase().pool.connect()
   try {

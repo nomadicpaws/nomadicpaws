@@ -50,17 +50,25 @@ export async function commitJournalDraft(draft) {
   const branch = process.env.GITHUB_CONTENT_BRANCH || 'main'
   const filePath = `_posts/${draft.story_slug}.md`
   const encodedPath = filePath.split('/').map(encodeURIComponent).join('/')
-  const existing = await github(`/repos/${repository}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`, token)
-  const source = Buffer.from(existing.content, 'base64').toString('utf8')
+  let existing = null
+  try {
+    existing = await github(`/repos/${repository}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`, token)
+  } catch (error) {
+    if (error?.status !== 404) throw error
+  }
+  const source = existing
+    ? Buffer.from(existing.content, 'base64').toString('utf8')
+    : '---\nlayout: post\n---\n\n'
   const content = buildMarkdown(source, draft)
+  const payload = {
+    message: `${draft.is_draft ? 'Update' : 'Publish'} Trail Journal: ${draft.title}`,
+    content: Buffer.from(content, 'utf8').toString('base64'),
+    branch,
+    ...(existing?.sha ? { sha: existing.sha } : {}),
+  }
   const saved = await github(`/repos/${repository}/contents/${encodedPath}`, token, {
     method: 'PUT',
-    body: JSON.stringify({
-      message: `${draft.is_draft ? 'Update' : 'Publish'} Trail Journal: ${draft.title}`,
-      content: Buffer.from(content, 'utf8').toString('base64'),
-      sha: existing.sha,
-      branch,
-    }),
+    body: JSON.stringify(payload),
   })
   return { commitSha: saved.commit?.sha || '', filePath, branch }
 }

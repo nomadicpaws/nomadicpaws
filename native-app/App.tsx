@@ -30,6 +30,7 @@ import {
   claimKatieAccount,
   CheetoSuggestion,
   createEventSale,
+  createJournalStory,
   createSharedAdventure,
   createTerminalConnectionToken,
   EventProduct,
@@ -1655,7 +1656,11 @@ function Journal({
     [message, setMessage] = useState(""),
     [error, setError] = useState(""),
     [contributions, setContributions] = useState<JournalContribution[]>([]),
-    [nanaWriting, setNanaWriting] = useState(false);
+    [nanaWriting, setNanaWriting] = useState(false),
+    [creatingStory, setCreatingStory] = useState(false),
+    [newStoryTitle, setNewStoryTitle] = useState(""),
+    [newStoryCategory, setNewStoryCategory] = useState("Cheeto Diaries"),
+    [newStoryDate, setNewStoryDate] = useState(localDateKey());
   const [journalMedia, setJournalMedia] = useState<SharedMediaAsset[]>([]);
   useEffect(() => {
     loadStories(token)
@@ -1693,6 +1698,34 @@ function Journal({
     } catch (reason) {
       setError(
         reason instanceof Error ? reason.message : "Unable to open this story.",
+      );
+    } finally {
+      setOpening(false);
+    }
+  }
+  async function beginStory() {
+    if (!newStoryTitle.trim()) return;
+    setOpening(true);
+    setError("");
+    try {
+      const data = await createJournalStory(token, {
+        title: newStoryTitle.trim(),
+        category: newStoryCategory,
+        publishDate: newStoryDate,
+      });
+      const { body: _body, ...summary } = data.story;
+      setStories((current) => [summary, ...current]);
+      setSelected(data.story);
+      setWorking(data.workingDraft);
+      setVersions(data.versions);
+      setNotes(data.notes);
+      setCreatingStory(false);
+      setNewStoryTitle("");
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "This Journal story could not be started.",
       );
     } finally {
       setOpening(false);
@@ -1869,6 +1902,84 @@ function Journal({
           ? "Your existing drafts, scheduled stories, and published Journal are connected here."
           : "Read Katie’s unpublished stories and leave notes without changing the draft."}
       </Text>
+      {person === "Katie" ? (
+        creatingStory ? (
+          <View style={styles.newStoryCard}>
+            <Text style={styles.newStoryTitle}>Begin a Journal story</Text>
+            <Text style={styles.controlLabel}>Working title</Text>
+            <TextInput
+              autoFocus
+              value={newStoryTitle}
+              onChangeText={setNewStoryTitle}
+              placeholder="The adventure you want to remember"
+              placeholderTextColor="#8b8075"
+              style={styles.input}
+            />
+            <Text style={styles.controlLabel}>Story type</Text>
+            <View style={styles.categoryRow}>
+              {["Trail Reports", "Cheeto Diaries", "Gear", "Tips"].map(
+                (item) => (
+                  <Pressable
+                    key={item}
+                    onPress={() => setNewStoryCategory(item)}
+                    style={[
+                      styles.categoryChoice,
+                      newStoryCategory === item && styles.categoryChoiceActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryChoiceText,
+                        newStoryCategory === item &&
+                          styles.categoryChoiceTextActive,
+                      ]}
+                    >
+                      {item}
+                    </Text>
+                  </Pressable>
+                ),
+              )}
+            </View>
+            <Text style={styles.controlLabel}>Target Sunday · editable</Text>
+            <TextInput
+              value={newStoryDate}
+              onChangeText={setNewStoryDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor="#8b8075"
+              style={styles.input}
+            />
+            <Pressable
+              disabled={!newStoryTitle.trim() || opening}
+              onPress={beginStory}
+              style={[
+                styles.primary,
+                (!newStoryTitle.trim() || opening) && styles.primaryDisabled,
+              ]}
+            >
+              <Text style={styles.primaryText}>
+                {opening ? "Opening your writing desk…" : "Start writing"}
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => setCreatingStory(false)}>
+              <Text style={styles.laterText}>Not yet</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            onPress={() => setCreatingStory(true)}
+            style={styles.newStoryButton}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.adventureEyebrow}>NEW JOURNAL STORY</Text>
+              <Text style={styles.adventureTitle}>Open a clean writing desk</Text>
+              <Text style={styles.adventureCopy}>
+                Begin here, autosave privately, and publish only when you choose.
+              </Text>
+            </View>
+            <Text style={styles.adventurePlus}>＋</Text>
+          </Pressable>
+        )
+      ) : null}
       {person === "Mom" ? (
         <Pressable
           onPress={() => setNanaWriting(true)}
@@ -1951,12 +2062,16 @@ function PinCard({
   number,
   value,
   onChange,
+  onChooseFromPhotos,
+  uploading,
 }: {
   token: string;
   media: SharedMediaAsset[];
   number: number;
   value: PinterestPinDraft;
   onChange: (value: PinterestPinDraft) => void;
+  onChooseFromPhotos: () => void;
+  uploading: boolean;
 }) {
   const patch = (next: Partial<PinterestPinDraft>) =>
     onChange({ ...value, ...next });
@@ -2010,6 +2125,15 @@ function PinCard({
         />
       </View>
       <Text style={styles.controlLabel}>Choose a photo</Text>
+      <Pressable
+        disabled={uploading}
+        onPress={onChooseFromPhotos}
+        style={styles.pinDirectUpload}
+      >
+        <Text style={styles.pinDirectUploadText}>
+          {uploading ? "Adding original…" : "Choose a different photo from iPhone Photos"}
+        </Text>
+      </Pressable>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -2387,6 +2511,7 @@ function Today({
   onNewAdventure,
   onOpenPreviews,
   onOpenCalendar,
+  onOpenInstagramPost,
 }: {
   token: string;
   person: Person;
@@ -2394,6 +2519,7 @@ function Today({
   onNewAdventure: () => void;
   onOpenPreviews: () => void;
   onOpenCalendar: () => void;
+  onOpenInstagramPost: (postId: string) => void;
 }) {
   const [rhythm, setRhythm] = useState<InstagramDay[]>(initialInstagramRhythm);
   const [posts, setPosts] = useState<InstagramPostDraft[]>([]);
@@ -2559,7 +2685,13 @@ function Today({
                 post.targetDate === localDateKey() && post.status !== "Posted",
             )
             .map((post) => (
-              <View key={post.id} style={styles.preparedPost}>
+              <Pressable
+                key={post.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${post.title} in Instagram Studio`}
+                onPress={() => onOpenInstagramPost(post.id)}
+                style={styles.preparedPost}
+              >
                 <View style={{ flex: 1 }}>
                   <Text style={styles.preparedPostStatus}>
                     {post.status === "Ready" ? "POST READY" : "CLOUD DRAFT"}
@@ -2570,12 +2702,18 @@ function Today({
                   </Text>
                 </View>
                 <Text style={styles.journalArrow}>›</Text>
-              </View>
+              </Pressable>
             ))
         : null}
       {person === "Katie"
         ? needsKatie.map((post) => (
-            <View key={post.id} style={styles.preparedPost}>
+            <Pressable
+              key={post.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${post.title} in Instagram Studio`}
+              onPress={() => onOpenInstagramPost(post.id)}
+              style={styles.preparedPost}
+            >
               <View style={{ flex: 1 }}>
                 <Text style={styles.preparedPostStatus}>NEEDS KATIE</Text>
                 <Text style={styles.preparedPostTitle}>{post.title}</Text>
@@ -2584,7 +2722,7 @@ function Today({
                 </Text>
               </View>
               <Text style={styles.journalArrow}>›</Text>
-            </View>
+            </Pressable>
           ))
         : null}
       {mine.map((seed) => (
@@ -3389,6 +3527,8 @@ function InstagramStudio({
   onOpenPreviews,
   initialArticle,
   onInitialArticleOpened,
+  initialPostId,
+  onInitialPostOpened,
 }: {
   token: string;
   person: Person;
@@ -3396,6 +3536,8 @@ function InstagramStudio({
   onOpenPreviews: () => void;
   initialArticle?: JournalAdaptation;
   onInitialArticleOpened: () => void;
+  initialPostId?: string;
+  onInitialPostOpened: () => void;
 }) {
   const [rhythm, setRhythm] = useState<InstagramDay[]>(initialInstagramRhythm),
     [templates, setTemplates] = useState<InstagramTemplate[]>(
@@ -3481,6 +3623,13 @@ function InstagramStudio({
       )
       .catch(() => {});
   }, [initialArticle, onInitialArticleOpened, token]);
+  useEffect(() => {
+    if (!initialPostId || !posts.length) return;
+    const post = posts.find((item) => item.id === initialPostId);
+    if (!post) return;
+    setEditingPost(post);
+    onInitialPostOpened();
+  }, [initialPostId, onInitialPostOpened, posts]);
   function updateTheme(index: number, theme: string) {
     setRhythm((current) =>
       current.map((item, itemIndex) =>
@@ -4284,6 +4433,8 @@ function Pinterest({
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
     [saving, setSaving] = useState(false),
+    [uploadingPin, setUploadingPin] = useState<number>(),
+    [importAdventureId, setImportAdventureId] = useState(""),
     [board, setBoard] = useState("Nomadic Paws Trail Journal"),
     [keywords, setKeywords] = useState(""),
     [retroactive, setRetroactive] = useState(false),
@@ -4302,6 +4453,11 @@ function Pinterest({
       .then(([storyData, mediaData, campaignData]) => {
         setStories(storyData.stories);
         setMedia(mediaData.media);
+        setImportAdventureId(
+          mediaData.adventures.find(
+            (item) => item.title === "Pinterest photo imports",
+          )?.id || "",
+        );
         setCampaigns(campaignData.campaigns);
       })
       .catch((reason) => setError(reason.message))
@@ -4335,6 +4491,77 @@ function Pinterest({
         finishedImage: savedPins[index]?.image,
       })),
     );
+  }
+  async function choosePinterestPhoto(index: number) {
+    setUploadingPin(index);
+    setError("");
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsMultipleSelection: false,
+        quality: 1,
+      });
+      if (result.canceled) return;
+      let adventureId = importAdventureId;
+      if (!adventureId) {
+        const adventure = await createSharedAdventure(token, {
+          title: "Pinterest photo imports",
+          notes: "Original photos selected directly while preparing Pinterest campaigns.",
+          privateLocation: "",
+        });
+        adventureId = adventure.id;
+        setImportAdventureId(adventure.id);
+      }
+      const picked = result.assets[0]!;
+      const asset = await uploadAdventurePhoto(token, adventureId, {
+        uri: picked.uri,
+        name: picked.fileName || `Pinterest-photo-${Date.now()}.jpg`,
+        mimeType: picked.mimeType,
+        width: picked.width,
+        height: picked.height,
+      });
+      setMedia((current) => [asset, ...current]);
+      setPins((current) =>
+        current.map((pin, itemIndex) =>
+          itemIndex === index
+            ? { ...pin, asset, finishedImage: undefined }
+            : pin,
+        ),
+      );
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "That photo could not be added to this campaign.",
+      );
+    } finally {
+      setUploadingPin(undefined);
+    }
+  }
+  async function sharePinterestCsv() {
+    if (!FileSystem.cacheDirectory) return;
+    setMessage("Preparing the latest Pinterest CSV…");
+    setError("");
+    try {
+      const target = `${FileSystem.cacheDirectory}nomadic-paws-pinterest-schedule.csv`;
+      const download = await FileSystem.downloadAsync(
+        `${API_URL}/pinterest.csv?fresh=${Date.now()}`,
+        target,
+      );
+      await Sharing.shareAsync(download.uri, {
+        mimeType: "text/csv",
+        UTI: "public.comma-separated-values-text",
+        dialogTitle: "Save or upload the Pinterest schedule",
+      });
+      setMessage("The current Pinterest CSV is ready to save or share.");
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "The Pinterest CSV could not be prepared.",
+      );
+      setMessage("");
+    }
   }
   async function saveCampaign() {
     if (!selected) return;
@@ -4440,12 +4667,17 @@ function Pinterest({
               number={index + 1}
               value={pin}
               onChange={(next) => setPins((current) => current.map((item, itemIndex) => itemIndex === index ? next : item))}
+              onChooseFromPhotos={() => choosePinterestPhoto(index)}
+              uploading={uploadingPin === index}
             />
           ))}
           {error ? <Text style={styles.error}>{error}</Text> : null}
           {message ? <Text style={styles.successText}>{message}</Text> : null}
           <Pressable disabled={saving} onPress={saveCampaign} style={[styles.primary, saving && styles.primaryDisabled]}>
             <Text style={styles.primaryText}>{saving ? "Preparing campaign…" : "Save Pinterest campaign"}</Text>
+          </Pressable>
+          <Pressable onPress={sharePinterestCsv} style={styles.secondary}>
+            <Text style={styles.secondaryText}>Share latest Pinterest CSV</Text>
           </Pressable>
           <Text style={styles.helper}>
             RSS and CSV keep their existing public URLs. A Pin never enters RSS
@@ -5598,6 +5830,7 @@ export default function App() {
     [viewingCalendar, setViewingCalendar] = useState(false),
     [teamOpen, setTeamOpen] = useState(false),
     [adaptation, setAdaptation] = useState<JournalAdaptation>(),
+    [initialInstagramPostId, setInitialInstagramPostId] = useState<string>(),
     [keyboardHeight, setKeyboardHeight] = useState(0);
   useEffect(() => {
     const show = Keyboard.addListener(
@@ -5698,6 +5931,15 @@ export default function App() {
           : "Video",
     );
   }
+  function openInstagramPost(postId: string) {
+    setInitialInstagramPostId(postId);
+    setTeamOpen(false);
+    setCreatingAdventure(false);
+    setViewingPreviews(false);
+    setViewingCalendar(false);
+    setAdaptation(undefined);
+    setTab("Studio");
+  }
   useEffect(() => {
     refreshShared().catch(() => {});
   }, [account?.token, account?.user.role]);
@@ -5747,6 +5989,7 @@ export default function App() {
       onNewAdventure={() => setCreatingAdventure(true)}
       onOpenPreviews={() => setViewingPreviews(true)}
       onOpenCalendar={() => setViewingCalendar(true)}
+      onOpenInstagramPost={openInstagramPost}
     />
   ) : tab === "Media" ? (
     <MediaLibrary
@@ -5773,6 +6016,8 @@ export default function App() {
           adaptation?.platform === "Instagram" ? adaptation : undefined
         }
         onInitialArticleOpened={() => setAdaptation(undefined)}
+        initialPostId={initialInstagramPostId}
+        onInitialPostOpened={() => setInitialInstagramPostId(undefined)}
       />
     ) : (
       <Studio seeds={seeds} />
@@ -5873,6 +6118,7 @@ export default function App() {
               setViewingPreviews(false);
               setViewingCalendar(false);
               setAdaptation(undefined);
+              setInitialInstagramPostId(undefined);
               setTab(item);
             }}
             style={styles.tab}
@@ -6369,6 +6615,23 @@ const styles = StyleSheet.create({
   previewPhoto: { ...StyleSheet.absoluteFill, width: "100%", height: "100%" },
   previewFocusTop: { transform: [{ translateY: 18 }, { scale: 1.12 }] },
   previewFocusBottom: { transform: [{ translateY: -18 }, { scale: 1.12 }] },
+  pinDirectUpload: {
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.terracotta,
+    backgroundColor: "#fff8f3",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    marginBottom: 12,
+  },
+  pinDirectUploadText: {
+    color: colors.terracottaDeep,
+    fontSize: 13,
+    fontWeight: "900",
+    textAlign: "center",
+  },
   pinMediaRow: { gap: 9, paddingBottom: 14 },
   pinMediaChoice: {
     borderWidth: 2,
@@ -6598,6 +6861,29 @@ const styles = StyleSheet.create({
     maxWidth: 260,
   },
   adventurePlus: { fontSize: 38, color: colors.white, marginLeft: "auto" },
+  newStoryButton: {
+    backgroundColor: colors.sageDeep,
+    borderRadius: 22,
+    padding: 20,
+    marginBottom: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 126,
+  },
+  newStoryCard: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 18,
+  },
+  newStoryTitle: {
+    fontSize: 23,
+    fontWeight: "900",
+    color: colors.bark,
+    marginBottom: 8,
+  },
   readinessRow: { flexDirection: "row", gap: 9, marginBottom: 26 },
   readinessCard: {
     flex: 1,

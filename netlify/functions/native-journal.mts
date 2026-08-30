@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import type { Config } from '@netlify/functions'
 import { requireAppUser } from './lib/app-auth.mjs'
 import { bearerToken, verifySellerToken } from './lib/event-auth.mjs'
-import { addJournalReviewNote, journalContributions, journalReviewNotes, journalWorkingDraft, journalWorkingVersions, saveJournalContribution, saveJournalWorkingDraft, updateJournalReviewNote } from './lib/journal-db.mjs'
+import { addJournalReviewNote, allJournalWorkingDrafts, journalContributions, journalReviewNotes, journalWorkingDraft, journalWorkingVersions, saveJournalContribution, saveJournalWorkingDraft, updateJournalReviewNote } from './lib/journal-db.mjs'
 import { REVIEW_STATUSES, validContribution, validReviewAnchor } from './lib/journal-collaboration.mjs'
 import { journalStatus, journalVersion, parseJournalFile } from './lib/journal-content.mjs'
 import { commitJournalDraft } from './lib/journal-github.mjs'
@@ -13,7 +13,7 @@ const HEADERS = { 'Cache-Control': 'private, no-store, max-age=0', 'X-Content-Ty
 
 async function readStories() {
   const files = (await readdir(POSTS_DIR)).filter(file => file.endsWith('.md'))
-  return Promise.all(files.map(async file => {
+  const sourceStories = await Promise.all(files.map(async file => {
     const raw = await readFile(join(POSTS_DIR, file), 'utf8')
     const { data, body } = parseJournalFile(raw)
     return {
@@ -21,6 +21,29 @@ async function readStories() {
       date: data.date || '', draft: data.draft === 'true', status: journalStatus(data), body, version: journalVersion(raw),
     }
   }))
+  const sourceSlugs = new Set(sourceStories.map(story => story.slug))
+  const newDrafts = (await allJournalWorkingDrafts()).filter(draft => !sourceSlugs.has(draft.story_slug))
+  const dateString = (value: unknown) => value instanceof Date ? value.toISOString() : String(value || '')
+  return [...sourceStories, ...newDrafts.map(draft => ({
+    slug: draft.story_slug,
+    title: draft.title || 'Untitled',
+    description: draft.description || '',
+    category: draft.category || 'Cheeto Diaries',
+    image: draft.image || '',
+    imageAlt: draft.image_alt || '',
+    date: dateString(draft.publish_date || draft.updated_at),
+    draft: draft.is_draft !== false,
+    status: draft.is_draft === false ? 'Scheduled' : 'Draft',
+    body: draft.body || '',
+    version: `work-${draft.revision}`,
+  }))]
+}
+
+function storySlug(title: string, publishDate: string) {
+  const date = publishDate.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || new Date().toISOString().slice(0, 10)
+  const words = title.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 90)
+  return `${date}-${words || 'trail-journal-story'}`
 }
 
 async function nativeUser(request: Request) {
@@ -53,6 +76,18 @@ export default async (request: Request) => {
     }
     if (request.method === 'POST') {
       const payload = await request.json().catch(() => ({})) as Record<string, unknown>
+      if (payload.action === 'create-working-draft') {
+        if (user.role !== 'katie') return Response.json({ error: 'Only Katie can begin Trail Journal stories.' }, { status: 403, headers: HEADERS })
+        const title = String(payload.title || '').trim(), category = String(payload.category || 'Cheeto Diaries'), publishDate = String(payload.publishDate || '')
+        if (!title || title.length > 180) return Response.json({ error: 'Add a title under 180 characters.' }, { status: 400, headers: HEADERS })
+        if (!['Trail Reports', 'Cheeto Diaries', 'Gear', 'Tips'].includes(category)) return Response.json({ error: 'Choose a valid Trail Journal category.' }, { status: 400, headers: HEADERS })
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(publishDate) || Number.isNaN(Date.parse(`${publishDate}T12:00:00Z`))) return Response.json({ error: 'Choose a real target date in YYYY-MM-DD format.' }, { status: 400, headers: HEADERS })
+        const slug = storySlug(title, publishDate)
+        if ((await readStories()).some(story => story.slug === slug)) return Response.json({ error: 'A Journal story with this title and date already exists.' }, { status: 409, headers: HEADERS })
+        const workingDraft = await saveJournalWorkingDraft({ slug, baseVersion: 'new', title, description: '', category, image: '', imageAlt: '', body: '', isDraft: true, publishDate, expectedRevision: 0 })
+        const story = { slug, title, description: '', category, image: '', imageAlt: '', date: publishDate || workingDraft.updated_at, draft: true, status: 'Draft', body: '', version: `work-${workingDraft.revision}` }
+        return Response.json({ story, workingDraft, notes: [], versions: await journalWorkingVersions(slug) }, { status: 201, headers: HEADERS })
+      }
       if (payload.action === 'save-contribution') {
         if (user.role !== 'mom') return Response.json({ error: 'CatNana contributions belong to CatNana’s workspace.' }, { status: 403, headers: HEADERS })
         if (!validContribution(payload)) return Response.json({ error: 'Keep the contribution within the available fields and add a thought before sending it.' }, { status: 400, headers: HEADERS })

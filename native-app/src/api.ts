@@ -166,6 +166,13 @@ export async function loadStory(token: string, slug: string) {
   )
 }
 
+export async function createJournalStory(token: string, input: { title: string; category: string; publishDate: string }) {
+  return request<{ story: JournalStoryDetail; notes: JournalReviewNote[]; workingDraft: JournalWorkingDraft; versions: JournalWorkingVersion[] }>('/api/app/journal', token, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'create-working-draft', ...input }),
+  })
+}
+
 export async function addReviewNote(token: string, input: { slug: string; version: string; reviewer: 'Trinitie' | 'Mom'; note: string; anchorType?: 'general' | 'paragraph' | 'selection'; anchorId?: string; quotedText?: string }) {
   return request<{ note: JournalReviewNote }>('/api/app/journal', token, {
     method: 'POST',
