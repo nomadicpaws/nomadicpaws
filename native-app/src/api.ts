@@ -11,6 +11,9 @@ export type SharedMediaAsset = { id: string; adventure_id: string | null; origin
 export type WorkingVersion = { id: string; media_id: string; destination_type: string; destination_id: string; treatment: { logoColor: string; logoSize: string; logoSide: string; focus: string }; created_at: string }
 export type PinterestPin = { image: string; title: string; description: string; template: 'bark' | 'sage' | 'sand' | 'terracotta'; logo_size: 'small' | 'medium'; logo_placement: 'left' | 'right' }
 export type PinterestCampaign = { post_slug: string; campaign_title: string; board: string; keywords: string; retroactive: boolean; enabled: boolean; rss_pin: PinterestPin; day_7_pin: PinterestPin; day_14_pin: PinterestPin; day_21_pin: PinterestPin; updated_at?: string }
+export type EventProduct = { sku: string; snipcartId: string; name: string; image: string; unitPriceCents: number; stock: number; active: boolean }
+export type EventSale = { saleId: string; paymentIntentId: string; clientSecret: string; subtotalCents: number; taxCents: number; totalCents: number; currency: 'usd'; mode: 'test' }
+export type EventSaleStatus = { id: string; status: string; mode: 'test'; currency: 'usd'; subtotal_cents: number; tax_cents: number; total_cents: number; stripe_payment_intent_id: string; created_at: string; updated_at: string }
 
 export type JournalStory = {
   slug: string
@@ -236,6 +239,25 @@ export async function saveJournalWorkingDraft(token: string, input: { slug: stri
   return request<{ workingDraft: JournalWorkingDraft }>('/api/app/journal', token, {
     method: 'POST', body: JSON.stringify({ action: 'save-working-draft', ...input }),
   })
+}
+
+export async function loadEventProducts(token: string) {
+  return request<{ products: EventProduct[]; simulatedReader: boolean; mode: 'test' }>('/api/event/products', token)
+}
+
+export async function createTerminalConnectionToken(token: string) {
+  const data = await request<{ secret: string }>('/api/event/stripe/connection-token', token, { method: 'POST' })
+  return data.secret
+}
+
+export async function createEventSale(token: string, items: Array<{ sku: string; quantity: number }>, requestId: string) {
+  return request<EventSale>('/api/event/sales', token, {
+    method: 'POST', body: JSON.stringify({ items, requestId }),
+  })
+}
+
+export async function loadEventSaleStatus(token: string, saleId: string) {
+  return request<{ sale: EventSaleStatus }>(`/api/event/sales/status?id=${encodeURIComponent(saleId)}`, token)
 }
 
 export async function publishJournalWorkingDraft(token: string, slug: string) {

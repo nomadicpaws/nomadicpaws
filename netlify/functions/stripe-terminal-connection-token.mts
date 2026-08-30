@@ -1,12 +1,12 @@
 import type { Config } from "@netlify/functions";
-import { errorResponse, json, requireSeller, requireTestMode } from "./lib/event-http.mjs";
+import { errorResponse, json, requireEventOperator, requireTestMode } from "./lib/event-http.mjs";
 import { createTerminalConnectionToken } from "./lib/stripe-api.mjs";
 
 export default async (request: Request) => {
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405, { Allow: "POST" });
   try {
     requireTestMode();
-    requireSeller(request);
+    await requireEventOperator(request);
     const token = await createTerminalConnectionToken();
     return json({ secret: token.secret });
   } catch (error) {

@@ -46,6 +46,18 @@
           "savePhotosPermission": "Save finished Nomadic Paws images so they can be uploaded to Instagram."
         }
       ],
+      [
+        "@stripe/stripe-terminal-react-native",
+        {
+          "bluetoothBackgroundMode": false,
+          "locationWhenInUsePermission": "Nomadic Paws uses location while the event register is open because Stripe requires it for in-person payments.",
+          "bluetoothPeripheralPermission": "Nomadic Paws uses Bluetooth to connect to the Stripe card reader.",
+          "bluetoothAlwaysUsagePermission": "Nomadic Paws uses Bluetooth to connect to the Stripe card reader.",
+          "localNetworkUsagePermission": "Nomadic Paws may use the local network to connect to supported Stripe card readers.",
+          "tapToPayCheck": false,
+          "appDelegate": false
+        }
+      ],
       "./plugins/with-local-notifications-only"
     ],
     "android": {

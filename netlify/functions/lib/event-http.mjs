@@ -1,4 +1,5 @@
 import { bearerToken, verifySellerToken } from "./event-auth.mjs";
+import { requireAppUser } from "./app-auth.mjs";
 
 export function json(body, status = 200, extraHeaders = {}) {
   return Response.json(body, {
@@ -20,6 +21,14 @@ export function requireSeller(request) {
   const claims = verifySellerToken(bearerToken(request.headers), secret);
   if (!claims) throw Object.assign(new Error("Seller sign-in is required."), { status: 401 });
   return claims;
+}
+
+export async function requireEventOperator(request) {
+  const secret = process.env.EVENT_REGISTER_SESSION_SECRET || "";
+  const seller = verifySellerToken(bearerToken(request.headers), secret);
+  if (seller) return { role: "seller", claims: seller };
+  const user = await requireAppUser(request, ["katie"]);
+  return { role: "katie", user };
 }
 
 export function requireTestMode() {

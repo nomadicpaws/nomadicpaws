@@ -29,7 +29,10 @@ import {
   approveTeamAccess,
   claimKatieAccount,
   CheetoSuggestion,
+  createEventSale,
   createSharedAdventure,
+  createTerminalConnectionToken,
+  EventProduct,
   JournalContribution,
   JournalReviewNote,
   JournalStory,
@@ -37,6 +40,8 @@ import {
   JournalWorkingDraft,
   JournalWorkingVersion,
   loadInstagramStudio,
+  loadEventProducts,
+  loadEventSaleStatus,
   loadJournalContributions,
   loadPinterestCampaigns,
   loadSharedMedia,
@@ -92,6 +97,11 @@ import * as Clipboard from "expo-clipboard";
 import * as ExpoMediaLibrary from "expo-media-library";
 import * as Notifications from "expo-notifications";
 import { useVideoPlayer, VideoView } from "expo-video";
+import {
+  Reader,
+  StripeTerminalProvider,
+  useStripeTerminal,
+} from "@stripe/stripe-terminal-react-native";
 
 type Tab =
   | "Today"
@@ -3795,7 +3805,7 @@ function VideoStudio({ person }: { person: Person }) {
                   clearInterval(playbackTimers.current.at(-1));
               },
               Math.max(32, (revealSeconds * 1000) / Math.max(1, pieces.length)),
-            ),
+            ) as unknown as number,
           );
         } else {
           setPreviewText(source);
@@ -3818,9 +3828,11 @@ function VideoStudio({ person }: { person: Person }) {
                 });
           animation.start();
         }
-      }, start * 1000),
+      }, start * 1000) as unknown as number,
     );
-    playbackTimers.current.push(setTimeout(stopPreview, (end + 0.45) * 1000));
+    playbackTimers.current.push(
+      setTimeout(stopPreview, (end + 0.45) * 1000) as unknown as number,
+    );
   }
   useEffect(
     () => () =>
@@ -5035,6 +5047,418 @@ function MediaLibrary({
   );
 }
 
+function eventMoney(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(cents / 100);
+}
+
+function EventRegister({ token }: { token: string }) {
+  const [products, setProducts] = useState<EventProduct[]>([]);
+  const [cart, setCart] = useState<Record<string, number>>({});
+  const [readerMode, setReaderMode] = useState<"simulated" | "physical">(
+    "simulated",
+  );
+  const [readers, setReaders] = useState<Reader.Type[]>([]);
+  const [locationId, setLocationId] = useState("");
+  const [connectionStatus, setConnectionStatus] = useState<
+    Reader.ConnectionStatus
+  >("notConnected");
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [readerBusy, setReaderBusy] = useState(false);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const {
+    initialize,
+    discoverReaders,
+    cancelDiscovering,
+    connectReader,
+    disconnectReader,
+    connectedReader,
+    retrievePaymentIntent,
+    processPaymentIntent,
+    setReaderDisplay,
+    getLocations,
+  } = useStripeTerminal({
+    onUpdateDiscoveredReaders: (nextReaders) => {
+      setReaders(nextReaders);
+      setMessage(
+        nextReaders.length
+          ? `${nextReaders.length} ${readerMode === "simulated" ? "simulated" : "nearby"} reader${nextReaders.length === 1 ? "" : "s"} found.`
+          : "Still looking for the reader…",
+      );
+    },
+    onDidChangeConnectionStatus: setConnectionStatus,
+  });
+
+  async function refreshProducts() {
+    setLoadingProducts(true);
+    setError("");
+    try {
+      const data = await loadEventProducts(token);
+      setProducts(data.products);
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "Test inventory could not synchronize.",
+      );
+    } finally {
+      setLoadingProducts(false);
+    }
+  }
+
+  useEffect(() => {
+    refreshProducts();
+    initialize().then((result) => {
+      if (result.error) setError(result.error.message);
+      else setMessage("Stripe Terminal is ready for a test reader.");
+    });
+    return () => {
+      cancelDiscovering().catch(() => {});
+    };
+  }, []);
+
+  const subtotal = products.reduce(
+    (sum, product) =>
+      sum + product.unitPriceCents * (cart[product.sku] || 0),
+    0,
+  );
+  const cartItems = products
+    .filter((product) => (cart[product.sku] || 0) > 0)
+    .map((product) => ({
+      sku: product.sku,
+      quantity: cart[product.sku] || 0,
+    }));
+
+  function changeQuantity(product: EventProduct, change: number) {
+    setCart((current) => {
+      const next = Math.max(
+        0,
+        Math.min(product.stock, (current[product.sku] || 0) + change),
+      );
+      const updated = { ...current };
+      if (next) updated[product.sku] = next;
+      else delete updated[product.sku];
+      return updated;
+    });
+  }
+
+  async function findReader() {
+    setReaderBusy(true);
+    setError("");
+    setReaders([]);
+    try {
+      if (connectionStatus === "discovering") await cancelDiscovering();
+      let stripeLocation = locationId;
+      if (!stripeLocation) {
+        const locations = await getLocations({ limit: 10 });
+        if (locations.error) throw locations.error;
+        stripeLocation = locations.locations?.[0]?.id || "";
+        setLocationId(stripeLocation);
+      }
+      if (!stripeLocation)
+        throw new Error(
+          "Create a Stripe Terminal location before connecting a reader.",
+        );
+      const result = await discoverReaders({
+        discoveryMethod: "bluetoothScan",
+        simulated: readerMode === "simulated",
+        timeout: 12,
+      });
+      if (result.error) throw result.error;
+      setMessage(
+        readerMode === "simulated"
+          ? "Opening Stripe’s simulated reader…"
+          : "Scanning nearby Bluetooth readers for 12 seconds…",
+      );
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : "Reader scan could not start.",
+      );
+    } finally {
+      setReaderBusy(false);
+    }
+  }
+
+  async function connectToReader(reader: Reader.Type) {
+    setReaderBusy(true);
+    setError("");
+    try {
+      await cancelDiscovering().catch(() => {});
+      const result = await connectReader({
+        discoveryMethod: "bluetoothScan",
+        reader,
+        locationId: reader.locationId || reader.location?.id || locationId,
+        autoReconnectOnUnexpectedDisconnect: true,
+      });
+      if (result.error) throw result.error;
+      setMessage(
+        `${readerMode === "simulated" ? "Simulated reader" : reader.label || reader.serialNumber} connected.`,
+      );
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "The reader could not connect.",
+      );
+    } finally {
+      setReaderBusy(false);
+    }
+  }
+
+  async function waitForPaidSale(saleId: string) {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const status = await loadEventSaleStatus(token, saleId);
+      if (status.sale.status === "paid") return status.sale;
+      await new Promise((resolve) => setTimeout(resolve, 1250));
+    }
+    return null;
+  }
+
+  async function checkout() {
+    if (!connectedReader) {
+      setError("Connect the simulated or physical test reader first.");
+      return;
+    }
+    if (!cartItems.length) {
+      setError("Add at least one product to the test cart.");
+      return;
+    }
+    setCheckoutBusy(true);
+    setError("");
+    setMessage("Creating a protected Stripe test sale…");
+    try {
+      const sale = await createEventSale(token, cartItems, Crypto.randomUUID());
+      await setReaderDisplay({
+        currency: "usd",
+        tax: sale.taxCents,
+        total: sale.totalCents,
+        lineItems: cartItems.map((item) => {
+          const product = products.find((candidate) => candidate.sku === item.sku)!;
+          return {
+            displayName: product.name,
+            quantity: item.quantity,
+            amount: product.unitPriceCents * item.quantity,
+          };
+        }),
+      }).catch(() => ({ error: undefined }));
+      const retrieved = await retrievePaymentIntent(sale.clientSecret);
+      if (retrieved.error || !retrieved.paymentIntent)
+        throw retrieved.error || new Error("Stripe could not open the test payment.");
+      setMessage("Present the Stripe test card to the reader.");
+      const processed = await processPaymentIntent({
+        paymentIntent: retrieved.paymentIntent,
+      });
+      if (processed.error) throw processed.error;
+      setMessage("Test payment approved. Synchronizing inventory…");
+      const paid = await waitForPaidSale(sale.saleId);
+      setCart({});
+      await refreshProducts();
+      setMessage(
+        paid
+          ? `Test sale complete · ${eventMoney(sale.totalCents)}. Inventory synchronized.`
+          : `Stripe approved ${eventMoney(sale.totalCents)}. The signed webhook is still finishing inventory in the background.`,
+      );
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : "The test sale could not finish.",
+      );
+    } finally {
+      setCheckoutBusy(false);
+    }
+  }
+
+  return (
+    <ScrollView contentContainerStyle={styles.page}>
+      <View style={styles.registerHeading}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.eyebrow}>EVENT REGISTER · TEST MODE</Text>
+          <Text style={styles.pageTitle}>A calm little checkout.</Text>
+        </View>
+        <View style={styles.testModePill}>
+          <Text style={styles.testModePillText}>NO LIVE CHARGES</Text>
+        </View>
+      </View>
+      <Text style={styles.copy}>
+        Katie’s app sign-in opens the register directly. Prices and stock are
+        still verified by the existing secure server before Stripe receives a
+        test payment.
+      </Text>
+      <View style={styles.readerPanel}>
+        <View style={styles.readerPanelTop}>
+          <View>
+            <Text style={styles.readerTitle}>Stripe reader</Text>
+            <Text style={styles.readerStatus}>
+              {connectedReader
+                ? `Connected · ${connectedReader.label || connectedReader.serialNumber}`
+                : connectionStatus === "discovering"
+                  ? "Looking nearby…"
+                  : "Not connected"}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.readerDot,
+              connectedReader && styles.readerDotConnected,
+            ]}
+          />
+        </View>
+        {!connectedReader ? (
+          <>
+            <View style={styles.readerModeRow}>
+              {(["simulated", "physical"] as const).map((mode) => (
+                <Pressable
+                  key={mode}
+                  onPress={() => {
+                    setReaderMode(mode);
+                    setReaders([]);
+                  }}
+                  style={[
+                    styles.readerMode,
+                    readerMode === mode && styles.readerModeActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.readerModeText,
+                      readerMode === mode && styles.readerModeTextActive,
+                    ]}
+                  >
+                    {mode === "simulated" ? "Simulated reader" : "Physical reader"}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <Pressable
+              onPress={findReader}
+              disabled={readerBusy}
+              style={[styles.primary, readerBusy && styles.primaryDisabled]}
+            >
+              <Text style={styles.primaryText}>
+                {readerBusy ? "Preparing scan…" : "Find test reader"}
+              </Text>
+            </Pressable>
+            {readers.map((reader) => (
+              <Pressable
+                key={reader.id || reader.serialNumber}
+                onPress={() => connectToReader(reader)}
+                style={styles.readerChoice}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.readerChoiceTitle}>
+                    {reader.simulated ? "Stripe simulated reader" : reader.label || "Stripe reader"}
+                  </Text>
+                  <Text style={styles.readerChoiceMeta}>
+                    {reader.deviceType} · {reader.serialNumber}
+                  </Text>
+                </View>
+                <Text style={styles.readerChoiceAction}>Connect ›</Text>
+              </Pressable>
+            ))}
+          </>
+        ) : (
+          <Pressable
+            onPress={() => disconnectReader()}
+            style={styles.secondary}
+          >
+            <Text style={styles.secondaryText}>Disconnect reader</Text>
+          </Pressable>
+        )}
+      </View>
+      {message ? <Text style={styles.successText}>{message}</Text> : null}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <View style={styles.listHeading}>
+        <Text style={styles.listTitle}>Products</Text>
+        <Pressable onPress={refreshProducts}>
+          <Text style={styles.listCount}>Refresh stock</Text>
+        </Pressable>
+      </View>
+      {loadingProducts ? (
+        <ActivityIndicator color={colors.terracotta} />
+      ) : (
+        products.map((product) => {
+          const quantity = cart[product.sku] || 0;
+          return (
+            <View key={product.sku} style={styles.registerProduct}>
+              <Image
+                source={{ uri: `${API_URL}${product.image}` }}
+                style={styles.registerProductImage}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.registerProductTitle}>{product.name}</Text>
+                <Text style={styles.registerProductMeta}>
+                  {eventMoney(product.unitPriceCents)} · {product.stock} in test stock
+                </Text>
+              </View>
+              <View style={styles.quantityControl}>
+                <Pressable
+                  onPress={() => changeQuantity(product, -1)}
+                  disabled={!quantity}
+                  style={styles.quantityButton}
+                >
+                  <Text style={styles.quantityButtonText}>−</Text>
+                </Pressable>
+                <Text style={styles.quantityValue}>{quantity}</Text>
+                <Pressable
+                  onPress={() => changeQuantity(product, 1)}
+                  disabled={quantity >= product.stock}
+                  style={styles.quantityButton}
+                >
+                  <Text style={styles.quantityButtonText}>＋</Text>
+                </Pressable>
+              </View>
+            </View>
+          );
+        })
+      )}
+      <View style={styles.registerCart}>
+        <Text style={styles.eyebrow}>CURRENT TEST SALE</Text>
+        {cartItems.length ? (
+          cartItems.map((item) => {
+            const product = products.find((candidate) => candidate.sku === item.sku)!;
+            return (
+              <View key={item.sku} style={styles.cartLine}>
+                <Text style={styles.cartLineName}>
+                  {item.quantity} × {product.name}
+                </Text>
+                <Text style={styles.cartLineAmount}>
+                  {eventMoney(product.unitPriceCents * item.quantity)}
+                </Text>
+              </View>
+            );
+          })
+        ) : (
+          <Text style={styles.calendarNoticeCopy}>Add a product to begin.</Text>
+        )}
+        <View style={styles.cartTotal}>
+          <Text style={styles.cartTotalLabel}>Subtotal before server tax</Text>
+          <Text style={styles.cartTotalAmount}>{eventMoney(subtotal)}</Text>
+        </View>
+        <Pressable
+          onPress={checkout}
+          disabled={checkoutBusy || !cartItems.length || !connectedReader}
+          style={[
+            styles.registerCheckout,
+            (checkoutBusy || !cartItems.length || !connectedReader) &&
+              styles.primaryDisabled,
+          ]}
+        >
+          <Text style={styles.registerCheckoutText}>
+            {checkoutBusy ? "Completing Stripe test…" : "Take test payment"}
+          </Text>
+        </Pressable>
+        <Text style={styles.registerSafety}>
+          Backend-enforced test mode. Use Stripe’s simulated reader or an
+          approved Stripe test card only—never a customer’s real card.
+        </Text>
+      </View>
+    </ScrollView>
+  );
+}
+
 export default function App() {
   const [account, setAccount] = useState<SignedInAccount | null>(null),
     [restoring, setRestoring] = useState(true),
@@ -5199,10 +5623,7 @@ export default function App() {
   ) : tab === "Pinterest" ? (
     <Pinterest token={token} />
   ) : (
-    <Placeholder
-      title="Event Register"
-      text="The existing test register and Stripe Terminal connection will move into this native workspace after device signing is available."
-    />
+    <EventRegister token={token} />
   );
   const tabs: Tab[] =
     person === "Trinitie"
@@ -5219,6 +5640,10 @@ export default function App() {
             "Register",
           ];
   return (
+    <StripeTerminalProvider
+      tokenProvider={() => createTerminalConnectionToken(token)}
+      logLevel="none"
+    >
     <SafeAreaView style={styles.shell}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.appHeader}>
@@ -5275,6 +5700,7 @@ export default function App() {
         ))}
       </View>
     </SafeAreaView>
+    </StripeTerminalProvider>
   );
 }
 
@@ -7361,5 +7787,145 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     color: colors.barkSoft,
     marginTop: 3,
+  },
+  registerHeading: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  testModePill: {
+    backgroundColor: colors.sand,
+    borderWidth: 1,
+    borderColor: colors.terracotta,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  testModePillText: {
+    color: colors.terracottaDeep,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+  },
+  readerPanel: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 20,
+    padding: 16,
+    marginVertical: 16,
+  },
+  readerPanelTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  readerTitle: { color: colors.bark, fontSize: 16, fontWeight: "900" },
+  readerStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  readerDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: colors.sandDeep,
+  },
+  readerDotConnected: { backgroundColor: colors.sageDeep },
+  readerModeRow: { flexDirection: "row", gap: 8, marginTop: 14 },
+  readerMode: {
+    flex: 1,
+    minHeight: 42,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  readerModeActive: {
+    backgroundColor: colors.sageDeep,
+    borderColor: colors.sageDeep,
+  },
+  readerModeText: { color: colors.bark, fontSize: 12, fontWeight: "800" },
+  readerModeTextActive: { color: colors.white },
+  readerChoice: {
+    borderTopWidth: 1,
+    borderTopColor: colors.sandDeep,
+    paddingTop: 12,
+    marginTop: 12,
+  },
+  readerChoiceTitle: { color: colors.bark, fontSize: 13, fontWeight: "900" },
+  readerChoiceMeta: { color: colors.barkSoft, fontSize: 11, marginTop: 3 },
+  readerChoiceAction: {
+    color: colors.terracottaDeep,
+    fontSize: 12,
+    fontWeight: "900",
+    marginTop: 8,
+  },
+  registerProduct: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 18,
+    padding: 12,
+    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  registerProductImage: { width: 58, height: 58, borderRadius: 13 },
+  registerProductTitle: { color: colors.bark, fontSize: 14, fontWeight: "900" },
+  registerProductMeta: { color: colors.barkSoft, fontSize: 11, marginTop: 4 },
+  quantityControl: { flexDirection: "row", alignItems: "center", gap: 9 },
+  quantityButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    backgroundColor: colors.sand,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quantityButtonText: { color: colors.bark, fontSize: 18, fontWeight: "900" },
+  quantityValue: { minWidth: 18, textAlign: "center", color: colors.bark, fontWeight: "900" },
+  registerCart: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 20,
+    padding: 16,
+    marginTop: 16,
+  },
+  cartLine: { flexDirection: "row", justifyContent: "space-between", gap: 14, marginBottom: 8 },
+  cartLineName: { flex: 1, color: colors.barkSoft, fontSize: 12 },
+  cartLineAmount: { color: colors.bark, fontSize: 12, fontWeight: "800" },
+  cartTotal: {
+    borderTopWidth: 1,
+    borderTopColor: colors.sandDeep,
+    paddingTop: 12,
+    marginTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  cartTotalLabel: { color: colors.bark, fontSize: 14, fontWeight: "900" },
+  cartTotalAmount: { color: colors.terracottaDeep, fontSize: 22, fontWeight: "900" },
+  registerCheckout: {
+    minHeight: 54,
+    borderRadius: 15,
+    backgroundColor: colors.terracotta,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 14,
+  },
+  registerCheckoutText: { color: colors.white, fontSize: 15, fontWeight: "900" },
+  registerSafety: {
+    color: colors.barkSoft,
+    fontSize: 11,
+    lineHeight: 17,
+    textAlign: "center",
+    marginTop: 12,
   },
 });
