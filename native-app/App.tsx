@@ -115,6 +115,13 @@ type LogoColor = "none" | "bark" | "sage" | "sand" | "terracotta";
 type LogoSize = "small" | "medium";
 type LogoSide = "left" | "right";
 type JournalTab = "Write" | "Photos" | "Social" | "Publish";
+type JournalAdaptation = {
+  platform: "Instagram" | "Pinterest" | "TikTok" | "YouTube Shorts";
+  slug: string;
+  title: string;
+  description: string;
+  publishDate: string;
+};
 type PhotoDestination =
   | "trail-hero"
   | "trail-article"
@@ -638,6 +645,7 @@ function JournalEditor({
   versions,
   notes,
   media,
+  onAdapt,
   onBack,
 }: {
   token: string;
@@ -646,6 +654,7 @@ function JournalEditor({
   versions: JournalWorkingVersion[];
   notes: JournalReviewNote[];
   media: SharedMediaAsset[];
+  onAdapt: (adaptation: JournalAdaptation) => void;
   onBack: () => void;
 }) {
   const [tab, setTab] = useState<JournalTab>("Write"),
@@ -762,6 +771,19 @@ function JournalEditor({
     } finally {
       setPublishing(false);
     }
+  }
+  async function adaptStory(
+    platform: JournalAdaptation["platform"],
+  ) {
+    setSaveError("");
+    if (!(await synchronize())) return;
+    onAdapt({
+      platform,
+      slug: story.slug,
+      title: title.trim() || story.title,
+      description: description.trim(),
+      publishDate,
+    });
   }
   useEffect(() => {
     let active = true;
@@ -1115,17 +1137,23 @@ function JournalEditor({
               Nothing here changes the writing. Each platform receives its own
               crop, voice, and metadata.
             </Text>
-            {[
-              "Pinterest · 4 images",
-              "Instagram · hand off in Cheeto’s voice",
-              "TikTok idea",
-              "YouTube Short idea",
-            ].map((item) => (
-              <Pressable key={item} style={styles.socialAdapt}>
-                <Text style={styles.socialAdaptTitle}>{item}</Text>
+            {([
+              ["Pinterest · 4 images", "Pinterest"],
+              ["Instagram · hand off in Cheeto’s voice", "Instagram"],
+              ["TikTok idea", "TikTok"],
+              ["YouTube Short idea", "YouTube Shorts"],
+            ] as Array<[string, JournalAdaptation["platform"]]>).map(
+              ([label, platform]) => (
+              <Pressable
+                key={platform}
+                onPress={() => adaptStory(platform)}
+                style={styles.socialAdapt}
+              >
+                <Text style={styles.socialAdaptTitle}>{label}</Text>
                 <Text style={styles.socialAdaptAction}>Adapt to… ›</Text>
               </Pressable>
-            ))}
+              ),
+            )}
           </>
         ) : null}
         {tab === "Publish" ? (
@@ -1606,7 +1634,15 @@ function CatNanaWriter({
   );
 }
 
-function Journal({ token, person }: { token: string; person: Person }) {
+function Journal({
+  token,
+  person,
+  onAdapt,
+}: {
+  token: string;
+  person: Person;
+  onAdapt: (adaptation: JournalAdaptation) => void;
+}) {
   const [stories, setStories] = useState<JournalStory[]>([]),
     [selected, setSelected] = useState<JournalStoryDetail>(),
     [working, setWorking] = useState<JournalWorkingDraft | null>(null),
@@ -1718,6 +1754,7 @@ function Journal({ token, person }: { token: string; person: Person }) {
         versions={versions}
         notes={notes}
         media={journalMedia}
+        onAdapt={onAdapt}
         onBack={() => setSelected(undefined)}
       />
     );
@@ -3350,11 +3387,15 @@ function InstagramStudio({
   person,
   seeds,
   onOpenPreviews,
+  initialArticle,
+  onInitialArticleOpened,
 }: {
   token: string;
   person: Person;
   seeds: ContentSeed[];
   onOpenPreviews: () => void;
+  initialArticle?: JournalAdaptation;
+  onInitialArticleOpened: () => void;
 }) {
   const [rhythm, setRhythm] = useState<InstagramDay[]>(initialInstagramRhythm),
     [templates, setTemplates] = useState<InstagramTemplate[]>(
@@ -3370,6 +3411,7 @@ function InstagramStudio({
     [saveMessage, setSaveMessage] = useState(""),
     [savingRhythm, setSavingRhythm] = useState(false),
     [reminderEnabled, setReminderEnabled] = useState(false);
+  const initialArticleOpened = useRef(false);
   const weekday = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const today = rhythm.find((item) => item.day === weekday);
   useEffect(() => {
@@ -3393,6 +3435,52 @@ function InstagramStudio({
         ),
       );
   }, [token]);
+  useEffect(() => {
+    if (
+      !initialArticle ||
+      initialArticle.platform !== "Instagram" ||
+      initialArticleOpened.current
+    )
+      return;
+    initialArticleOpened.current = true;
+    const targetDate = Number.isNaN(Date.parse(initialArticle.publishDate))
+      ? localDateKey()
+      : initialArticle.publishDate.slice(0, 10);
+    const sourceNote = `Adapted from Trail Journal · /trail-journal/${initialArticle.slug}/`;
+    const draft: InstagramPostDraft = {
+      id: "",
+      title: initialArticle.title,
+      caption: initialArticle.description,
+      mediaUrls: [],
+      targetDate,
+      theme: "Trail Journal",
+      status: "Draft",
+      assignedTo: "Trinitie",
+      handoffNote: sourceNote,
+      updatedAt: new Date().toISOString(),
+    };
+    setEditingPost(draft);
+    onInitialArticleOpened();
+    askCheetoAssistant(token, {
+      title: initialArticle.title,
+      theme: "Trail Journal",
+      notes: initialArticle.description,
+    })
+      .then(({ suggestion }) =>
+        setEditingPost((current) =>
+          current?.id === ""
+            ? {
+                ...current,
+                caption: `${suggestion.caption.trim()}\n\n${suggestion.hashtags
+                  .slice(0, 5)
+                  .map((item) => item.tag)
+                  .join(" ")}`,
+              }
+            : current,
+        ),
+      )
+      .catch(() => {});
+  }, [initialArticle, onInitialArticleOpened, token]);
   function updateTheme(index: number, theme: string) {
     setRhythm((current) =>
       current.map((item, itemIndex) =>
@@ -3684,7 +3772,15 @@ function InstagramStudio({
   );
 }
 
-function VideoStudio({ person }: { person: Person }) {
+function VideoStudio({
+  person,
+  initialArticle,
+  onInitialArticleOpened,
+}: {
+  person: Person;
+  initialArticle?: JournalAdaptation;
+  onInitialArticleOpened: () => void;
+}) {
   const palette = [
     { name: "White", value: "#ffffff" },
     { name: "Bark", value: colors.bark },
@@ -3711,6 +3807,7 @@ function VideoStudio({ person }: { person: Person }) {
   const player = useVideoPlayer(null);
   const previewMotion = useRef(new Animated.Value(1)).current,
     playbackTimers = useRef<number[]>([]);
+  const initialArticleOpened = useRef(false);
   const [timeline, setTimeline] = useState<
     Array<{
       id: string;
@@ -3732,6 +3829,21 @@ function VideoStudio({ person }: { person: Person }) {
   useEffect(() => {
     if (clip?.uri) player.replace(clip.uri);
   }, [clip?.uri, player]);
+  useEffect(() => {
+    if (
+      !initialArticle ||
+      !["TikTok", "YouTube Shorts"].includes(initialArticle.platform) ||
+      initialArticleOpened.current
+    )
+      return;
+    initialArticleOpened.current = true;
+    setText(initialArticle.title);
+    setPreviewText(initialArticle.title);
+    setMessage(
+      `${initialArticle.platform} adaptation opened from “${initialArticle.title}.” Add the right clip, then shape its own hook and overlays here.`,
+    );
+    onInitialArticleOpened();
+  }, [initialArticle, onInitialArticleOpened]);
   async function chooseClip() {
     const result = await DocumentPicker.getDocumentAsync({
       type: "video/*",
@@ -4155,7 +4267,15 @@ function VideoStudio({ person }: { person: Person }) {
   );
 }
 
-function Pinterest({ token }: { token: string }) {
+function Pinterest({
+  token,
+  initialStorySlug,
+  onInitialStoryOpened,
+}: {
+  token: string;
+  initialStorySlug?: string;
+  onInitialStoryOpened: () => void;
+}) {
   const [stories, setStories] = useState<JournalStory[]>([]),
     [media, setMedia] = useState<SharedMediaAsset[]>([]),
     [campaigns, setCampaigns] = useState<PinterestCampaign[]>([]),
@@ -4187,6 +4307,13 @@ function Pinterest({ token }: { token: string }) {
       .catch((reason) => setError(reason.message))
       .finally(() => setLoading(false));
   }, [token]);
+  useEffect(() => {
+    if (!initialStorySlug || selected || !stories.length) return;
+    const story = stories.find((item) => item.slug === initialStorySlug);
+    if (!story) return;
+    selectStory(story);
+    onInitialStoryOpened();
+  }, [initialStorySlug, onInitialStoryOpened, selected, stories]);
   function selectStory(story: JournalStory) {
     setSelected(story);
     setMessage("");
@@ -5469,7 +5596,23 @@ export default function App() {
     [creatingAdventure, setCreatingAdventure] = useState(false),
     [viewingPreviews, setViewingPreviews] = useState(false),
     [viewingCalendar, setViewingCalendar] = useState(false),
-    [teamOpen, setTeamOpen] = useState(false);
+    [teamOpen, setTeamOpen] = useState(false),
+    [adaptation, setAdaptation] = useState<JournalAdaptation>(),
+    [keyboardHeight, setKeyboardHeight] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      (event) => setKeyboardHeight(event.endCoordinates.height),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardHeight(0),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   useEffect(() => {
     SecureStore.getItemAsync(APP_SESSION_KEY)
       .then(async (saved) => {
@@ -5539,6 +5682,20 @@ export default function App() {
         privateLocation: item.private_location || undefined,
         publicLocation: item.public_location || undefined,
       })),
+    );
+  }
+  function beginJournalAdaptation(next: JournalAdaptation) {
+    setAdaptation(next);
+    setTeamOpen(false);
+    setCreatingAdventure(false);
+    setViewingPreviews(false);
+    setViewingCalendar(false);
+    setTab(
+      next.platform === "Pinterest"
+        ? "Pinterest"
+        : next.platform === "Instagram"
+          ? "Studio"
+          : "Video",
     );
   }
   useEffect(() => {
@@ -5612,16 +5769,39 @@ export default function App() {
         person={person}
         seeds={seeds.filter((seed) => seed.platforms.includes("Instagram"))}
         onOpenPreviews={() => setViewingPreviews(true)}
+        initialArticle={
+          adaptation?.platform === "Instagram" ? adaptation : undefined
+        }
+        onInitialArticleOpened={() => setAdaptation(undefined)}
       />
     ) : (
       <Studio seeds={seeds} />
     )
   ) : tab === "Video" ? (
-    <VideoStudio person={person} />
+    <VideoStudio
+      person={person}
+      initialArticle={
+        adaptation &&
+        ["TikTok", "YouTube Shorts"].includes(adaptation.platform)
+          ? adaptation
+          : undefined
+      }
+      onInitialArticleOpened={() => setAdaptation(undefined)}
+    />
   ) : tab === "Journal" ? (
-    <Journal token={token} person={person} />
+    <Journal
+      token={token}
+      person={person}
+      onAdapt={beginJournalAdaptation}
+    />
   ) : tab === "Pinterest" ? (
-    <Pinterest token={token} />
+    <Pinterest
+      token={token}
+      initialStorySlug={
+        adaptation?.platform === "Pinterest" ? adaptation.slug : undefined
+      }
+      onInitialStoryOpened={() => setAdaptation(undefined)}
+    />
   ) : (
     <EventRegister token={token} />
   );
@@ -5677,6 +5857,11 @@ export default function App() {
           </Pressable>
         ) : null}
       </View>
+      <KeyboardAvoidingView
+        style={styles.appBody}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={0}
+      >
       {content}
       <View style={styles.tabs}>
         {tabs.map((item) => (
@@ -5687,6 +5872,7 @@ export default function App() {
               setCreatingAdventure(false);
               setViewingPreviews(false);
               setViewingCalendar(false);
+              setAdaptation(undefined);
               setTab(item);
             }}
             style={styles.tab}
@@ -5699,6 +5885,17 @@ export default function App() {
           </Pressable>
         ))}
       </View>
+      </KeyboardAvoidingView>
+      {keyboardHeight ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Hide keyboard"
+          onPress={Keyboard.dismiss}
+          style={[styles.floatingKeyboardDone, { bottom: keyboardHeight + 10 }]}
+        >
+          <Text style={styles.keyboardDoneText}>Done</Text>
+        </Pressable>
+      ) : null}
     </SafeAreaView>
     </StripeTerminalProvider>
   );
@@ -5997,6 +6194,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   shell: { flex: 1, backgroundColor: colors.cream },
+  appBody: { flex: 1 },
   loginKeyboard: { flex: 1, backgroundColor: colors.cream },
   login: { flex: 1, backgroundColor: colors.cream },
   loginContent: {
@@ -6025,6 +6223,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "800",
     color: colors.terracottaDeep,
+  },
+  floatingKeyboardDone: {
+    position: "absolute",
+    right: 14,
+    zIndex: 40,
+    minHeight: 42,
+    minWidth: 72,
+    borderRadius: 999,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: colors.bark,
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
   },
   eyebrow: {
     color: colors.sageDeep,
