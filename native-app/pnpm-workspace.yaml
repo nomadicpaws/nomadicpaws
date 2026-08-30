@@ -1,5 +1,0 @@
-packages:
-  - .
-
-onlyBuiltDependencies:
-  - '@stripe/stripe-terminal-react-native'

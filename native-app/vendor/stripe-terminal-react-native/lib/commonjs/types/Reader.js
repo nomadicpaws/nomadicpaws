@@ -1,0 +1,2 @@
+Object.defineProperty(exports,"__esModule",{value:true});exports.UpdateComponent=exports.Reader=void 0;var Reader;var UpdateComponent=exports.UpdateComponent=function(UpdateComponent){UpdateComponent["FIRMWARE"]="firmware";UpdateComponent["CONFIG"]="config";UpdateComponent["KEYS"]="keys";UpdateComponent["INCREMENTAL"]="incremental";return UpdateComponent;}({});
+//# sourceMappingURL=Reader.js.map

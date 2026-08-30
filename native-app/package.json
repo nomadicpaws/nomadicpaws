@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@stripe/stripe-terminal-react-native": "0.0.1-beta.32",
+    "@stripe/stripe-terminal-react-native": "file:vendor/stripe-terminal-react-native",
     "expo": "^57.0.0",
     "expo-apple-authentication": "~57.0.1",
     "expo-clipboard": "~57.0.1",
@@ -32,10 +32,5 @@
   "devDependencies": {
     "@types/react": "^19.2.0",
     "typescript": "^5.9.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@stripe/stripe-terminal-react-native"
-    ]
   }
 }

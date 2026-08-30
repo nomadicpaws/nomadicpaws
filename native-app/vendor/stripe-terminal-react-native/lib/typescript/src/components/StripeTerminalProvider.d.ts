@@ -1,0 +1,49 @@
+import React from 'react';
+import { type LogLevel, type LocaleConfig } from '../types';
+/**
+ * When using the Stripe Terminal SDK to build Apps on Devices that run on Stripe readers,
+ * the AppsOnDevicesConnectionTokenProvider can be used to obtain connection tokens without
+ * contacting your backend server.
+ *
+ * This feature is currently in development and is not yet available for use. To express interest
+ * in the private preview, contact your Stripe account team.
+ *
+ * @example
+ * ```ts
+ * import { AppsOnDevicesConnectionTokenProvider } from '@stripe/stripe-terminal-react-native';
+ * <StripeTerminalProvider tokenProvider={AppsOnDevicesConnectionTokenProvider}>
+ *   <App />
+ * </StripeTerminalProvider>
+ * ```
+ */
+export declare const AppsOnDevicesConnectionTokenProvider: () => Promise<string>;
+/**
+ *  StripeTerminalProvider Component Props
+ */
+export interface Props {
+    children: React.ReactElement | React.ReactElement[];
+    tokenProvider: () => Promise<string>;
+    logLevel?: LogLevel;
+    localeConfig?: LocaleConfig;
+}
+/**
+ * StripeTerminalProvider Component
+ *
+ * @example
+ * ```ts
+ * // Using a custom token provider (standard setup)
+ * <StripeTerminalProvider tokenProvider={fetchTokenProvider}>
+ *   <App />
+ * </StripeTerminalProvider>
+ *
+ * // Using Apps-on-Devices serverless mode (Android only, on Stripe smart readers)
+ * import { AppsOnDevicesConnectionTokenProvider } from '@stripe/stripe-terminal-react-native';
+ * <StripeTerminalProvider tokenProvider={AppsOnDevicesConnectionTokenProvider}>
+ *   <App />
+ * </StripeTerminalProvider>
+ * ```
+ * @param __namedParameters Props
+ * @returns React.JSX.Element
+ * @category ReactComponents
+ */
+export declare function StripeTerminalProvider({ children, tokenProvider, logLevel, localeConfig, }: Props): React.JSX.Element;

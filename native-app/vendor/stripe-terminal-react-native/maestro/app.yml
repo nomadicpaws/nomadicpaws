@@ -1,0 +1,123 @@
+appId: ${APP_ID}
+tags:
+  - passing
+---
+# Connect and disconnect
+- launchApp:
+    permissions:
+      all: allow
+
+- runFlow:
+    file: e2e/connectReader.yaml
+    env:
+      discoveryMethod: "bt-scn-btn"
+- runFlow: e2e/checkIfConnected.yaml
+
+# Announce available update and connect
+- launchApp:
+    permissions:
+      all: allow
+
+- runFlow:
+    file: e2e/connectReader.yaml
+    env:
+      discoveryMethod: "bt-scn-btn"
+      updateType: "available"
+- runFlow: e2e/assertUpdateAnnounced.yaml
+
+# Install required update and connect
+- launchApp:
+    permissions:
+      all: allow
+
+- runFlow:
+    file: e2e/connectReader.yaml
+    env:
+      discoveryMethod: "bt-scn-btn"
+      updateType: "required"
+- runFlow: e2e/checkIfConnected.yaml
+
+# Fail to connect when required update cannot install due to low battery
+- launchApp:
+    permissions:
+      all: allow
+
+- runFlow:
+    file: e2e/connectReader.yaml
+    env:
+      discoveryMethod: "bt-scn-btn"
+      updateType: "lowBattery"
+- runFlow: e2e/assertLowBatteryUpdateFailure.yaml
+
+# Connect with low battery and announce update (connection succeeds)
+- launchApp:
+    permissions:
+      all: allow
+
+- runFlow:
+    file: e2e/connectReader.yaml
+    env:
+      discoveryMethod: "bt-scn-btn"
+      updateType: "lowBatterySucceedConnect"
+- runFlow: e2e/assertLowBatterySucceedConnectUpdate.yaml
+
+# Change discovery method to bluetooth proximity
+- launchApp:
+    permissions:
+      all: allow
+
+- runFlow:
+    file: e2e/connectReader.yaml
+    env:
+      discoveryMethod: "bt-prox-btn"
+    when:
+        platform: ios
+
+# Change discovery method to Internet
+- launchApp:
+    permissions:
+      all: allow
+
+- runFlow:
+    file: e2e/connectReader.yaml
+    env:
+      discoveryMethod: "internet-btn"
+
+# Collect card payment
+- launchApp:
+    permissions:
+      all: allow
+
+- runFlow:
+    file: e2e/connectReader.yaml
+    env:
+      discoveryMethod: "bt-scn-btn"
+- runFlow: e2e/checkIfConnected.yaml
+- runFlow:
+    file: e2e/collectPayment.yaml
+
+# Store card via SetupIntent
+- launchApp:
+    permissions:
+      all: allow
+
+- runFlow:
+    file: e2e/connectReader.yaml
+    env:
+      discoveryMethod: "bt-scn-btn"
+- runFlow: e2e/checkIfConnected.yaml
+- runFlow:
+    file: e2e/setupIntent.yaml
+
+# In-Person Refund failed due to unsupported country
+- launchApp:
+    permissions:
+      all: allow
+
+- runFlow:
+    file: e2e/connectReader.yaml
+    env:
+      discoveryMethod: "bt-scn-btn"
+- runFlow: e2e/checkIfConnected.yaml
+- runFlow:
+    file: e2e/inpersonRefund.yaml

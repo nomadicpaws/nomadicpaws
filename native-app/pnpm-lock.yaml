@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@stripe/stripe-terminal-react-native':
-        specifier: 0.0.1-beta.32
-        version: 0.0.1-beta.32(react-native@0.86.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+        specifier: file:vendor/stripe-terminal-react-native
+        version: file:vendor/stripe-terminal-react-native(react-native@0.86.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       expo:
         specifier: ^57.0.0
         version: 57.0.15(@babel/core@7.29.7(supports-color@8.1.1))(@expo/dom-webview@57.0.1)(react-native@0.86.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)(typescript@5.9.3)
@@ -707,8 +707,8 @@ packages:
   '@sinclair/typebox@0.27.12':
     resolution: {integrity: sha512-hhyNJ+nbR6ZR7pToHvllEFun9TL0sbL+tk/ON75lo+Xas054uez98qRbsuNt7MBCyZKK4+8Yli/OAGZhmfBZ/g==}
 
-  '@stripe/stripe-terminal-react-native@0.0.1-beta.32':
-    resolution: {integrity: sha512-ujIik80yhfHx56SNg0sWm6iEXCXIs+miM6Mb2VaxEkX0xEVA44vYkzt6JFh0n9iScN2WXOXSBc3pvrkuYCTW2A==}
+  '@stripe/stripe-terminal-react-native@file:vendor/stripe-terminal-react-native':
+    resolution: {directory: vendor/stripe-terminal-react-native, type: directory}
     peerDependencies:
       react: '*'
       react-native: '*'
@@ -3208,7 +3208,7 @@ snapshots:
 
   '@sinclair/typebox@0.27.12': {}
 
-  '@stripe/stripe-terminal-react-native@0.0.1-beta.32(react-native@0.86.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)':
+  '@stripe/stripe-terminal-react-native@file:vendor/stripe-terminal-react-native(react-native@0.86.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)':
     dependencies:
       base-64: 1.0.0
       react: 19.2.3
