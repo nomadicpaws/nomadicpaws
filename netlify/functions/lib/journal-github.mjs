@@ -39,7 +39,7 @@ async function github(path, token, init = {}) {
   return data
 }
 
-export async function commitJournalDraft(draft) {
+export async function commitJournalDraft(draft, targetSlug = draft.story_slug) {
   const token = process.env.GITHUB_CONTENT_TOKEN || ''
   if (!token) {
     const error = new Error('The private GitHub publishing key still needs to be connected in Netlify.')
@@ -48,16 +48,36 @@ export async function commitJournalDraft(draft) {
   }
   const repository = process.env.GITHUB_CONTENT_REPOSITORY || 'nomadicpaws/nomadicpaws'
   const branch = process.env.GITHUB_CONTENT_BRANCH || 'main'
-  const filePath = `_posts/${draft.story_slug}.md`
+  const oldFilePath = `_posts/${draft.story_slug}.md`
+  const filePath = `_posts/${targetSlug}.md`
   const encodedPath = filePath.split('/').map(encodeURIComponent).join('/')
+  const oldEncodedPath = oldFilePath.split('/').map(encodeURIComponent).join('/')
   let existing = null
-  try {
-    existing = await github(`/repos/${repository}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`, token)
-  } catch (error) {
-    if (error?.status !== 404) throw error
+  let oldExisting = null
+  if (oldFilePath !== filePath) {
+    try {
+      oldExisting = await github(`/repos/${repository}/contents/${oldEncodedPath}?ref=${encodeURIComponent(branch)}`, token)
+    } catch (error) {
+      if (error?.status !== 404) throw error
+    }
+    try {
+      existing = await github(`/repos/${repository}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`, token)
+      const collision = new Error('Another Journal file already uses that title and date.')
+      collision.status = 409
+      throw collision
+    } catch (error) {
+      if (error?.status !== 404) throw error
+    }
+  } else {
+    try {
+      existing = await github(`/repos/${repository}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`, token)
+    } catch (error) {
+      if (error?.status !== 404) throw error
+    }
   }
-  const source = existing
-    ? Buffer.from(existing.content, 'base64').toString('utf8')
+  const sourceFile = oldExisting || existing
+  const source = sourceFile
+    ? Buffer.from(sourceFile.content, 'base64').toString('utf8')
     : '---\nlayout: post\n---\n\n'
   const content = buildMarkdown(source, draft)
   const payload = {
@@ -70,6 +90,22 @@ export async function commitJournalDraft(draft) {
     method: 'PUT',
     body: JSON.stringify(payload),
   })
+  if (oldExisting && oldFilePath !== filePath) {
+    try {
+      await github(`/repos/${repository}/contents/${oldEncodedPath}`, token, {
+        method: 'DELETE',
+        body: JSON.stringify({ message: `Rename Trail Journal: ${draft.title}`, sha: oldExisting.sha, branch }),
+      })
+    } catch (error) {
+      if (saved.content?.sha) {
+        await github(`/repos/${repository}/contents/${encodedPath}`, token, {
+          method: 'DELETE',
+          body: JSON.stringify({ message: `Undo incomplete Journal rename: ${draft.title}`, sha: saved.content.sha, branch }),
+        }).catch(() => {})
+      }
+      throw error
+    }
+  }
   return { commitSha: saved.commit?.sha || '', filePath, branch }
 }
 

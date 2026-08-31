@@ -14,6 +14,12 @@ export type PinterestCampaign = { post_slug: string; campaign_title: string; boa
 export type EventProduct = { sku: string; snipcartId: string; name: string; image: string; unitPriceCents: number; stock: number; active: boolean }
 export type EventSale = { saleId: string; paymentIntentId: string; clientSecret: string; subtotalCents: number; taxCents: number; totalCents: number; currency: 'usd'; mode: 'test' }
 export type EventSaleStatus = { id: string; status: string; mode: 'test'; currency: 'usd'; subtotal_cents: number; tax_cents: number; total_cents: number; stripe_payment_intent_id: string; created_at: string; updated_at: string }
+export type VideoOverlayDraft = { id: string; presetId: string; name: string; fontId: string; fontName: string; fontFamily: string; text: string; textColor: string; accentColor: string; startAt: number; endAt: number; animation: string; boxed: boolean; uppercase: boolean }
+export type VideoProject = {
+  id: string; title: string; mediaId: string | null; sourceStorySlug: string; platforms: Array<'Instagram Reels' | 'TikTok' | 'YouTube Shorts'>;
+  overlays: VideoOverlayDraft[]; currentOverlay: { presetId: string; fontId: string; text: string; textColor: string; accentColor: string; startAt: string; endAt: string; animation: string };
+  status: 'Draft' | 'Ready' | 'Handed Off' | 'Posted'; assignedTo: 'Katie' | 'Trinitie'; lastEditedBy: 'Katie' | 'Trinitie'; createdAt: string; updatedAt: string
+}
 
 export type JournalStory = {
   slug: string
@@ -140,6 +146,64 @@ export async function uploadAdventurePhoto(token: string, adventureId: string, f
   return data.media as SharedMediaAsset
 }
 
+export async function uploadAdventureVideo(token: string, adventureId: string, file: { uri: string; name: string; mimeType?: string | null; byteSize: number; width?: number; height?: number; durationSeconds: number }, onProgress?: (current: number, total: number) => void) {
+  const direct = await request<{ mode: 'r2'; uploadId: string; uploadUrl: string } | { mode: 'chunked' }>('/api/app/media', token, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'create-direct-video-upload', adventureId, originalName: file.name,
+      contentType: file.mimeType || 'video/quicktime', byteSize: file.byteSize,
+      width: file.width || 0, height: file.height || 0, durationSeconds: file.durationSeconds,
+    }),
+  })
+  if (direct.mode === 'r2') {
+    const task = FileSystem.createUploadTask(
+      direct.uploadUrl,
+      file.uri,
+      {
+        httpMethod: 'PUT',
+        uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+        headers: { 'Content-Type': file.mimeType || 'video/quicktime' },
+      },
+      ({ totalBytesSent, totalBytesExpectedToSend }) =>
+        onProgress?.(totalBytesSent, totalBytesExpectedToSend || file.byteSize),
+    )
+    const result = await task.uploadAsync()
+    if (!result || result.status < 200 || result.status >= 300) throw new Error('Cloud storage did not accept that video. Please retry.')
+    const finished = await request<{ media: SharedMediaAsset }>('/api/app/media', token, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'finish-direct-video-upload', uploadId: direct.uploadId }),
+    })
+    return finished.media
+  }
+  const started = await request<{ uploadId: string; chunkBytes: number; chunkCount: number }>('/api/app/media', token, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'start-video-upload', adventureId, originalName: file.name,
+      contentType: file.mimeType || 'video/quicktime', byteSize: file.byteSize,
+      width: file.width || 0, height: file.height || 0, durationSeconds: file.durationSeconds,
+    }),
+  })
+  for (let index = 0; index < started.chunkCount; index += 1) {
+    const position = index * started.chunkBytes
+    const length = Math.min(started.chunkBytes, file.byteSize - position)
+    const data = await FileSystem.readAsStringAsync(file.uri, {
+      encoding: FileSystem.EncodingType.Base64,
+      position,
+      length,
+    })
+    await request<{ received: number }>('/api/app/media', token, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'upload-video-chunk', uploadId: started.uploadId, index, data }),
+    })
+    onProgress?.(index + 1, started.chunkCount)
+  }
+  const finished = await request<{ media: SharedMediaAsset }>('/api/app/media', token, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'finish-video-upload', uploadId: started.uploadId }),
+  })
+  return finished.media
+}
+
 export function privateMediaUrl(id: string) { return `${API_URL}/api/app/media/file/${encodeURIComponent(id)}` }
 export function workingImageUrl(id: string) { return `${API_URL}/api/app/media/working/${encodeURIComponent(id)}` }
 export function publicWorkingImagePath(id: string) { return `/media/working/${encodeURIComponent(id)}.jpg` }
@@ -232,6 +296,28 @@ export async function askCheetoAssistant(token: string, input: { title: string; 
   return request<{ suggestion: CheetoSuggestion }>('/api/app/assistant', token, { method: 'POST', body: JSON.stringify(input) })
 }
 
+function normalizeVideoProject(item: any): VideoProject {
+  return {
+    id: item.id, title: item.title, mediaId: item.media_id || null, sourceStorySlug: item.source_story_slug || '',
+    platforms: item.platforms || [], overlays: item.overlays || [], currentOverlay: item.current_overlay || {},
+    status: item.status, assignedTo: item.assigned_to, lastEditedBy: item.last_edited_by,
+    createdAt: item.created_at, updatedAt: item.updated_at,
+  }
+}
+
+export async function loadVideoProjects(token: string) {
+  const data = await cachedRequest('video-projects', () => request<{ projects: any[] }>('/api/app/video', token))
+  return { projects: data.projects.map(normalizeVideoProject) }
+}
+
+export async function saveVideoProject(token: string, project: Omit<VideoProject, 'id' | 'lastEditedBy' | 'createdAt' | 'updatedAt'> & { id?: string }) {
+  const data = await request<{ project: any }>('/api/app/video', token, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'save-project', ...project }),
+  })
+  return normalizeVideoProject(data.project)
+}
+
 export async function loadPinterestCampaigns(token: string) {
   return cachedRequest('pinterest-campaigns', () =>
     request<{ campaigns: PinterestCampaign[] }>('/api/app/pinterest', token),
@@ -268,7 +354,7 @@ export async function loadEventSaleStatus(token: string, saleId: string) {
 }
 
 export async function publishJournalWorkingDraft(token: string, slug: string) {
-  return request<{ commitSha: string; filePath: string; branch: string; state: 'committed' }>('/api/app/journal', token, {
+  return request<{ commitSha: string; filePath: string; branch: string; slug: string; state: 'committed' }>('/api/app/journal', token, {
     method: 'POST', body: JSON.stringify({ action: 'publish-working-draft', slug }),
   })
 }

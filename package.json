@@ -7,6 +7,8 @@
     "build": "node scripts/generate-sitemap.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1121.0",
+    "@aws-sdk/s3-request-presigner": "^3.1121.0",
     "@netlify/blobs": "^11.0.2",
     "@netlify/database": "^1.0.0",
     "jose": "6.1.0",

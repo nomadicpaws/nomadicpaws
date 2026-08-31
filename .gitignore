@@ -5,5 +5,7 @@
 !.env.example
 tmp/
 node_modules/
+.pnpm-store/
 native-app/.expo/
 native-app/.expo-build-check/
+native-app/.expo-release-check/

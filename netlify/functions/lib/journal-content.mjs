@@ -23,3 +23,11 @@ export function journalStatus(data, now = Date.now()) {
 export function journalVersion(raw) {
   return createHash('sha256').update(raw).digest('hex').slice(0, 12)
 }
+
+export function journalSlug(title, publishDate) {
+  const date = String(publishDate || '').match(/^\d{4}-\d{2}-\d{2}/)?.[0] || new Date().toISOString().slice(0, 10)
+  const words = String(title || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/['’]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 90)
+  return `${date}-${words || 'trail-journal-story'}`
+}

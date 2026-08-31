@@ -130,3 +130,34 @@ export async function journalWorkingVersions(slug) {
   )
   return result.rows
 }
+
+export async function renameJournalStory(oldSlug, newSlug) {
+  if (!oldSlug || !newSlug || oldSlug === newSlug) return
+  const client = await getDatabase().pool.connect()
+  try {
+    await client.query('BEGIN')
+    const collision = await client.query(`SELECT 1 FROM journal_working_drafts WHERE story_slug = $1`, [newSlug])
+    if (collision.rowCount) {
+      const error = new Error('Another Journal story already uses that title and date.')
+      error.status = 409
+      throw error
+    }
+    await client.query(`UPDATE journal_working_drafts SET story_slug = $2 WHERE story_slug = $1`, [oldSlug, newSlug])
+    await client.query(`UPDATE journal_review_notes SET story_slug = $2 WHERE story_slug = $1`, [oldSlug, newSlug])
+    await client.query(
+      `UPDATE pinterest_app_campaigns
+          SET post_slug = $2,
+              campaign = jsonb_set(campaign, '{post_slug}', to_jsonb($2::text)),
+              updated_at = NOW()
+        WHERE post_slug = $1`,
+      [oldSlug, newSlug],
+    )
+    await client.query(`UPDATE video_studio_projects SET source_story_slug = $2, updated_at = NOW() WHERE source_story_slug = $1`, [oldSlug, newSlug])
+    await client.query('COMMIT')
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
+  }
+}

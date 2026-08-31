@@ -1,6 +1,10 @@
 export const MAX_DIRECT_PHOTO_BYTES = 5 * 1024 * 1024
+export const MAX_ADVENTURE_VIDEO_BYTES = 250 * 1024 * 1024
+export const MAX_ADVENTURE_VIDEO_SECONDS = 35
+export const VIDEO_CHUNK_BYTES = 2 * 1024 * 1024
 export const MEDIA_TAGS = ['Cheeto', 'Trail', 'Wildlife', 'Product', 'Behind the Scenes']
 export const PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'])
+export const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/x-m4v'])
 
 export function validAdventure(value = {}) {
   return typeof value.title === 'string' && value.title.trim().length > 0 && value.title.trim().length <= 160 &&
@@ -10,6 +14,15 @@ export function validAdventure(value = {}) {
 
 export function validDirectPhoto(file) {
   return Boolean(file && PHOTO_TYPES.has(String(file.type || '').toLowerCase()) && Number(file.size) > 0 && Number(file.size) <= MAX_DIRECT_PHOTO_BYTES)
+}
+
+export function validVideoUpload(value = {}) {
+  const durationSeconds = Number(value.durationSeconds)
+  return typeof value.adventureId === 'string' && /^[0-9a-f-]{36}$/i.test(value.adventureId)
+    && typeof value.originalName === 'string' && value.originalName.trim().length > 0 && value.originalName.length <= 255
+    && VIDEO_TYPES.has(String(value.contentType || '').toLowerCase())
+    && Number.isInteger(Number(value.byteSize)) && Number(value.byteSize) > 0 && Number(value.byteSize) <= MAX_ADVENTURE_VIDEO_BYTES
+    && Number.isFinite(durationSeconds) && durationSeconds > 0 && durationSeconds <= MAX_ADVENTURE_VIDEO_SECONDS
 }
 
 export function validMediaDetails(input) {

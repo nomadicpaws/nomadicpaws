@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { MAX_DIRECT_PHOTO_BYTES, validAdventure, validDirectPhoto, validMediaDetails, validWorkingVersion } from '../netlify/functions/lib/media-settings.mjs'
+import { MAX_ADVENTURE_VIDEO_BYTES, MAX_DIRECT_PHOTO_BYTES, validAdventure, validDirectPhoto, validMediaDetails, validVideoUpload, validWorkingVersion } from '../netlify/functions/lib/media-settings.mjs'
 
 test('adventures require a useful bounded title', () => {
   assert.equal(validAdventure({ title: 'Cheeto discovers a cactus shadow' }), true)
@@ -28,4 +28,18 @@ test('direct uploads preserve supported photos within the safe function limit', 
   assert.equal(validDirectPhoto({ type: 'image/heic', size: MAX_DIRECT_PHOTO_BYTES }), true)
   assert.equal(validDirectPhoto({ type: 'video/quicktime', size: 1000 }), false)
   assert.equal(validDirectPhoto({ type: 'image/jpeg', size: MAX_DIRECT_PHOTO_BYTES + 1 }), false)
+})
+
+test('chunked adventure uploads accept a real 30-second iPhone video safely', () => {
+  const input = {
+    adventureId: '11111111-1111-4111-8111-111111111111',
+    originalName: 'Cheeto-trail.mov',
+    contentType: 'video/quicktime',
+    byteSize: MAX_ADVENTURE_VIDEO_BYTES,
+    durationSeconds: 30,
+  }
+  assert.equal(validVideoUpload(input), true)
+  assert.equal(validVideoUpload({ ...input, durationSeconds: 36 }), false)
+  assert.equal(validVideoUpload({ ...input, contentType: 'application/pdf' }), false)
+  assert.equal(validVideoUpload({ ...input, byteSize: MAX_ADVENTURE_VIDEO_BYTES + 1 }), false)
 })

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { journalStatus, journalVersion, parseJournalFile } from '../netlify/functions/lib/journal-content.mjs'
+import { journalSlug, journalStatus, journalVersion, parseJournalFile } from '../netlify/functions/lib/journal-content.mjs'
 import { buildMarkdown } from '../netlify/functions/lib/journal-github.mjs'
 
 test('native Journal details preserve CMS body and safe metadata', () => {
@@ -16,6 +16,17 @@ test('review-note versions change whenever the draft changes', () => {
   assert.equal(original, journalVersion('first draft'))
   assert.notEqual(original, journalVersion('second draft'))
   assert.match(original, /^[a-f0-9]{12}$/)
+})
+
+test('Journal links and filenames follow edited titles and publication dates', () => {
+  assert.equal(
+    journalSlug('Why Pezzy Is at the Top of Cheeto’s Treat List', '2026-09-06T09:00:00-07:00'),
+    '2026-09-06-why-pezzy-is-at-the-top-of-cheetos-treat-list',
+  )
+  assert.equal(
+    journalSlug('The Lionfish Incident: Cheeto Has No Manners', '2026-09-13'),
+    '2026-09-13-the-lionfish-incident-cheeto-has-no-manners',
+  )
 })
 
 test('GitHub publishing preserves unrelated frontmatter while applying the synchronized draft', () => {

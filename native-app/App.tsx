@@ -49,6 +49,7 @@ import {
   loadStories,
   loadStory,
   loadTeamAccess,
+  loadVideoProjects,
   privateMediaUrl,
   publishJournalWorkingDraft,
   PinterestCampaign,
@@ -60,6 +61,7 @@ import {
   saveJournalWorkingDraft,
   savePinterestCampaign,
   saveWorkingVersion,
+  saveVideoProject,
   SharedAdventure,
   SharedMediaAsset,
   signInWithApple,
@@ -67,9 +69,12 @@ import {
   updateReviewNote,
   updateSharedMedia,
   uploadAdventurePhoto,
+  uploadAdventureVideo,
   uploadInstagramTemplate,
   workingImageUrl,
   WorkingVersion,
+  VideoOverlayDraft,
+  VideoProject,
 } from "./src/api";
 import {
   ContentSeed,
@@ -84,7 +89,6 @@ import {
   starterSeeds,
   videoOverlayPresets,
 } from "./src/content";
-import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
@@ -96,6 +100,10 @@ import * as Clipboard from "expo-clipboard";
 import * as ExpoMediaLibrary from "expo-media-library";
 import * as Notifications from "expo-notifications";
 import { useVideoPlayer, VideoView } from "expo-video";
+import {
+  listenForRenderProgress,
+  renderNomadicVideo,
+} from "./modules/nomadic-video-renderer";
 import {
   Reader,
   StripeTerminalProvider,
@@ -222,6 +230,7 @@ const APP_SESSION_KEY = "nomadic-paws-private-session";
 const TRINITIE_WELCOME_KEY = "nomadic-paws-trinitie-studio-welcome";
 const INSTAGRAM_REMINDER_SETTING = "nomadic-paws-instagram-reminder";
 const INSTAGRAM_REMINDER_ID = "nomadic-paws-instagram-reminder-id";
+const INSTAGRAM_REMINDER_TIME = "nomadic-paws-instagram-reminder-time";
 
 type LocalJournalDraft = {
   storySlug: string;
@@ -261,6 +270,8 @@ function localInstagramDraftPath(key: string) {
 async function syncInstagramReminder(
   posts: InstagramPostDraft[],
   enabled: boolean,
+  time = "17:30",
+  rhythm: InstagramDay[] = initialInstagramRhythm,
 ) {
   const previous = await SecureStore.getItemAsync(INSTAGRAM_REMINDER_ID);
   if (previous) {
@@ -268,18 +279,33 @@ async function syncInstagramReminder(
     await SecureStore.deleteItemAsync(INSTAGRAM_REMINDER_ID);
   }
   if (!enabled) return;
-  const today = localDateKey();
-  const alreadyPrepared = posts.some(
-    (post) =>
-      post.targetDate === today &&
-      ["Ready", "Handed Off", "Posted"].includes(post.status),
-  );
-  if (alreadyPrepared) return;
+  const match = time.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+  const hour = match ? Number(match[1]) : 17;
+  const minute = match ? Number(match[2]) : 30;
+  const now = new Date();
+  let target: Date | undefined;
+  for (let offset = 0; offset < 8; offset += 1) {
+    const candidate = new Date(now);
+    candidate.setDate(candidate.getDate() + offset);
+    candidate.setHours(hour, minute, 0, 0);
+    if (candidate.getTime() <= now.getTime()) continue;
+    const weekday = candidate.toLocaleDateString("en-US", {
+      weekday: "long",
+    });
+    if (rhythm.find((item) => item.day === weekday)?.enabled === false) continue;
+    const alreadyPrepared = posts.some(
+      (post) =>
+        post.targetDate === localDateKey(candidate) &&
+        ["Ready", "Handed Off", "Posted"].includes(post.status),
+    );
+    if (!alreadyPrepared) {
+      target = candidate;
+      break;
+    }
+  }
+  if (!target) return;
   const permission = await Notifications.requestPermissionsAsync();
   if (!permission.granted) return;
-  const target = new Date();
-  target.setHours(17, 30, 0, 0);
-  if (target.getTime() <= Date.now()) target.setDate(target.getDate() + 1);
   const id = await Notifications.scheduleNotificationAsync({
     content: {
       title: "Today’s post is still available",
@@ -300,6 +326,22 @@ function localDateKey(date = new Date()) {
     month = String(date.getMonth() + 1).padStart(2, "0"),
     day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function journalPreviewSlug(title: string, publishDate: string) {
+  const date = publishDate.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || new Date().toISOString().slice(0, 10);
+  const words = title.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 90);
+  return `${date}-${words || "trail-journal-story"}`;
+}
+
+function reminderLabel(time: string) {
+  const [rawHour, minute = "00"] = time.split(":"),
+    hour = Number(rawHour || 17),
+    suffix = hour >= 12 ? "PM" : "AM",
+    displayHour = hour % 12 || 12;
+  return `${displayHour}:${minute} ${suffix}`;
 }
 
 function Choice<T extends string>({
@@ -677,7 +719,10 @@ function JournalEditor({
     ),
     [saveError, setSaveError] = useState(""),
     [publishing, setPublishing] = useState(false),
-    [publishState, setPublishState] = useState<"" | "committed">("");
+    [publishState, setPublishState] = useState<"" | "committed">(""),
+    [publishedSlug, setPublishedSlug] = useState("");
+  const futureSlug = journalPreviewSlug(title, publishDate);
+  const journalPhotos = media.filter((asset) => asset.kind === "photo" || asset.content_type.startsWith("image/"));
   const editVersion = useRef(0);
   const localDraftLoaded = useRef(false);
   function localSnapshot(): LocalJournalDraft {
@@ -760,6 +805,7 @@ function JournalEditor({
       if (!(await synchronize())) return;
       const result = await publishJournalWorkingDraft(token, story.slug);
       setPublishState(result.state);
+      setPublishedSlug(result.slug || futureSlug);
       setSaveState("Committed to GitHub");
     } catch (reason) {
       setSaveError(
@@ -914,6 +960,7 @@ function JournalEditor({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.editorTabsScroller}
         contentContainerStyle={styles.editorTabs}
       >
         {(["Write", "Photos", "Social", "Publish"] as JournalTab[]).map(
@@ -1075,7 +1122,7 @@ function JournalEditor({
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.journalMediaRow}
             >
-              {media.map((asset) => (
+              {journalPhotos.map((asset) => (
                 <View key={asset.id} style={styles.journalMediaCard}>
                   <Image
                     source={{
@@ -1103,7 +1150,7 @@ function JournalEditor({
                 </View>
               ))}
             </ScrollView>
-            {!media.length ? (
+            {!journalPhotos.length ? (
               <View style={styles.teamEmpty}>
                 <Text style={styles.teamEmptyTitle}>No shared photos yet.</Text>
                 <Text style={styles.teamEmptyCopy}>
@@ -1149,7 +1196,10 @@ function JournalEditor({
                 style={styles.socialAdapt}
               >
                 <Text style={styles.socialAdaptTitle}>{label}</Text>
-                <Text style={styles.socialAdaptAction}>Adapt to… ›</Text>
+                <View style={styles.socialAdaptActionRow}>
+                  <Text style={styles.socialAdaptAction}>Adapt to…</Text>
+                  <Text style={styles.socialAdaptChevron}>›</Text>
+                </View>
               </Pressable>
               ),
             )}
@@ -1183,6 +1233,13 @@ function JournalEditor({
               onChangeText={changed(setPublishDate)}
               style={styles.input}
             />
+            <View style={styles.journalAddressPreview}>
+              <Text style={styles.journalAddressLabel}>Story link</Text>
+              <Text selectable style={styles.journalAddressValue}>nomadicpaws.co/trail-journal/{publishedSlug || futureSlug}/</Text>
+              <Text style={styles.journalAddressLabel}>GitHub file</Text>
+              <Text selectable style={styles.journalAddressFile}>_posts/{publishedSlug || futureSlug}.md</Text>
+              <Text style={styles.journalAddressHelp}>These update automatically from the title and date. The old address is replaced when you publish.</Text>
+            </View>
             <Text style={styles.controlLabel}>Story state</Text>
             <View style={styles.categoryRow}>
               {([
@@ -2927,7 +2984,7 @@ function NewAdventure({
     [error, setError] = useState("");
   async function choosePhotos() {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ["images", "videos"],
       allowsMultipleSelection: true,
       selectionLimit: 0,
       quality: 1,
@@ -2952,14 +3009,38 @@ function NewAdventure({
       });
       for (let index = 0; index < files.length; index += 1) {
         const file = files[index]!;
-        setProgress(`Adding photo ${index + 1} of ${files.length}…`);
-        await uploadAdventurePhoto(token, adventure.id, {
-          uri: file.uri,
-          name: file.fileName || `Cheeto-photo-${index + 1}.jpg`,
-          mimeType: file.mimeType,
-          width: file.width,
-          height: file.height,
-        });
+        const isVideo =
+          file.type === "video" || file.mimeType?.startsWith("video/");
+        if (isVideo) {
+          const info = await FileSystem.getInfoAsync(file.uri);
+          const byteSize = file.fileSize || (info.exists ? info.size || 0 : 0);
+          await uploadAdventureVideo(
+            token,
+            adventure.id,
+            {
+              uri: file.uri,
+              name: file.fileName || `Cheeto-video-${index + 1}.mov`,
+              mimeType: file.mimeType,
+              byteSize,
+              width: file.width,
+              height: file.height,
+              durationSeconds: Math.max(0, (file.duration || 0) / 1000),
+            },
+            (piece, total) =>
+              setProgress(
+                `Adding video ${index + 1} of ${files.length} · ${Math.min(100, Math.round((piece / Math.max(1, total)) * 100))}%…`,
+              ),
+          );
+        } else {
+          setProgress(`Adding photo ${index + 1} of ${files.length}…`);
+          await uploadAdventurePhoto(token, adventure.id, {
+            uri: file.uri,
+            name: file.fileName || `Cheeto-photo-${index + 1}.jpg`,
+            mimeType: file.mimeType,
+            width: file.width,
+            height: file.height,
+          });
+        }
       }
       setProgress("Shared with the studio.");
       onSaved();
@@ -3013,23 +3094,29 @@ function NewAdventure({
         <Text style={styles.uploadIcon}>▧</Text>
         <Text style={styles.uploadTitle}>
           {files.length
-            ? `${files.length} photo${files.length === 1 ? "" : "s"} selected`
-            : "Choose from Photos"}
+            ? `${files.length} item${files.length === 1 ? "" : "s"} selected`
+            : "Choose photos or videos"}
         </Text>
         <Text style={styles.uploadCopy}>
           Opens your iPhone Photos library, including iCloud Photos. Original
-          files only; nothing else in your library is touched. Direct uploads
-          currently accept individual photos up to 5 MB.
+          files only; nothing else in your library is touched. Videos may be up
+          to 30 seconds and upload privately in small, reliable pieces.
         </Text>
       </Pressable>
       {files.map((file, index) => (
         <View key={file.uri} style={styles.selectedFile}>
-          <Image
-            source={{ uri: file.uri }}
-            style={{ width: 38, height: 38, borderRadius: 8 }}
-          />
+          {file.type === "video" || file.mimeType?.startsWith("video/") ? (
+            <View style={styles.selectedVideoIcon}>
+              <Text style={styles.selectedVideoIconText}>▶</Text>
+            </View>
+          ) : (
+            <Image
+              source={{ uri: file.uri }}
+              style={{ width: 38, height: 38, borderRadius: 8 }}
+            />
+          )}
           <Text numberOfLines={1} style={styles.selectedFileName}>
-            {file.fileName || `Cheeto photo ${index + 1}`}
+            {file.fileName || `Cheeto moment ${index + 1}`}
           </Text>
           <Pressable
             onPress={() =>
@@ -3629,7 +3716,8 @@ function InstagramStudio({
     [importMessage, setImportMessage] = useState(""),
     [saveMessage, setSaveMessage] = useState(""),
     [savingRhythm, setSavingRhythm] = useState(false),
-    [reminderEnabled, setReminderEnabled] = useState(false);
+    [reminderEnabled, setReminderEnabled] = useState(false),
+    [reminderTime, setReminderTime] = useState("17:30");
   const initialArticleOpened = useRef(false);
   const weekday = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const today = rhythm.find((item) => item.day === weekday);
@@ -3638,15 +3726,23 @@ function InstagramStudio({
       loadInstagramStudio(token),
       loadSharedMedia(token),
       SecureStore.getItemAsync(INSTAGRAM_REMINDER_SETTING),
+      SecureStore.getItemAsync(INSTAGRAM_REMINDER_TIME),
     ])
-      .then(([data, mediaData, reminderSetting]) => {
+      .then(([data, mediaData, reminderSetting, savedReminderTime]) => {
         if (data.rhythm) setRhythm(data.rhythm);
         setTemplates(data.templates);
         setPosts(data.posts);
         setStudioMedia(mediaData.media);
         const enabled = reminderSetting === "on";
+        const time = savedReminderTime || "17:30";
         setReminderEnabled(enabled);
-        syncInstagramReminder(data.posts, enabled).catch(() => {});
+        setReminderTime(time);
+        syncInstagramReminder(
+          data.posts,
+          enabled,
+          time,
+          data.rhythm || initialInstagramRhythm,
+        ).catch(() => {});
       })
       .catch(() =>
         setSaveMessage(
@@ -3730,6 +3826,12 @@ function InstagramStudio({
     setSavingRhythm(true);
     try {
       await saveInstagramRhythm(token, rhythm);
+      await syncInstagramReminder(
+        posts,
+        reminderEnabled,
+        reminderTime,
+        rhythm,
+      );
       setEditingRhythm(false);
       setSaveMessage("Weekly rhythm saved.");
     } catch (reason) {
@@ -3772,17 +3874,27 @@ function InstagramStudio({
     const next = !reminderEnabled;
     setReminderEnabled(next);
     await SecureStore.setItemAsync(INSTAGRAM_REMINDER_SETTING, next ? "on" : "off");
-    await syncInstagramReminder(posts, next);
+    await syncInstagramReminder(posts, next, reminderTime, rhythm);
     setSaveMessage(
       next
-        ? "One gentle 5:30 PM reminder is on when today has nothing ready."
+        ? `One gentle ${reminderLabel(reminderTime)} reminder is on when today has nothing ready.`
         : "Instagram reminders are off.",
+    );
+  }
+  async function chooseReminderTime(time: string) {
+    setReminderTime(time);
+    await SecureStore.setItemAsync(INSTAGRAM_REMINDER_TIME, time);
+    await syncInstagramReminder(posts, reminderEnabled, time, rhythm);
+    setSaveMessage(
+      `Gentle reminder moved to ${reminderLabel(time)}. Disabled rhythm days stay quiet.`,
     );
   }
   function acceptSavedPost(saved: InstagramPostDraft) {
     const next = [saved, ...posts.filter((item) => item.id !== saved.id)];
     setPosts(next);
-    syncInstagramReminder(next, reminderEnabled).catch(() => {});
+    syncInstagramReminder(next, reminderEnabled, reminderTime, rhythm).catch(
+      () => {},
+    );
   }
   return (
     <ScrollView
@@ -3930,13 +4042,34 @@ function InstagramStudio({
       </View>
       <Pressable onPress={toggleReminder} style={styles.reminderSetting}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.reminderSettingTitle}>Gentle 5:30 PM reminder</Text>
+          <Text style={styles.reminderSettingTitle}>
+            Gentle {reminderLabel(reminderTime)} reminder
+          </Text>
           <Text style={styles.reminderSettingCopy}>
             Only when today still has no Ready, Handed Off, or Posted Instagram post.
           </Text>
         </View>
         <Text style={styles.reminderSettingState}>{reminderEnabled ? "On" : "Off"}</Text>
       </Pressable>
+      {reminderEnabled ? (
+        <View style={styles.reminderTimeChoices}>
+          <Text style={styles.controlLabel}>Reminder time</Text>
+          <View style={styles.choiceRow}>
+            {["16:30", "17:30", "18:30"].map((time) => (
+              <Choice
+                key={time}
+                value={time}
+                label={reminderLabel(time)}
+                current={reminderTime}
+                onPress={chooseReminderTime}
+              />
+            ))}
+          </View>
+          <Text style={styles.helperCopy}>
+            Days turned off in the weekly rhythm never receive this reminder.
+          </Text>
+        </View>
+      ) : null}
       <View style={styles.rhythmCard}>
         {rhythm.map((item, index) => (
           <View
@@ -3999,11 +4132,15 @@ function InstagramStudio({
 }
 
 function VideoStudio({
+  token,
   person,
+  media,
   initialArticle,
   onInitialArticleOpened,
 }: {
+  token: string;
   person: Person;
+  media: SharedMediaAsset[];
   initialArticle?: JournalAdaptation;
   onInitialArticleOpened: () => void;
 }) {
@@ -4024,34 +4161,51 @@ function VideoStudio({
   const [startAt, setStartAt] = useState("1"),
     [endAt, setEndAt] = useState("6"),
     [message, setMessage] = useState("");
+  const [projects, setProjects] = useState<VideoProject[]>([]),
+    [activeProjectId, setActiveProjectId] = useState<string>(),
+    [projectTitle, setProjectTitle] = useState(""),
+    [projectStatus, setProjectStatus] = useState<VideoProject["status"]>("Draft"),
+    [assignedTo, setAssignedTo] = useState<VideoProject["assignedTo"]>(
+      person === "Trinitie" ? "Trinitie" : "Katie",
+    ),
+    [platforms, setPlatforms] = useState<VideoProject["platforms"]>([
+      "Instagram Reels",
+    ]),
+    [sourceStorySlug, setSourceStorySlug] = useState(""),
+    [selectedMediaId, setSelectedMediaId] = useState<string | null>(null),
+    [savingProject, setSavingProject] = useState(false);
   const [previewText, setPreviewText] = useState(firstPreset.defaultText),
     [playing, setPlaying] = useState(false);
-  const [clip, setClip] = useState<DocumentPicker.DocumentPickerAsset>(),
+  const [rendering, setRendering] = useState(false),
+    [renderProgress, setRenderProgress] = useState(0),
+    [renderStage, setRenderStage] = useState(""),
+    [finishedVideo, setFinishedVideo] = useState<string>();
+  const [clip, setClip] = useState<{ uri: string; name: string }>(),
     [clipMessage, setClipMessage] = useState(
-      "From Photos or Files · the original stays untouched",
+      "From iPhone Photos · the original stays untouched",
     );
   const player = useVideoPlayer(null);
   const previewMotion = useRef(new Animated.Value(1)).current,
     playbackTimers = useRef<number[]>([]);
   const initialArticleOpened = useRef(false);
-  const [timeline, setTimeline] = useState<
-    Array<{
-      id: string;
-      presetId: string;
-      name: string;
-      fontId: string;
-      fontName: string;
-      fontFamily: string;
-      text: string;
-      textColor: string;
-      accentColor: string;
-      startAt: number;
-      endAt: number;
-    }>
-  >([]);
+  const [timeline, setTimeline] = useState<VideoOverlayDraft[]>([]);
   const preset =
     videoOverlayPresets.find((item) => item.id === presetId) || firstPreset;
   const font = videoFonts.find((item) => item.id === fontId) || videoFonts[0]!;
+  const sharedVideos = media.filter(
+    (item) => item.kind === "video" || item.content_type.startsWith("video/"),
+  );
+  useEffect(() => {
+    loadVideoProjects(token)
+      .then((data) => setProjects(data.projects))
+      .catch((reason) =>
+        setMessage(
+          reason instanceof Error
+            ? reason.message
+            : "Shared video projects could not be opened.",
+        ),
+      );
+  }, [token]);
   useEffect(() => {
     if (clip?.uri) player.replace(clip.uri);
   }, [clip?.uri, player]);
@@ -4065,23 +4219,153 @@ function VideoStudio({
     initialArticleOpened.current = true;
     setText(initialArticle.title);
     setPreviewText(initialArticle.title);
+    setProjectTitle(initialArticle.title);
+    setSourceStorySlug(initialArticle.slug);
+    setPlatforms(
+      initialArticle.platform === "TikTok" ? ["TikTok"] : ["YouTube Shorts"],
+    );
     setMessage(
       `${initialArticle.platform} adaptation opened from “${initialArticle.title}.” Add the right clip, then shape its own hook and overlays here.`,
     );
     onInitialArticleOpened();
   }, [initialArticle, onInitialArticleOpened]);
   async function chooseClip() {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: "video/*",
-      copyToCacheDirectory: true,
-      multiple: false,
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["videos"],
+      allowsMultipleSelection: false,
+      quality: 1,
     });
     if (result.canceled) return;
     const asset = result.assets[0];
     if (!asset) return;
-    setClip(asset);
-    setClipMessage(`${asset.name} · ready for a private on-device preview`);
+    const name = asset.fileName || "Cheeto video";
+    setClip({ uri: asset.uri, name });
+    setSelectedMediaId(null);
+    setClipMessage(`${name} · selected from iPhone Photos`);
     setMessage("");
+  }
+  async function chooseSharedClip(asset: SharedMediaAsset) {
+    setMessage("Opening the shared original…");
+    try {
+      const extension = asset.original_name.match(/\.[a-z0-9]{2,5}$/i)?.[0] ||
+        (asset.content_type.includes("quicktime") ? ".mov" : ".mp4");
+      const base = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+      if (!base) throw new Error("This iPhone did not provide temporary storage.");
+      const local = `${base}shared-video-${asset.id}${extension}`;
+      const downloaded = await FileSystem.downloadAsync(
+        privateMediaUrl(asset.id),
+        local,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      setClip({ uri: downloaded.uri, name: asset.original_name });
+      setSelectedMediaId(asset.id);
+      setClipMessage(`${asset.original_name} · from the shared Media Library`);
+      setMessage("");
+    } catch (reason) {
+      setMessage(
+        reason instanceof Error
+          ? reason.message
+          : "That shared video could not be opened.",
+      );
+    }
+  }
+  function toggleVideoPlatform(platform: VideoProject["platforms"][number]) {
+    setPlatforms((current) =>
+      current.includes(platform)
+        ? current.filter((item) => item !== platform)
+        : [...current, platform],
+    );
+  }
+  function newProject() {
+    stopPreview();
+    setActiveProjectId(undefined);
+    setProjectTitle("");
+    setProjectStatus("Draft");
+    setAssignedTo(person === "Trinitie" ? "Trinitie" : "Katie");
+    setPlatforms(["Instagram Reels"]);
+    setSourceStorySlug("");
+    setSelectedMediaId(null);
+    setClip(undefined);
+    setClipMessage("From iPhone Photos · the original stays untouched");
+    setTimeline([]);
+    setFinishedVideo(undefined);
+    setRenderProgress(0);
+    setRenderStage("");
+    setMessage("New shared video project ready.");
+  }
+  async function openProject(project: VideoProject) {
+    stopPreview();
+    setActiveProjectId(project.id);
+    setProjectTitle(project.title);
+    setProjectStatus(project.status);
+    setAssignedTo(project.assignedTo);
+    setPlatforms(project.platforms);
+    setSourceStorySlug(project.sourceStorySlug);
+    setSelectedMediaId(project.mediaId);
+    setTimeline(project.overlays);
+    const current = project.currentOverlay;
+    if (current?.presetId) setPresetId(current.presetId);
+    if (current?.fontId) setFontId(current.fontId);
+    if (typeof current?.text === "string") {
+      setText(current.text);
+      setPreviewText(current.text);
+    }
+    if (current?.textColor) setTextColor(current.textColor);
+    if (current?.accentColor) setAccentColor(current.accentColor);
+    if (current?.startAt) setStartAt(current.startAt);
+    if (current?.endAt) setEndAt(current.endAt);
+    const shared = sharedVideos.find((item) => item.id === project.mediaId);
+    if (shared) await chooseSharedClip(shared);
+    else if (project.mediaId)
+      setClipMessage("The shared original is temporarily unavailable.");
+    setMessage(`Opened “${project.title}” · last edited by ${project.lastEditedBy}.`);
+  }
+  async function saveSharedProject() {
+    if (!projectTitle.trim()) {
+      setMessage("Give this video project a short title first.");
+      return;
+    }
+    if (!platforms.length) {
+      setMessage("Choose at least one destination for this video.");
+      return;
+    }
+    setSavingProject(true);
+    try {
+      const saved = await saveVideoProject(token, {
+        ...(activeProjectId ? { id: activeProjectId } : {}),
+        title: projectTitle,
+        mediaId: selectedMediaId,
+        sourceStorySlug,
+        platforms,
+        overlays: timeline,
+        currentOverlay: {
+          presetId,
+          fontId,
+          text,
+          textColor,
+          accentColor,
+          startAt,
+          endAt,
+          animation: preset.animation,
+        },
+        status: projectStatus,
+        assignedTo,
+      });
+      setActiveProjectId(saved.id);
+      setProjects((current) => [
+        saved,
+        ...current.filter((item) => item.id !== saved.id),
+      ]);
+      setMessage(
+        `Shared project saved · ${saved.assignedTo} will see the same editable timeline.`,
+      );
+    } catch (reason) {
+      setMessage(
+        reason instanceof Error ? reason.message : "That project could not be saved.",
+      );
+    } finally {
+      setSavingProject(false);
+    }
   }
   function choosePreset(id: string) {
     const next =
@@ -4197,11 +4481,97 @@ function VideoStudio({
         accentColor,
         startAt: start,
         endAt: end,
+        animation: preset.animation,
+        boxed: Boolean(preset.boxed),
+        uppercase: Boolean(preset.uppercase),
       },
     ]);
     setMessage(
       "Added to this video. You can add another overlay without changing the original clip.",
     );
+  }
+  async function createFinishedVideo() {
+    if (!clip) {
+      setMessage("Choose a video from Photos or the Shared Media Library first.");
+      return;
+    }
+    if (!FileSystem.cacheDirectory) {
+      setMessage("This iPhone did not provide temporary space for the finished video.");
+      return;
+    }
+    const layers = timeline.length
+      ? timeline
+      : [{
+          id: "current-overlay",
+          presetId,
+          name: preset.name,
+          fontId,
+          fontName: font.name,
+          fontFamily: font.family,
+          text: text.trim() || "Your words appear here",
+          textColor,
+          accentColor,
+          startAt: Math.max(0, Number(startAt) || 0),
+          endAt: Math.max((Number(startAt) || 0) + 0.5, Number(endAt) || 5),
+          animation: preset.animation,
+          boxed: Boolean(preset.boxed),
+          uppercase: Boolean(preset.uppercase),
+        }];
+    const destination = `${FileSystem.cacheDirectory}nomadic-paws-finished-${Date.now()}.mp4`;
+    setRendering(true);
+    setFinishedVideo(undefined);
+    setRenderProgress(0.02);
+    setRenderStage("Preparing your video");
+    setMessage("");
+    const subscription = listenForRenderProgress((event) => {
+      setRenderProgress(Math.max(0, Math.min(1, event.progress)));
+      setRenderStage(event.stage);
+    });
+    try {
+      const uri = await renderNomadicVideo(
+        clip.uri,
+        destination,
+        layers.map((layer) => ({
+          text: layer.text,
+          fontName: layer.fontFamily,
+          textColor: layer.textColor,
+          accentColor: layer.accentColor,
+          startAt: layer.startAt,
+          endAt: layer.endAt,
+          animation: layer.animation,
+          boxed: layer.boxed,
+          uppercase: layer.uppercase,
+        })),
+      );
+      setFinishedVideo(uri);
+      setRenderProgress(1);
+      setRenderStage("Finished and ready");
+      setMessage("Your finished video is ready. Save it to Photos or open the iPhone share sheet.");
+    } catch (reason) {
+      setRenderStage("Could not finish this video");
+      setMessage(reason instanceof Error ? reason.message : "The finished video could not be created. Try again with the original clip.");
+    } finally {
+      subscription.remove();
+      setRendering(false);
+    }
+  }
+  async function saveFinishedVideoToPhotos() {
+    if (!finishedVideo) return;
+    const permission = await ExpoMediaLibrary.requestPermissionsAsync(true);
+    if (!permission.granted) {
+      setMessage("Allow Photos access to save the finished video to your iPhone.");
+      return;
+    }
+    await ExpoMediaLibrary.saveToLibraryAsync(finishedVideo);
+    setMessage("Finished video saved to Photos. ✨");
+  }
+  async function shareFinishedVideo() {
+    if (!finishedVideo) return;
+    if (!(await Sharing.isAvailableAsync())) {
+      setMessage("The iPhone share sheet is not available right now.");
+      return;
+    }
+    await Sharing.shareAsync(finishedVideo, { mimeType: "video/mp4", UTI: "public.mpeg-4", dialogTitle: "Share the finished Nomadic Paws video" });
   }
   return (
     <ScrollView
@@ -4215,19 +4585,116 @@ function VideoStudio({
           ? "Choose a Cheeto moment, then shape the editable text without leaving your studio."
           : "Prepare reusable video treatments for Reels, TikTok, and YouTube Shorts."}
       </Text>
+      <View style={styles.videoProjectSection}>
+        <View style={styles.listHeading}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.listTitle}>Shared video projects</Text>
+            <Text style={styles.videoProjectIntro}>
+              Reopen the same editable timeline on either phone.
+            </Text>
+          </View>
+          <Pressable onPress={newProject} style={styles.videoNewProjectButton}>
+            <Text style={styles.videoNewProjectText}>＋ New</Text>
+          </Pressable>
+        </View>
+        {projects.length ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.videoProjectRail}>
+            {projects.map((project) => (
+              <Pressable
+                key={project.id}
+                onPress={() => openProject(project)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: activeProjectId === project.id }}
+                style={[styles.videoProjectCard, activeProjectId === project.id && styles.videoProjectCardActive]}
+              >
+                <View style={styles.videoProjectCardTop}>
+                  <Text style={styles.videoProjectStatus}>{project.status}</Text>
+                  {activeProjectId === project.id ? <Text style={styles.videoProjectCheck}>✓</Text> : null}
+                </View>
+                <Text numberOfLines={2} style={styles.videoProjectTitle}>{project.title}</Text>
+                <Text style={styles.videoProjectMeta}>
+                  Next with {project.assignedTo} · {project.overlays.length} layer{project.overlays.length === 1 ? "" : "s"}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : (
+          <Text style={styles.helperCopy}>Your first saved video will appear here for Katie and Trinitie.</Text>
+        )}
+        <Text style={styles.controlLabel}>Project title</Text>
+        <TextInput value={projectTitle} onChangeText={setProjectTitle} style={styles.input} placeholder="What are we making?" placeholderTextColor="#8b8075" />
+        <Text style={styles.controlLabel}>Destinations</Text>
+        <View style={styles.videoChoiceWrap}>
+          {(["Instagram Reels", "TikTok", "YouTube Shorts"] as const).map((platform) => (
+            <Pressable key={platform} onPress={() => toggleVideoPlatform(platform)} accessibilityRole="checkbox" accessibilityState={{ checked: platforms.includes(platform) }} style={[styles.videoChoice, platforms.includes(platform) && styles.videoChoiceActive]}>
+              <Text style={[styles.videoChoiceText, platforms.includes(platform) && styles.videoChoiceTextActive]}>{platforms.includes(platform) ? "✓ " : ""}{platform}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={styles.controlLabel}>Stage</Text>
+        <View style={styles.videoChoiceWrap}>
+          {(["Draft", "Ready", "Handed Off", "Posted"] as const).map((status) => (
+            <Pressable key={status} onPress={() => setProjectStatus(status)} accessibilityRole="radio" accessibilityState={{ checked: projectStatus === status }} style={[styles.videoChoice, projectStatus === status && styles.videoChoiceActive]}>
+              <Text style={[styles.videoChoiceText, projectStatus === status && styles.videoChoiceTextActive]}>{status}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={styles.controlLabel}>Next with</Text>
+        <View style={styles.videoChoiceWrap}>
+          {(["Katie", "Trinitie"] as const).map((personName) => (
+            <Pressable key={personName} onPress={() => setAssignedTo(personName)} accessibilityRole="radio" accessibilityState={{ checked: assignedTo === personName }} style={[styles.videoChoice, assignedTo === personName && styles.videoChoiceActive]}>
+              <Text style={[styles.videoChoiceText, assignedTo === personName && styles.videoChoiceTextActive]}>{personName}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
       <Pressable onPress={chooseClip} style={styles.clipPicker}>
         <View style={styles.clipPickerIcon}>
           <Text style={styles.clipPickerPlus}>＋</Text>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.clipPickerTitle}>
-            {clip ? "Change video" : "Choose a video"}
+            {clip ? "Change video from Photos" : "Choose from iPhone Photos"}
           </Text>
           <Text numberOfLines={2} style={styles.clipPickerCopy}>
             {clipMessage}
           </Text>
         </View>
       </Pressable>
+      <View style={styles.sharedVideoSection}>
+        <View style={styles.listHeading}>
+          <Text style={styles.listTitle}>Shared Media Library</Text>
+          <Text style={styles.listCount}>{sharedVideos.length} videos</Text>
+        </View>
+        {sharedVideos.length ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.sharedVideoRow}
+          >
+            {sharedVideos.map((asset) => (
+              <Pressable
+                key={asset.id}
+                onPress={() => chooseSharedClip(asset)}
+                style={[
+                  styles.sharedVideoCard,
+                  clip?.name === asset.original_name && styles.sharedVideoCardActive,
+                ]}
+              >
+                <Text style={styles.sharedVideoIcon}>▶</Text>
+                <Text numberOfLines={2} style={styles.sharedVideoName}>
+                  {asset.original_name}
+                </Text>
+                <Text style={styles.sharedVideoMeta}>Shared by Katie</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : (
+          <Text style={styles.helperCopy}>
+            Videos added to an Adventure will appear here for Katie and Trinitie.
+          </Text>
+        )}
+      </View>
       <View style={styles.videoPreview}>
         {clip ? (
           <VideoView
@@ -4472,23 +4939,38 @@ function VideoStudio({
               </Text>
             </View>
           ))}
-          <Pressable
-            onPress={() =>
-              setMessage(
-                "Shared video draft saved. Katie and Trinitie will open the same overlay timeline.",
-              )
-            }
-            style={styles.videoDraftButton}
-          >
-            <Text style={styles.videoDraftButtonText}>
-              Save shared video draft
-            </Text>
+          <Pressable onPress={saveSharedProject} disabled={savingProject} style={styles.videoDraftButton}>
+            <Text style={styles.videoDraftButtonText}>{savingProject ? "Saving…" : "Save shared video project"}</Text>
           </Pressable>
         </View>
+      ) : (
+        <Pressable onPress={saveSharedProject} disabled={savingProject} style={styles.videoDraftButton}>
+          <Text style={styles.videoDraftButtonText}>{savingProject ? "Saving…" : "Save shared video project"}</Text>
+        </Pressable>
+      )}
+      {!selectedMediaId && clip ? (
+        <Text style={styles.helper}>This local clip stays on this iPhone. Choose the same video from the Shared Media Library if Trinitie should reopen it on her phone.</Text>
       ) : null}
-      <Text style={styles.helper}>
-        Next: connect each layer to clip playback and the final iPhone renderer.
-      </Text>
+      <View style={styles.videoExportCard}>
+        <Text style={styles.eyebrow}>FINISHED VIDEO</Text>
+        <Text style={styles.videoExportTitle}>Ready to make it real?</Text>
+        <Text style={styles.videoExportCopy}>The iPhone will render the selected clip, every timeline layer, its colors, font, and animation into one private 9:16 video.</Text>
+        {rendering || renderProgress > 0 ? (
+          <View style={styles.videoRenderProgressTrack}>
+            <View style={[styles.videoRenderProgressFill, { width: `${Math.max(3, renderProgress * 100)}%` }]} />
+          </View>
+        ) : null}
+        {renderStage ? <Text style={styles.videoRenderStage}>{renderStage}{rendering ? ` · ${Math.round(renderProgress * 100)}%` : ""}</Text> : null}
+        <Pressable onPress={createFinishedVideo} disabled={rendering} style={[styles.primary, rendering && { opacity: 0.65 }]}>
+          <Text style={styles.primaryText}>{rendering ? "Creating finished video…" : finishedVideo ? "Create it again" : "Create finished video"}</Text>
+        </Pressable>
+        {finishedVideo ? (
+          <View style={styles.videoExportActions}>
+            <Pressable onPress={saveFinishedVideoToPhotos} style={styles.videoExportAction}><Text style={styles.videoExportActionText}>Save to Photos</Text></Pressable>
+            <Pressable onPress={shareFinishedVideo} style={styles.videoExportAction}><Text style={styles.videoExportActionText}>Share…</Text></Pressable>
+          </View>
+        ) : null}
+      </View>
     </ScrollView>
   );
 }
@@ -5155,6 +5637,27 @@ function WorkingPhotoEditor({
   );
 }
 
+function SharedVideoPreview({
+  token,
+  asset,
+}: {
+  token: string;
+  asset: SharedMediaAsset;
+}) {
+  const player = useVideoPlayer({
+    uri: privateMediaUrl(asset.id),
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return (
+    <VideoView
+      player={player}
+      style={styles.mediaModalImage}
+      contentFit="contain"
+      nativeControls
+    />
+  );
+}
+
 function MediaLibrary({
   token,
   adventures,
@@ -5236,13 +5739,20 @@ function MediaLibrary({
   const renderCard = (asset: SharedMediaAsset) => (
     <View key={asset.id} style={styles.mediaCard}>
       <Pressable onPress={() => openAsset(asset)}>
-        <Image
-          source={{
-            uri: privateMediaUrl(asset.id),
-            headers: { Authorization: `Bearer ${token}` },
-          }}
-          style={styles.mediaImage}
-        />
+        {asset.kind === "video" ? (
+          <View style={[styles.mediaImage, styles.mediaVideoPlaceholder]}>
+            <Text style={styles.mediaVideoPlay}>▶</Text>
+            <Text style={styles.mediaVideoLabel}>VIDEO</Text>
+          </View>
+        ) : (
+          <Image
+            source={{
+              uri: privateMediaUrl(asset.id),
+              headers: { Authorization: `Bearer ${token}` },
+            }}
+            style={styles.mediaImage}
+          />
+        )}
         <View style={styles.mediaBadge}>
           <Text style={styles.mediaBadgeText}>
             {asset.usage_count ? `Used ${asset.usage_count}` : "Unused"}
@@ -5259,12 +5769,18 @@ function MediaLibrary({
           ) : null}
         </View>
       </Pressable>
-      <Pressable
-        onPress={() => setWorkingAsset(asset)}
-        style={styles.prepareButton}
-      >
-        <Text style={styles.prepareButtonText}>Prepare photo</Text>
-      </Pressable>
+      {asset.kind === "photo" ? (
+        <Pressable
+          onPress={() => setWorkingAsset(asset)}
+          style={styles.prepareButton}
+        >
+          <Text style={styles.prepareButtonText}>Prepare photo</Text>
+        </Pressable>
+      ) : (
+        <View style={styles.prepareButton}>
+          <Text style={styles.prepareButtonText}>Ready in Video Studio</Text>
+        </View>
+      )}
     </View>
   );
   return (
@@ -5297,9 +5813,8 @@ function MediaLibrary({
         <Text style={styles.eyebrow}>SHARED MEDIA LIBRARY</Text>
         <Text style={styles.pageTitle}>Every Cheeto moment, intact.</Text>
         <Text style={styles.copy}>
-          Original photographs are shared privately between Katie and Trinitie.
-          Every crop, logo, and post will use a working copy—never this
-          original.
+          Original photos and videos are shared privately between Katie and
+          Trinitie. Every edit uses a working copy—never the original.
         </Text>
         {media.length ? (
           <>
@@ -5345,7 +5860,7 @@ function MediaLibrary({
                         day: "numeric",
                         year: "numeric",
                       })}{" "}
-                      · {group.media.length} photo
+                      · {group.media.length} item
                       {group.media.length === 1 ? "" : "s"}
                     </Text>
                   </View>
@@ -5369,7 +5884,7 @@ function MediaLibrary({
             {!visible.length ? (
               <View style={styles.teamEmpty}>
                 <Text style={styles.teamEmptyTitle}>
-                  No photos match that view.
+                  No media match that view.
                 </Text>
                 <Text style={styles.teamEmptyCopy}>
                   Try All or clear the search.
@@ -5396,14 +5911,18 @@ function MediaLibrary({
         {selected ? (
           <View style={styles.mediaModalBackdrop}>
             <ScrollView contentContainerStyle={styles.mediaModal}>
-              <Image
-                resizeMode="contain"
-                source={{
-                  uri: privateMediaUrl(selected.id),
-                  headers: { Authorization: `Bearer ${token}` },
-                }}
-                style={styles.mediaModalImage}
-              />
+              {selected.kind === "video" ? (
+                <SharedVideoPreview token={token} asset={selected} />
+              ) : (
+                <Image
+                  resizeMode="contain"
+                  source={{
+                    uri: privateMediaUrl(selected.id),
+                    headers: { Authorization: `Bearer ${token}` },
+                  }}
+                  style={styles.mediaModalImage}
+                />
+              )}
               <View style={styles.mediaModalBody}>
                 <Text style={styles.eyebrow}>
                   {selected.usage_count
@@ -6113,7 +6632,9 @@ export default function App() {
     )
   ) : tab === "Video" ? (
     <VideoStudio
+      token={token}
       person={person}
+      media={media}
       initialArticle={
         adaptation &&
         ["TikTok", "YouTube Shorts"].includes(adaptation.platform)
@@ -6358,6 +6879,19 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.bark,
   },
+  selectedVideoIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 9,
+    backgroundColor: colors.sand,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectedVideoIconText: {
+    color: colors.terracottaDeep,
+    fontSize: 12,
+    fontWeight: "900",
+  },
   removeFile: { fontSize: 11, fontWeight: "900", color: colors.terracottaDeep },
   shareButton: {
     minHeight: 54,
@@ -6406,6 +6940,29 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   mediaImage: { width: "100%", aspectRatio: 1, backgroundColor: colors.sand },
+  mediaVideoPlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  mediaVideoPlay: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    paddingTop: 13,
+    paddingLeft: 3,
+    backgroundColor: colors.terracotta,
+    color: colors.white,
+    textAlign: "center",
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  mediaVideoLabel: {
+    color: colors.barkSoft,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1.2,
+  },
   mediaBadge: {
     position: "absolute",
     top: 8,
@@ -7505,6 +8062,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "900",
   },
+  reminderTimeChoices: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 16,
+    padding: 14,
+    marginTop: -4,
+    marginBottom: 16,
+  },
   rhythmRow: {
     minHeight: 56,
     flexDirection: "row",
@@ -7769,17 +8335,33 @@ const styles = StyleSheet.create({
   },
   saveDotSynced: { backgroundColor: colors.sageDeep },
   saveStateText: { fontSize: 11, fontWeight: "800", color: colors.barkSoft },
-  editorTabs: { paddingHorizontal: 18, gap: 7, paddingBottom: 10 },
+  editorTabsScroller: { flexGrow: 0, minHeight: 58 },
+  editorTabs: {
+    paddingHorizontal: 18,
+    gap: 7,
+    paddingTop: 4,
+    paddingBottom: 10,
+    alignItems: "center",
+  },
   editorTab: {
     borderRadius: 999,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    minWidth: 82,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.sandDeep,
   },
   editorTabActive: { backgroundColor: colors.bark, borderColor: colors.bark },
-  editorTabText: { fontSize: 12, fontWeight: "800", color: colors.barkSoft },
+  editorTabText: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: "800",
+    color: colors.barkSoft,
+    textAlign: "center",
+  },
   editorTabTextActive: { color: colors.white },
   editorPage: { padding: 20, paddingBottom: 130 },
   editorTitle: {
@@ -7881,16 +8463,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.sandDeep,
     borderRadius: 17,
-    minHeight: 68,
-    padding: 15,
-    flexDirection: "row",
-    alignItems: "center",
+    minHeight: 86,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    justifyContent: "center",
     marginBottom: 9,
   },
-  socialAdaptTitle: { fontSize: 15, fontWeight: "800", color: colors.bark },
+  socialAdaptTitle: {
+    fontSize: 15,
+    lineHeight: 21,
+    fontWeight: "800",
+    color: colors.bark,
+    flexShrink: 1,
+  },
+  socialAdaptActionRow: {
+    alignSelf: "flex-end",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 8,
+  },
   socialAdaptAction: {
-    marginLeft: "auto",
     fontSize: 12,
+    lineHeight: 17,
+    fontWeight: "800",
+    color: colors.terracottaDeep,
+  },
+  socialAdaptChevron: {
+    fontSize: 18,
+    lineHeight: 18,
     fontWeight: "800",
     color: colors.terracottaDeep,
   },
@@ -7918,6 +8519,26 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.barkSoft,
   },
+  journalAddressPreview: {
+    backgroundColor: "#f7f1e7",
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 10,
+    marginBottom: 16,
+  },
+  journalAddressLabel: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.7,
+    textTransform: "uppercase",
+    color: colors.sageDeep,
+    marginBottom: 4,
+  },
+  journalAddressValue: { fontSize: 12, lineHeight: 18, fontWeight: "800", color: colors.terracottaDeep, marginBottom: 12 },
+  journalAddressFile: { fontSize: 11, lineHeight: 17, color: colors.bark, marginBottom: 9 },
+  journalAddressHelp: { fontSize: 10, lineHeight: 16, color: colors.barkSoft },
   syncLadder: {
     backgroundColor: colors.bark,
     borderRadius: 18,
@@ -8113,6 +8734,56 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: colors.barkSoft,
   },
+  videoProjectSection: {
+    backgroundColor: "#f7f1e7",
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 21,
+    padding: 16,
+    marginBottom: 18,
+  },
+  videoProjectIntro: { fontSize: 11, lineHeight: 16, color: colors.barkSoft, marginTop: 3 },
+  videoNewProjectButton: {
+    minHeight: 40,
+    paddingHorizontal: 13,
+    borderRadius: 999,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  videoNewProjectText: { fontSize: 12, fontWeight: "900", color: colors.terracottaDeep },
+  videoProjectRail: { gap: 9, paddingVertical: 12, paddingRight: 18 },
+  videoProjectCard: {
+    width: 190,
+    minHeight: 116,
+    borderRadius: 16,
+    padding: 13,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+  },
+  videoProjectCardActive: { borderWidth: 2, borderColor: colors.terracotta, padding: 12 },
+  videoProjectCardTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  videoProjectStatus: { fontSize: 9, fontWeight: "900", letterSpacing: 0.6, textTransform: "uppercase", color: colors.sageDeep },
+  videoProjectCheck: { fontSize: 14, fontWeight: "900", color: colors.terracotta },
+  videoProjectTitle: { fontSize: 15, lineHeight: 19, fontWeight: "900", color: colors.bark, marginTop: 8 },
+  videoProjectMeta: { fontSize: 10, lineHeight: 15, color: colors.barkSoft, marginTop: 7 },
+  videoChoiceWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 3 },
+  videoChoice: {
+    minHeight: 42,
+    paddingHorizontal: 13,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  videoChoiceActive: { backgroundColor: colors.bark, borderColor: colors.bark },
+  videoChoiceText: { fontSize: 11, fontWeight: "900", color: colors.barkSoft },
+  videoChoiceTextActive: { color: colors.white },
   videoPreview: {
     width: "78%",
     maxWidth: 330,
@@ -8326,6 +8997,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "900",
   },
+  videoExportCard: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 21,
+    padding: 17,
+    marginTop: 22,
+    marginBottom: 8,
+  },
+  videoExportTitle: { fontSize: 23, lineHeight: 28, fontWeight: "900", color: colors.bark, marginTop: 4 },
+  videoExportCopy: { fontSize: 12, lineHeight: 19, color: colors.barkSoft, marginTop: 7, marginBottom: 14 },
+  videoRenderProgressTrack: { height: 9, backgroundColor: colors.sand, borderRadius: 999, overflow: "hidden", marginBottom: 7 },
+  videoRenderProgressFill: { height: 9, backgroundColor: colors.terracotta, borderRadius: 999 },
+  videoRenderStage: { fontSize: 11, fontWeight: "800", color: colors.sageDeep, marginBottom: 12 },
+  videoExportActions: { flexDirection: "row", gap: 9, marginTop: 10 },
+  videoExportAction: {
+    flex: 1,
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 14,
+    backgroundColor: "#f7f1e7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  videoExportActionText: { fontSize: 12, fontWeight: "900", color: colors.terracottaDeep },
   previewPlayButton: {
     width: "78%",
     maxWidth: 330,
@@ -8380,6 +9077,45 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     color: colors.barkSoft,
     marginTop: 3,
+  },
+  sharedVideoSection: { marginBottom: 18 },
+  sharedVideoRow: { gap: 10, paddingRight: 20, paddingBottom: 2 },
+  sharedVideoCard: {
+    width: 150,
+    minHeight: 112,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 17,
+    padding: 13,
+  },
+  sharedVideoCardActive: {
+    borderWidth: 2,
+    borderColor: colors.terracotta,
+    padding: 12,
+  },
+  sharedVideoIcon: {
+    width: 31,
+    height: 31,
+    borderRadius: 16,
+    paddingTop: 7,
+    backgroundColor: colors.sand,
+    color: colors.terracottaDeep,
+    textAlign: "center",
+    fontSize: 11,
+    fontWeight: "900",
+    marginBottom: 9,
+  },
+  sharedVideoName: {
+    color: colors.bark,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "900",
+  },
+  sharedVideoMeta: {
+    color: colors.barkSoft,
+    fontSize: 10,
+    marginTop: 5,
   },
   registerHeading: {
     flexDirection: "row",

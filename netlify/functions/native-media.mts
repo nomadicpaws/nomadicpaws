@@ -3,8 +3,9 @@ import { getStore } from '@netlify/blobs'
 import type { Config } from '@netlify/functions'
 import { requireAppUser } from './lib/app-auth.mjs'
 import { addMediaAsset, adventureExists, adventuresWithMedia, createAdventure, mediaById, saveWorkingVersion, updateMediaDetails, workingVersionById } from './lib/media-db.mjs'
-import { MAX_DIRECT_PHOTO_BYTES, validAdventure, validDirectPhoto, validMediaDetails, validWorkingVersion } from './lib/media-settings.mjs'
+import { MAX_ADVENTURE_VIDEO_BYTES, MAX_ADVENTURE_VIDEO_SECONDS, MAX_DIRECT_PHOTO_BYTES, VIDEO_CHUNK_BYTES, validAdventure, validDirectPhoto, validMediaDetails, validVideoUpload, validWorkingVersion } from './lib/media-settings.mjs'
 import { renderWorkingImage, workingFilename } from './lib/media-render.mjs'
+import { inspectR2Object, r2Configured, signedR2Download, signedR2Upload } from './lib/r2-media.mjs'
 
 const HEADERS = { 'Cache-Control': 'private, no-store, max-age=0', 'X-Content-Type-Options': 'nosniff' }
 const store = () => getStore('nomadic-paws-original-media')
@@ -32,6 +33,9 @@ export default async (request: Request) => {
     if (request.method === 'GET' && fileMatch) {
       const asset = await mediaById(fileMatch[1])
       if (!asset) return new Response('Media not found.', { status: 404, headers: HEADERS })
+      if (String(asset.blob_key).startsWith('r2/')) {
+        return Response.redirect(await signedR2Download(String(asset.blob_key)), 302)
+      }
       const blob = await store().getWithMetadata(asset.blob_key, { type: 'stream', consistency: 'strong' })
       if (!blob) return new Response('Original is temporarily unavailable.', { status: 404, headers: HEADERS })
       return new Response(blob.data, { headers: { ...HEADERS, 'Content-Type': asset.content_type, 'Content-Length': String(asset.byte_size), ETag: blob.etag || '' } })
@@ -52,6 +56,89 @@ export default async (request: Request) => {
       return Response.json({ media: asset }, { status: 201, headers: HEADERS })
     }
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    if (body.action === 'create-direct-video-upload') {
+      if (user.role !== 'katie') return Response.json({ error: 'Adventure uploads belong to Katie’s workspace.' }, { status: 403, headers: HEADERS })
+      if (!validVideoUpload(body)) return Response.json({ error: `Choose a video up to ${MAX_ADVENTURE_VIDEO_SECONDS} seconds and ${Math.floor(MAX_ADVENTURE_VIDEO_BYTES / 1024 / 1024)} MB.` }, { status: 400, headers: HEADERS })
+      if (!(await adventureExists(String(body.adventureId)))) return Response.json({ error: 'Choose a saved adventure before adding videos.' }, { status: 400, headers: HEADERS })
+      if (!r2Configured()) return Response.json({ mode: 'chunked' }, { headers: HEADERS })
+      const uploadId = randomUUID(), objectKey = `r2/originals/${String(body.adventureId)}/${uploadId}`
+      const session = {
+        owner: user.id, objectKey, adventureId: String(body.adventureId), originalName: String(body.originalName),
+        contentType: String(body.contentType).toLowerCase(), byteSize: Number(body.byteSize),
+        width: Number(body.width) || 0, height: Number(body.height) || 0, durationSeconds: Number(body.durationSeconds),
+      }
+      await store().setJSON(`r2-uploads/${user.id}/${uploadId}`, session, { onlyIfNew: true })
+      return Response.json({ mode: 'r2', uploadId, uploadUrl: await signedR2Upload(objectKey, session.contentType) }, { status: 201, headers: HEADERS })
+    }
+    if (body.action === 'finish-direct-video-upload' && r2Configured()) {
+      const uploadId = String(body.uploadId || '')
+      if (!/^[0-9a-f-]{36}$/i.test(uploadId)) return Response.json({ error: 'That video upload is not valid.' }, { status: 400, headers: HEADERS })
+      const sessionKey = `r2-uploads/${user.id}/${uploadId}`
+      const session = await store().get(sessionKey, { type: 'json', consistency: 'strong' }) as null | {
+        owner: string; objectKey: string; adventureId: string; originalName: string; contentType: string;
+        byteSize: number; width: number; height: number; durationSeconds: number
+      }
+      if (!session || session.owner !== user.id) return Response.json({ error: 'That video upload has expired.' }, { status: 404, headers: HEADERS })
+      const uploaded = await inspectR2Object(session.objectKey)
+      if (Number(uploaded.ContentLength || 0) !== session.byteSize) return Response.json({ error: 'The uploaded video did not match the original size.' }, { status: 409, headers: HEADERS })
+      const asset = await addMediaAsset({ ...session, blobKey: session.objectKey, kind: 'video' }, user.id)
+      await store().delete(sessionKey)
+      return Response.json({ media: asset }, { status: 201, headers: HEADERS })
+    }
+    if (body.action === 'start-video-upload') {
+      if (user.role !== 'katie') return Response.json({ error: 'Adventure uploads belong to Katie’s workspace.' }, { status: 403, headers: HEADERS })
+      if (!validVideoUpload(body)) return Response.json({ error: `Choose a video up to ${MAX_ADVENTURE_VIDEO_SECONDS} seconds and ${Math.floor(MAX_ADVENTURE_VIDEO_BYTES / 1024 / 1024)} MB.` }, { status: 400, headers: HEADERS })
+      if (!(await adventureExists(String(body.adventureId)))) return Response.json({ error: 'Choose a saved adventure before adding videos.' }, { status: 400, headers: HEADERS })
+      const uploadId = randomUUID()
+      const session = {
+        uploadId,
+        owner: user.id,
+        adventureId: String(body.adventureId),
+        originalName: String(body.originalName),
+        contentType: String(body.contentType).toLowerCase(),
+        byteSize: Number(body.byteSize),
+        width: Math.max(0, Math.min(50000, Number(body.width) || 0)),
+        height: Math.max(0, Math.min(50000, Number(body.height) || 0)),
+        durationSeconds: Number(body.durationSeconds),
+        chunkCount: Math.ceil(Number(body.byteSize) / VIDEO_CHUNK_BYTES),
+      }
+      await store().setJSON(`uploads/${user.id}/${uploadId}/session`, session, { onlyIfNew: true })
+      return Response.json({ uploadId, chunkBytes: VIDEO_CHUNK_BYTES, chunkCount: session.chunkCount }, { status: 201, headers: HEADERS })
+    }
+    if (body.action === 'upload-video-chunk' || body.action === 'finish-video-upload') {
+      const uploadId = String(body.uploadId || '')
+      if (!/^[0-9a-f-]{36}$/i.test(uploadId)) return Response.json({ error: 'That video upload is not valid.' }, { status: 400, headers: HEADERS })
+      const sessionKey = `uploads/${user.id}/${uploadId}/session`
+      const session = await store().get(sessionKey, { type: 'json', consistency: 'strong' }) as null | {
+        owner: string; adventureId: string; originalName: string; contentType: string; byteSize: number;
+        width: number; height: number; durationSeconds: number; chunkCount: number
+      }
+      if (!session || session.owner !== user.id) return Response.json({ error: 'That video upload has expired.' }, { status: 404, headers: HEADERS })
+      if (body.action === 'upload-video-chunk') {
+        const index = Number(body.index), encoded = String(body.data || '')
+        if (!Number.isInteger(index) || index < 0 || index >= session.chunkCount || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) return Response.json({ error: 'That video piece is not valid.' }, { status: 400, headers: HEADERS })
+        const chunk = Buffer.from(encoded, 'base64')
+        if (!chunk.length || chunk.length > VIDEO_CHUNK_BYTES) return Response.json({ error: 'That video piece is too large.' }, { status: 400, headers: HEADERS })
+        await store().set(`uploads/${user.id}/${uploadId}/chunk-${index}`, chunk, { onlyIfNew: true })
+        return Response.json({ received: index }, { headers: HEADERS })
+      }
+      const pieces: Buffer[] = []
+      for (let index = 0; index < session.chunkCount; index += 1) {
+        const piece = await store().get(`uploads/${user.id}/${uploadId}/chunk-${index}`, { type: 'arrayBuffer', consistency: 'strong' })
+        if (!piece) return Response.json({ error: `Video upload is missing piece ${index + 1}. Please retry.` }, { status: 409, headers: HEADERS })
+        pieces.push(Buffer.from(piece))
+      }
+      const video = Buffer.concat(pieces)
+      if (video.byteLength !== session.byteSize) return Response.json({ error: 'The completed video size did not match the original.' }, { status: 409, headers: HEADERS })
+      const blobKey = `originals/${session.adventureId}/${randomUUID()}`
+      await store().set(blobKey, video, { metadata: { originalName: session.originalName, contentType: session.contentType, owner: user.id }, onlyIfNew: true })
+      const asset = await addMediaAsset({ ...session, blobKey, kind: 'video' }, user.id)
+      await Promise.all([
+        store().delete(sessionKey),
+        ...Array.from({ length: session.chunkCount }, (_, index) => store().delete(`uploads/${user.id}/${uploadId}/chunk-${index}`)),
+      ])
+      return Response.json({ media: asset }, { status: 201, headers: HEADERS })
+    }
     if (body.action === 'update-media') {
       if (!validMediaDetails(body)) return Response.json({ error: 'Those photo details could not be saved.' }, { status: 400, headers: HEADERS })
       const media = await updateMediaDetails(String(body.mediaId), body.tags as string[], String(body.notes))

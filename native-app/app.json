@@ -42,8 +42,8 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Choose and organize Cheeto photos for the private Nomadic Paws studio.",
-          "savePhotosPermission": "Save finished Nomadic Paws images so they can be uploaded to Instagram."
+          "photosPermission": "Choose and organize Cheeto photos and videos for the private Nomadic Paws studio.",
+          "savePhotosPermission": "Save finished Nomadic Paws images and videos so they can be shared on Instagram, TikTok, or YouTube."
         }
       ],
       [

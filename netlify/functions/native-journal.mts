@@ -3,9 +3,9 @@ import { join } from 'node:path'
 import type { Config } from '@netlify/functions'
 import { requireAppUser } from './lib/app-auth.mjs'
 import { bearerToken, verifySellerToken } from './lib/event-auth.mjs'
-import { addJournalReviewNote, allJournalWorkingDrafts, journalContributions, journalReviewNotes, journalWorkingDraft, journalWorkingVersions, saveJournalContribution, saveJournalWorkingDraft, updateJournalReviewNote } from './lib/journal-db.mjs'
+import { addJournalReviewNote, allJournalWorkingDrafts, journalContributions, journalReviewNotes, journalWorkingDraft, journalWorkingVersions, renameJournalStory, saveJournalContribution, saveJournalWorkingDraft, updateJournalReviewNote } from './lib/journal-db.mjs'
 import { REVIEW_STATUSES, validContribution, validReviewAnchor } from './lib/journal-collaboration.mjs'
-import { journalStatus, journalVersion, parseJournalFile } from './lib/journal-content.mjs'
+import { journalSlug, journalStatus, journalVersion, parseJournalFile } from './lib/journal-content.mjs'
 import { commitJournalDraft } from './lib/journal-github.mjs'
 
 const POSTS_DIR = join(process.cwd(), '_posts')
@@ -37,13 +37,6 @@ async function readStories() {
     body: draft.body || '',
     version: `work-${draft.revision}`,
   }))]
-}
-
-function storySlug(title: string, publishDate: string) {
-  const date = publishDate.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || new Date().toISOString().slice(0, 10)
-  const words = title.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 90)
-  return `${date}-${words || 'trail-journal-story'}`
 }
 
 async function nativeUser(request: Request) {
@@ -82,7 +75,7 @@ export default async (request: Request) => {
         if (!title || title.length > 180) return Response.json({ error: 'Add a title under 180 characters.' }, { status: 400, headers: HEADERS })
         if (!['Trail Reports', 'Cheeto Diaries', 'Gear', 'Tips'].includes(category)) return Response.json({ error: 'Choose a valid Trail Journal category.' }, { status: 400, headers: HEADERS })
         if (!/^\d{4}-\d{2}-\d{2}$/.test(publishDate) || Number.isNaN(Date.parse(`${publishDate}T12:00:00Z`))) return Response.json({ error: 'Choose a real target date in YYYY-MM-DD format.' }, { status: 400, headers: HEADERS })
-        const slug = storySlug(title, publishDate)
+        const slug = journalSlug(title, publishDate)
         if ((await readStories()).some(story => story.slug === slug)) return Response.json({ error: 'A Journal story with this title and date already exists.' }, { status: 409, headers: HEADERS })
         const workingDraft = await saveJournalWorkingDraft({ slug, baseVersion: 'new', title, description: '', category, image: '', imageAlt: '', body: '', isDraft: true, publishDate, expectedRevision: 0 })
         const story = { slug, title, description: '', category, image: '', imageAlt: '', date: publishDate || workingDraft.updated_at, draft: true, status: 'Draft', body: '', version: `work-${workingDraft.revision}` }
@@ -117,8 +110,10 @@ export default async (request: Request) => {
         const slug = String(payload.slug || ''), draft = await journalWorkingDraft(slug)
         if (!draft) return Response.json({ error: 'Synchronize this draft before publishing.' }, { status: 400, headers: HEADERS })
         if (!draft.title.trim() || !draft.description.trim() || !draft.image || !draft.image_alt || draft.body.trim().length < 100) return Response.json({ error: 'Finish the title, excerpt, hero image, alt text, and story before publishing.' }, { status: 400, headers: HEADERS })
-        const result = await commitJournalDraft(draft)
-        return Response.json({ ...result, state: 'committed' }, { headers: HEADERS })
+        const nextSlug = journalSlug(draft.title, draft.publish_date)
+        const result = await commitJournalDraft(draft, nextSlug)
+        if (nextSlug !== slug) await renameJournalStory(slug, nextSlug)
+        return Response.json({ ...result, slug: nextSlug, state: 'committed' }, { headers: HEADERS })
       }
       if (payload.action !== 'add-review-note') return Response.json({ error: 'Unknown Journal action.' }, { status: 400, headers: HEADERS })
       const slug = String(payload.slug || ''), reviewer = String(payload.reviewer || ''), note = String(payload.note || '').trim(), suppliedVersion = String(payload.version || '')
