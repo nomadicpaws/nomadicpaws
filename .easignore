@@ -1,4 +1,5 @@
 node_modules/
+.pnpm-store/
 native-app/node_modules/
 native-app/.expo/
 native-app/.expo-build-check/
@@ -7,4 +8,3 @@ native-app/web-build/
 tmp/
 *.log
 .DS_Store
-
