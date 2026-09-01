@@ -25,8 +25,6 @@
       "usesAppleSignIn": true,
       "bundleIdentifier": "co.nomadicpaws.admin",
       "infoPlist": {
-        "NSBluetoothAlwaysUsageDescription": "Nomadic Paws uses Bluetooth to connect to the Stripe card reader.",
-        "NSLocationWhenInUseUsageDescription": "Location access is required by Stripe to accept in-person payments.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -52,18 +50,6 @@
         {
           "photosPermission": "Choose and organize Cheeto photos and videos for the private Nomadic Paws studio.",
           "savePhotosPermission": "Save finished Nomadic Paws images and videos so they can be shared on Instagram, TikTok, or YouTube."
-        }
-      ],
-      [
-        "@stripe/stripe-terminal-react-native",
-        {
-          "bluetoothBackgroundMode": false,
-          "locationWhenInUsePermission": "Nomadic Paws uses location while the event register is open because Stripe requires it for in-person payments.",
-          "bluetoothPeripheralPermission": "Nomadic Paws uses Bluetooth to connect to the Stripe card reader.",
-          "bluetoothAlwaysUsagePermission": "Nomadic Paws uses Bluetooth to connect to the Stripe card reader.",
-          "localNetworkUsagePermission": "Nomadic Paws may use the local network to connect to supported Stripe card readers.",
-          "tapToPayCheck": false,
-          "appDelegate": false
         }
       ],
       "./plugins/with-local-notifications-only"

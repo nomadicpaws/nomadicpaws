@@ -32,6 +32,7 @@ export type JournalStory = {
   draft: boolean
   status: 'Draft' | 'Scheduled' | 'Published'
   version: string
+  reviewStatus?: 'draft' | 'ready_for_mom' | 'back_with_katie'
 }
 
 export type JournalStoryDetail = JournalStory & { body: string }
@@ -61,6 +62,9 @@ export type JournalWorkingDraft = {
   publish_date: string
   revision: number
   updated_at: string
+  review_status?: 'draft' | 'ready_for_mom' | 'back_with_katie'
+  review_requested_at?: string | null
+  review_completed_at?: string | null
 }
 export type JournalWorkingVersion = { id: string; revision: number; snapshot: JournalWorkingDraft; created_at: string }
 
@@ -258,11 +262,19 @@ export async function updateReviewNote(token: string, input: { id: string; statu
   return request<{ note: JournalReviewNote }>('/api/app/journal', token, { method: 'POST', body: JSON.stringify({ action: 'update-review-note', ...input }) })
 }
 
+export async function requestMomReview(token: string, slug: string) {
+  return request<{ workingDraft: JournalWorkingDraft }>('/api/app/journal', token, { method: 'POST', body: JSON.stringify({ action: 'request-mom-review', slug }) })
+}
+
+export async function completeMomReview(token: string, slug: string) {
+  return request<{ workingDraft: JournalWorkingDraft }>('/api/app/journal', token, { method: 'POST', body: JSON.stringify({ action: 'complete-mom-review', slug }) })
+}
+
 export async function loadInstagramStudio(token: string) {
   const data = await cachedRequest('instagram-studio', () =>
-    request<{ rhythm: InstagramDay[] | null; templates: Array<{ id: string; name: string; kind: InstagramTemplate['kind']; aspect_ratio: string; source_url: string; favorite: boolean }>; posts: Array<{ id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; assigned_to: InstagramPostDraft['assignedTo']; handoff_note: string; updated_at: string }> }>('/api/app/instagram', token),
+    request<{ rhythm: InstagramDay[] | null; templates: Array<{ id: string; name: string; kind: InstagramTemplate['kind']; aspect_ratio: string; source_url: string; favorite: boolean }>; posts: Array<{ id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; assigned_to: InstagramPostDraft['assignedTo']; handoff_note: string; shared_with_mom: boolean; updated_at: string }> }>('/api/app/instagram', token),
   )
-  return { rhythm: data.rhythm, templates: data.templates.map(template => ({ id: template.id, name: template.name, kind: template.kind, aspectRatio: template.aspect_ratio, previewUrl: template.source_url, favorite: template.favorite })), posts: data.posts.map(post => ({ id: post.id, title: post.title, caption: post.caption, mediaUrls: post.media_urls, targetDate: post.target_date, theme: post.theme, status: post.status, assignedTo: post.assigned_to, handoffNote: post.handoff_note, updatedAt: post.updated_at })) }
+  return { rhythm: data.rhythm, templates: data.templates.map(template => ({ id: template.id, name: template.name, kind: template.kind, aspectRatio: template.aspect_ratio, previewUrl: template.source_url, favorite: template.favorite })), posts: data.posts.map(post => ({ id: post.id, title: post.title, caption: post.caption, mediaUrls: post.media_urls, targetDate: post.target_date, theme: post.theme, status: post.status, assignedTo: post.assigned_to, handoffNote: post.handoff_note, sharedWithMom: post.shared_with_mom, updatedAt: post.updated_at })) }
 }
 
 export async function saveInstagramRhythm(token: string, rhythm: InstagramDay[]) {
@@ -272,10 +284,10 @@ export async function saveInstagramRhythm(token: string, rhythm: InstagramDay[])
 }
 
 export async function saveInstagramPost(token: string, post: Omit<InstagramPostDraft, 'updatedAt'>) {
-  const data = await request<{ post: { id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; assigned_to: InstagramPostDraft['assignedTo']; handoff_note: string; updated_at: string } }>('/api/app/instagram', token, {
+  const data = await request<{ post: { id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; assigned_to: InstagramPostDraft['assignedTo']; handoff_note: string; shared_with_mom: boolean; updated_at: string } }>('/api/app/instagram', token, {
     method: 'POST', body: JSON.stringify({ action: 'save-post', ...post }),
   })
-  return { id: data.post.id, title: data.post.title, caption: data.post.caption, mediaUrls: data.post.media_urls, targetDate: data.post.target_date, theme: data.post.theme, status: data.post.status, assignedTo: data.post.assigned_to, handoffNote: data.post.handoff_note, updatedAt: data.post.updated_at }
+  return { id: data.post.id, title: data.post.title, caption: data.post.caption, mediaUrls: data.post.media_urls, targetDate: data.post.target_date, theme: data.post.theme, status: data.post.status, assignedTo: data.post.assigned_to, handoffNote: data.post.handoff_note, sharedWithMom: data.post.shared_with_mom, updatedAt: data.post.updated_at }
 }
 
 export async function uploadInstagramTemplate(token: string, file: { uri: string; name: string; mimeType?: string | null; width?: number; height?: number; kind?: InstagramTemplate['kind'] }) {

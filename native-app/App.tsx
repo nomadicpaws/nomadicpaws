@@ -30,6 +30,7 @@ import {
   claimKatieAccount,
   CheetoSuggestion,
   createEventSale,
+  completeMomReview,
   createJournalStory,
   createSharedAdventure,
   createTerminalConnectionToken,
@@ -52,6 +53,7 @@ import {
   loadVideoProjects,
   privateMediaUrl,
   publishJournalWorkingDraft,
+  requestMomReview,
   PinterestCampaign,
   publicWorkingImagePath,
   restoreAppSession,
@@ -116,8 +118,7 @@ type Tab =
   | "Studio"
   | "Video"
   | "Journal"
-  | "Pinterest"
-  | "Register";
+  | "Pinterest";
 type LogoColor = "none" | "bark" | "sage" | "sand" | "terracotta";
 type LogoSize = "small" | "medium";
 type LogoSide = "left" | "right";
@@ -255,6 +256,7 @@ type LocalInstagramDraft = {
   targetDate: string;
   theme: string;
   handoffNote: string;
+  sharedWithMom: boolean;
 };
 
 function localJournalDraftPath(slug: string) {
@@ -481,7 +483,7 @@ function Login({
               {pending
                 ? "Katie will choose the workspace that belongs to you. Once she does, tap Check again."
                 : setupRequired
-                  ? "Use the event-register code once to establish Katie’s owner account. Trinitie and CatNana will never need it."
+                  ? "Use the private owner setup code once to establish Katie’s account. Trinitie and CatNana will never need it."
                   : "Each person signs in privately. The app remembers you on this iPhone."}
             </Text>
             {setupRequired ? (
@@ -720,7 +722,14 @@ function JournalEditor({
     [saveError, setSaveError] = useState(""),
     [publishing, setPublishing] = useState(false),
     [publishState, setPublishState] = useState<"" | "committed">(""),
-    [publishedSlug, setPublishedSlug] = useState("");
+    [publishedSlug, setPublishedSlug] = useState(""),
+    [reviewState, setReviewState] = useState(working?.review_status || "draft"),
+    [reviewSending, setReviewSending] = useState(false),
+    [reviewNotes, setReviewNotes] = useState(notes),
+    [reviewResponses, setReviewResponses] = useState<Record<string, string>>(
+      Object.fromEntries(notes.map((item) => [item.id, item.revised_text || ""])),
+    ),
+    [responseSaving, setResponseSaving] = useState("");
   const futureSlug = journalPreviewSlug(title, publishDate);
   const journalPhotos = media.filter((asset) => asset.kind === "photo" || asset.content_type.startsWith("image/"));
   const editVersion = useRef(0);
@@ -815,6 +824,39 @@ function JournalEditor({
       );
     } finally {
       setPublishing(false);
+    }
+  }
+  async function sendToCatNana() {
+    setReviewSending(true);
+    setSaveError("");
+    try {
+      if (!(await synchronize())) return;
+      await requestMomReview(token, story.slug);
+      setReviewState("ready_for_mom");
+      setSaveState("Sent to CatNana");
+    } catch (reason) {
+      setSaveError(reason instanceof Error ? reason.message : "This draft could not be sent to CatNana.");
+    } finally {
+      setReviewSending(false);
+    }
+  }
+  async function saveReviewResponse(item: JournalReviewNote) {
+    const revisedText = (reviewResponses[item.id] || "").trim();
+    if (!revisedText) return;
+    setResponseSaving(item.id);
+    setSaveError("");
+    try {
+      const updated = (await updateReviewNote(token, {
+        id: item.id,
+        status: "open",
+        revisedText,
+      })).note;
+      setReviewNotes((current) => current.map((noteItem) => noteItem.id === updated.id ? updated : noteItem));
+      setSaveState("Revised passage attached for CatNana");
+    } catch (reason) {
+      setSaveError(reason instanceof Error ? reason.message : "That response could not be saved.");
+    } finally {
+      setResponseSaving("");
     }
   }
   async function adaptStory(
@@ -1290,6 +1332,47 @@ function JournalEditor({
                 {dirty ? "Synchronize draft now" : "Draft synchronized"}
               </Text>
             </Pressable>
+            <View style={styles.reviewHandoffCard}>
+              <Text style={styles.reviewHandoffTitle}>CatNana review</Text>
+              <Text style={styles.reviewHandoffCopy}>
+                {reviewState === "ready_for_mom"
+                  ? "Waiting in CatNana’s Today screen."
+                  : reviewState === "back_with_katie"
+                    ? "CatNana sent this back. Her passage notes are attached below."
+                    : "Send this draft only when you want it to appear in CatNana’s Today screen."}
+              </Text>
+              {reviewNotes.filter((item) => item.reviewer === "Mom").map((item) => (
+                <View key={item.id} style={styles.reviewResponseCard}>
+                  {item.quoted_text ? <Text style={styles.anchorQuote}>“{item.quoted_text}”</Text> : null}
+                  <Text style={styles.reviewNoteBody}>{item.note}</Text>
+                  <Text style={styles.controlLabel}>Passage you revised in response</Text>
+                  <TextInput
+                    value={reviewResponses[item.id] || ""}
+                    onChangeText={(value) => setReviewResponses((current) => ({ ...current, [item.id]: value }))}
+                    multiline
+                    placeholder="Paste or type only the changed passage"
+                    placeholderTextColor="#8b8075"
+                    style={[styles.input, styles.notesInput]}
+                  />
+                  <Pressable
+                    disabled={!reviewResponses[item.id]?.trim() || responseSaving === item.id}
+                    onPress={() => saveReviewResponse(item)}
+                    style={[styles.secondary, (!reviewResponses[item.id]?.trim() || responseSaving === item.id) && styles.primaryDisabled]}
+                  >
+                    <Text style={styles.secondaryText}>{responseSaving === item.id ? "Saving…" : item.revised_text ? "Update changed passage" : "Save changed passage"}</Text>
+                  </Pressable>
+                </View>
+              ))}
+              <Pressable
+                onPress={sendToCatNana}
+                disabled={reviewSending || reviewState === "ready_for_mom"}
+                style={[styles.secondary, (reviewSending || reviewState === "ready_for_mom") && styles.primaryDisabled]}
+              >
+                <Text style={styles.secondaryText}>
+                  {reviewSending ? "Sending…" : reviewState === "ready_for_mom" ? "Ready for CatNana" : "Send to CatNana for review"}
+                </Text>
+              </Pressable>
+            </View>
             <Pressable
               onPress={publishThroughGitHub}
               disabled={publishing || !checks.every((check) => check.okay)}
@@ -1339,6 +1422,7 @@ function MomJournalReview({
   notes,
   onBack,
   onNotes,
+  onComplete,
 }: {
   token: string;
   story: JournalStoryDetail;
@@ -1346,6 +1430,7 @@ function MomJournalReview({
   notes: JournalReviewNote[];
   onBack: () => void;
   onNotes: (notes: JournalReviewNote[]) => void;
+  onComplete: () => void;
 }) {
   const [anchor, setAnchor] = useState<{
       id: string;
@@ -1355,6 +1440,7 @@ function MomJournalReview({
     [note, setNote] = useState(""),
     [pending, setPending] = useState<PendingReviewNote[]>([]),
     [saving, setSaving] = useState(false),
+    [confirming, setConfirming] = useState(false),
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
   const version = working ? `work-${working.revision}` : story.version;
@@ -1369,12 +1455,9 @@ function MomJournalReview({
     ]);
     setNote("");
     setAnchor(undefined);
+    setMessage("✓ Note saved on that passage.");
   }
   async function sendBack() {
-    if (!pending.length) {
-      setMessage("Tap a passage first if you would like to leave a note.");
-      return;
-    }
     setSaving(true);
     setError("");
     setMessage("");
@@ -1395,10 +1478,13 @@ function MomJournalReview({
           ).note,
         );
       onNotes([...saved, ...notes]);
+      await completeMomReview(token, story.slug);
       setPending([]);
       setMessage(
         "Your notes have been delivered to Katie. She can no longer claim she didn’t know where the comma goes.",
       );
+      setConfirming(false);
+      onComplete();
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -1416,11 +1502,13 @@ function MomJournalReview({
     try {
       const updated = (await updateReviewNote(token, { id: item.id, status }))
         .note;
-      onNotes(
-        notes.map((noteItem) =>
-          noteItem.id === updated.id ? updated : noteItem,
-        ),
-      );
+      const nextNotes = notes.map((noteItem) => noteItem.id === updated.id ? updated : noteItem);
+      onNotes(nextNotes);
+      const changedNotes = nextNotes.filter((noteItem) => noteItem.reviewer === "Mom" && noteItem.revised_text);
+      if (changedNotes.length && changedNotes.every((noteItem) => noteItem.status === "resolved" || noteItem.status === "needs_work")) {
+        await completeMomReview(token, story.slug);
+        onComplete();
+      }
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -1509,10 +1597,11 @@ function MomJournalReview({
           ...notes.map((item) => item.anchor_id || ""),
         ]}
       />
-      {anchor ? (
-        <View style={styles.anchorComposer}>
+      <Modal visible={Boolean(anchor)} transparent animationType="slide" onRequestClose={() => setAnchor(undefined)}>
+        <KeyboardAvoidingView style={styles.reviewModalBackdrop} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <View style={styles.reviewModalCard}>
           <Text style={styles.anchorLabel}>NOTE ON THIS PASSAGE</Text>
-          <Text style={styles.anchorQuote}>{anchor.quote}</Text>
+          <Text style={styles.anchorQuote}>{anchor?.quote || "Selected passage"}</Text>
           <TextInput
             value={note}
             onChangeText={setNote}
@@ -1528,8 +1617,12 @@ function MomJournalReview({
           >
             <Text style={styles.secondaryText}>Save note on passage</Text>
           </Pressable>
+          <Pressable onPress={() => setAnchor(undefined)} style={styles.reviewModalCancel}>
+            <Text style={styles.reviewModalCancelText}>Keep reading</Text>
+          </Pressable>
         </View>
-      ) : null}
+        </KeyboardAvoidingView>
+      </Modal>
       {pending.length ? (
         <Text style={styles.pendingCount}>
           {pending.length} passage note{pending.length === 1 ? "" : "s"} ready
@@ -1538,11 +1631,26 @@ function MomJournalReview({
       ) : null}
       {message ? <Text style={styles.success}>{message}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Pressable disabled={saving} onPress={sendBack} style={styles.primary}>
+      <Text style={styles.reviewFinishPrompt}>Finished adding notes and comments?</Text>
+      <Pressable disabled={saving} onPress={() => setConfirming(true)} style={styles.primary}>
         <Text style={styles.primaryText}>
           {saving ? "Sending…" : "Send back to Katie"}
         </Text>
       </Pressable>
+      <Modal visible={confirming} transparent animationType="fade" onRequestClose={() => setConfirming(false)}>
+        <View style={styles.reviewModalBackdrop}>
+          <View style={styles.reviewConfirmCard}>
+            <Text style={styles.reviewHandoffTitle}>Are you finished adding notes and comments?</Text>
+            <Text style={styles.reviewHandoffCopy}>Sending this back removes it from your Today screen and returns it to Katie’s draft editing queue.</Text>
+            <Pressable disabled={saving} onPress={sendBack} style={styles.primary}>
+              <Text style={styles.primaryText}>{saving ? "Sending…" : "Yes, send back to Katie"}</Text>
+            </Pressable>
+            <Pressable onPress={() => setConfirming(false)} style={styles.reviewModalCancel}>
+              <Text style={styles.reviewModalCancelText}>Keep reviewing</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -1727,7 +1835,9 @@ function Journal({
         setStories(
           person === "Katie"
             ? data.stories
-            : data.stories.filter((story) => story.status !== "Published"),
+            : person === "Mom"
+              ? data.stories.filter((story) => story.reviewStatus === "ready_for_mom")
+              : data.stories.filter((story) => story.status !== "Published"),
         ),
       )
       .catch((reason) => setError(reason.message))
@@ -1866,6 +1976,10 @@ function Journal({
         notes={notes}
         onNotes={setNotes}
         onBack={() => setSelected(undefined)}
+        onComplete={() => {
+          setStories((current) => current.filter((item) => item.slug !== selected.slug));
+          setSelected(undefined);
+        }}
       />
     );
   if (selected)
@@ -2578,6 +2692,7 @@ function Today({
   onOpenPreviews,
   onOpenCalendar,
   onOpenInstagramPost,
+  onOpenJournalStory,
 }: {
   token: string;
   person: Person;
@@ -2586,9 +2701,11 @@ function Today({
   onOpenPreviews: () => void;
   onOpenCalendar: () => void;
   onOpenInstagramPost: (postId: string) => void;
+  onOpenJournalStory: (slug: string) => void;
 }) {
   const [rhythm, setRhythm] = useState<InstagramDay[]>(initialInstagramRhythm);
   const [posts, setPosts] = useState<InstagramPostDraft[]>([]);
+  const [reviewStories, setReviewStories] = useState<JournalStory[]>([]);
   const weekday = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const dateHeading = new Date()
     .toLocaleDateString("en-US", {
@@ -2599,21 +2716,22 @@ function Today({
     .toUpperCase();
   const todayTheme = rhythm.find((item) => item.day === weekday);
   useEffect(() => {
-    if (person !== "Mom")
-      loadInstagramStudio(token)
+    loadInstagramStudio(token)
         .then((data) => {
           if (data.rhythm) setRhythm(data.rhythm);
           setPosts(data.posts);
         })
         .catch(() => {});
   }, [person, token]);
+  useEffect(() => {
+    if (person !== "Mom") return;
+    loadStories(token)
+      .then((data) => setReviewStories(data.stories.filter((story) => story.reviewStatus === "ready_for_mom")))
+      .catch(() => {});
+  }, [person, token]);
   const mine =
     person === "Mom"
-      ? seeds.filter(
-          (seed) =>
-            seed.platforms.includes("Trail Journal") &&
-            seed.status !== "Posted",
-        )
+      ? []
       : seeds.filter((seed) => seed.assignedTo === person);
   const readyInstagram = posts.filter(
     (post) => post.status === "Ready" && post.targetDate === localDateKey(),
@@ -2698,7 +2816,7 @@ function Today({
             {person === "Trinitie"
               ? readyInstagram
               : person === "Mom"
-                ? 2
+                ? reviewStories.length + posts.filter((post) => post.sharedWithMom).length
                 : needsKatie.length}
           </Text>
           <Text style={styles.readinessLabel}>
@@ -2707,7 +2825,7 @@ function Today({
                 ? "Post ready"
                 : "Posts ready"
               : person === "Mom"
-                ? "Shared previews"
+                ? "Ready & shared"
                 : "Needs Katie"}
           </Text>
         </Pressable>
@@ -2740,7 +2858,9 @@ function Today({
                   post.targetDate === localDateKey() &&
                   post.status !== "Posted",
               ).length
-            : mine.length}{" "}
+            : person === "Mom"
+              ? reviewStories.length + posts.filter((post) => post.sharedWithMom).length
+              : mine.length}{" "}
           items
         </Text>
       </View>
@@ -2789,6 +2909,31 @@ function Today({
               </View>
               <Text style={styles.journalArrow}>›</Text>
             </Pressable>
+          ))
+        : null}
+      {person === "Mom"
+        ? reviewStories.map((story) => (
+            <Pressable key={story.slug} onPress={() => onOpenJournalStory(story.slug)} style={styles.preparedPost}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.preparedPostStatus}>READY TO REVIEW</Text>
+                <Text style={styles.preparedPostTitle}>{story.title}</Text>
+                <Text style={styles.preparedPostMeta}>Trail Journal · Tap to read and leave passage notes</Text>
+              </View>
+              <Text style={styles.journalArrow}>›</Text>
+            </Pressable>
+          ))
+        : null}
+      {person === "Mom" && posts.some((post) => post.sharedWithMom) ? (
+        <Text style={styles.listTitle}>Shared by Trinitie</Text>
+      ) : null}
+      {person === "Mom"
+        ? posts.filter((post) => post.sharedWithMom).map((post) => (
+            <View key={post.id} style={styles.previewShareCard}>
+              <Text style={styles.previewPlatform}>INSTAGRAM PREVIEW</Text>
+              <Text style={styles.previewShareTitle}>{post.title}</Text>
+              <Text style={styles.previewCaption}>{post.caption || "Caption still in progress."}</Text>
+              <Text style={styles.previewCreator}>Shared by Trinitie</Text>
+            </View>
           ))
         : null}
       {mine.map((seed) => (
@@ -3212,6 +3357,7 @@ function InstagramPostEditor({
     [addingMedia, setAddingMedia] = useState(""),
     [error, setError] = useState(""),
     [handoffNote, setHandoffNote] = useState(post?.handoffNote || ""),
+    [sharedWithMom, setSharedWithMom] = useState(post?.sharedWithMom || false),
     [handoffMessage, setHandoffMessage] = useState(""),
     [welcomeAsset, setWelcomeAsset] = useState<SharedMediaAsset>(),
     [welcomeBlurred, setWelcomeBlurred] = useState(false),
@@ -3229,6 +3375,7 @@ function InstagramPostEditor({
       targetDate,
       theme,
       handoffNote,
+      sharedWithMom,
     };
   }
   async function persistInstagramLocal() {
@@ -3288,6 +3435,7 @@ function InstagramPostEditor({
           status,
           assignedTo,
           handoffNote,
+          sharedWithMom,
         });
       onSaved(saved);
       await FileSystem.deleteAsync(localInstagramDraftPath(draftKey), {
@@ -3406,6 +3554,7 @@ function InstagramPostEditor({
         status: post?.status || "Draft",
         assignedTo: "Katie",
         handoffNote,
+        sharedWithMom,
       });
       onSaved(saved);
       await FileSystem.deleteAsync(localInstagramDraftPath(draftKey), {
@@ -3622,6 +3771,33 @@ function InstagramPostEditor({
           <Text style={styles.secondaryText}>Return to Trinitie</Text>
         </Pressable>
       )}
+      <Pressable
+        disabled={saving || !title.trim()}
+        onPress={async () => {
+          const nextSharedWithMom = !sharedWithMom;
+          setSaving(true);
+          setError("");
+          try {
+            const saved = await saveInstagramPost(token, {
+              id: post?.id || "",
+              title: title.trim(), caption, mediaUrls, targetDate, theme,
+              status: post?.status || "Draft",
+              assignedTo: post?.assignedTo || "Trinitie",
+              handoffNote, sharedWithMom: nextSharedWithMom,
+            });
+            setSharedWithMom(nextSharedWithMom);
+            onSaved(saved);
+            setHandoffMessage(nextSharedWithMom ? "Shared with CatNana’s Today screen." : "Removed from CatNana’s Today screen.");
+          } catch (reason) {
+            setError(reason instanceof Error ? reason.message : "This preview could not be shared.");
+          } finally {
+            setSaving(false);
+          }
+        }}
+        style={styles.secondary}
+      >
+        <Text style={styles.secondaryText}>{sharedWithMom ? "Stop sharing with CatNana" : "Share preview with CatNana"}</Text>
+      </Pressable>
       {mediaUrls.length ? (
         <Pressable onPress={handoff} style={styles.instagramHandoffButton}>
           <Text style={styles.instagramHandoffButtonText}>
@@ -3772,6 +3948,7 @@ function InstagramStudio({
       status: "Draft",
       assignedTo: "Trinitie",
       handoffNote: sourceNote,
+      sharedWithMom: false,
       updatedAt: new Date().toISOString(),
     };
     setEditingPost(draft);
@@ -6598,6 +6775,7 @@ export default function App() {
       onOpenPreviews={() => setViewingPreviews(true)}
       onOpenCalendar={() => setViewingCalendar(true)}
       onOpenInstagramPost={openInstagramPost}
+      onOpenJournalStory={openJournalStory}
     />
   ) : tab === "Media" ? (
     <MediaLibrary
@@ -6651,7 +6829,7 @@ export default function App() {
       initialStorySlug={initialJournalStorySlug}
       onInitialStoryOpened={() => setInitialJournalStorySlug(undefined)}
     />
-  ) : tab === "Pinterest" ? (
+  ) : (
     <Pinterest
       token={token}
       initialStorySlug={
@@ -6659,28 +6837,14 @@ export default function App() {
       }
       onInitialStoryOpened={() => setAdaptation(undefined)}
     />
-  ) : (
-    <EventRegister token={token} />
   );
   const tabs: Tab[] =
     person === "Trinitie"
       ? ["Today", "Media", "Studio", "Video", "Journal"]
       : person === "Mom"
         ? ["Today", "Journal"]
-        : [
-            "Today",
-            "Media",
-            "Studio",
-            "Video",
-            "Journal",
-            "Pinterest",
-            "Register",
-          ];
+        : ["Today", "Media", "Studio", "Video", "Journal", "Pinterest"];
   return (
-    <StripeTerminalProvider
-      tokenProvider={() => createTerminalConnectionToken(token)}
-      logLevel="none"
-    >
     <SafeAreaView style={styles.shell}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.appHeader}>
@@ -6756,7 +6920,6 @@ export default function App() {
         </Pressable>
       ) : null}
     </SafeAreaView>
-    </StripeTerminalProvider>
   );
 }
 
@@ -8574,6 +8737,48 @@ const styles = StyleSheet.create({
     padding: 16,
     marginTop: 14,
   },
+  reviewHandoffCard: {
+    backgroundColor: "#fffaf3",
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 18,
+    padding: 16,
+    marginTop: 16,
+    gap: 10,
+  },
+  reviewHandoffTitle: { fontSize: 18, fontWeight: "900", color: colors.bark },
+  reviewHandoffCopy: { fontSize: 13, lineHeight: 20, color: colors.barkSoft },
+  reviewResponseCard: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 14,
+    padding: 13,
+    gap: 8,
+  },
+  reviewModalBackdrop: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(63,53,42,0.38)",
+  },
+  reviewModalCard: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 30,
+    maxHeight: "78%",
+  },
+  reviewConfirmCard: {
+    margin: 22,
+    backgroundColor: colors.white,
+    borderRadius: 24,
+    padding: 20,
+    gap: 12,
+  },
+  reviewModalCancel: { minHeight: 48, alignItems: "center", justifyContent: "center", marginTop: 8 },
+  reviewModalCancelText: { fontSize: 14, fontWeight: "800", color: colors.barkSoft },
+  reviewFinishPrompt: { marginTop: 22, marginBottom: 9, textAlign: "center", fontSize: 14, fontWeight: "900", color: colors.bark },
   anchorLabel: {
     fontSize: 10,
     fontWeight: "900",

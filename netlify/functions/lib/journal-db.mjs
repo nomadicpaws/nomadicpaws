@@ -65,7 +65,8 @@ export async function saveJournalContribution({ id, title, body, memoryClue, sta
 export async function journalWorkingDraft(slug) {
   const result = await getDatabase().pool.query(
     `SELECT story_slug, base_version, title, description, category, image, image_alt, body,
-            is_draft, publish_date, revision, updated_at
+            is_draft, publish_date, revision, updated_at, review_status,
+            review_requested_at, review_completed_at
        FROM journal_working_drafts WHERE story_slug = $1`,
     [slug],
   )
@@ -75,10 +76,27 @@ export async function journalWorkingDraft(slug) {
 export async function allJournalWorkingDrafts() {
   const result = await getDatabase().pool.query(
     `SELECT story_slug, base_version, title, description, category, image, image_alt, body,
-            is_draft, publish_date, revision, updated_at
+            is_draft, publish_date, revision, updated_at, review_status,
+            review_requested_at, review_completed_at
        FROM journal_working_drafts ORDER BY updated_at DESC`,
   )
   return result.rows
+}
+
+export async function setJournalReviewStatus(slug, status) {
+  const result = await getDatabase().pool.query(
+    `UPDATE journal_working_drafts
+        SET review_status = $2,
+            review_requested_at = CASE WHEN $2 = 'ready_for_mom' THEN NOW() ELSE review_requested_at END,
+            review_completed_at = CASE WHEN $2 = 'back_with_katie' THEN NOW() ELSE NULL END,
+            updated_at = NOW()
+      WHERE story_slug = $1
+      RETURNING story_slug, base_version, title, description, category, image, image_alt, body,
+                is_draft, publish_date, revision, updated_at, review_status,
+                review_requested_at, review_completed_at`,
+    [slug, status],
+  )
+  return result.rows[0] || null
 }
 
 export async function saveJournalWorkingDraft(input) {

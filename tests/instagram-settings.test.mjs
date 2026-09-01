@@ -20,4 +20,6 @@ test('Instagram drafts support a target day without enabling automatic posting',
   assert.equal(validInstagramPost({ ...post, targetDate: 'Sunday' }), false)
   assert.equal(validInstagramPost({ ...post, status: 'Scheduled' }), false)
   assert.equal(validInstagramPost({ ...post, assignedTo: 'Katie', handoffNote: 'Caption needs help' }), true)
+  assert.equal(validInstagramPost({ ...post, sharedWithMom: true }), true)
+  assert.equal(validInstagramPost({ ...post, sharedWithMom: 'yes' }), false)
 })

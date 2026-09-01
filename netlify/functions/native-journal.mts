@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import type { Config } from '@netlify/functions'
 import { requireAppUser } from './lib/app-auth.mjs'
 import { bearerToken, verifySellerToken } from './lib/event-auth.mjs'
-import { addJournalReviewNote, allJournalWorkingDrafts, journalContributions, journalReviewNotes, journalWorkingDraft, journalWorkingVersions, renameJournalStory, saveJournalContribution, saveJournalWorkingDraft, updateJournalReviewNote } from './lib/journal-db.mjs'
+import { addJournalReviewNote, allJournalWorkingDrafts, journalContributions, journalReviewNotes, journalWorkingDraft, journalWorkingVersions, renameJournalStory, saveJournalContribution, saveJournalWorkingDraft, setJournalReviewStatus, updateJournalReviewNote } from './lib/journal-db.mjs'
 import { REVIEW_STATUSES, validContribution, validReviewAnchor } from './lib/journal-collaboration.mjs'
 import { journalSlug, journalStatus, journalVersion, parseJournalFile } from './lib/journal-content.mjs'
 import { commitJournalDraft } from './lib/journal-github.mjs'
@@ -22,9 +22,15 @@ async function readStories() {
     }
   }))
   const sourceSlugs = new Set(sourceStories.map(story => story.slug))
-  const newDrafts = (await allJournalWorkingDrafts()).filter(draft => !sourceSlugs.has(draft.story_slug))
+  const workingDrafts = await allJournalWorkingDrafts()
+  const workingBySlug = new Map(workingDrafts.map(draft => [draft.story_slug, draft]))
+  const mergedSourceStories = sourceStories.map(story => ({
+    ...story,
+    reviewStatus: workingBySlug.get(story.slug)?.review_status || 'draft',
+  }))
+  const newDrafts = workingDrafts.filter(draft => !sourceSlugs.has(draft.story_slug))
   const dateString = (value: unknown) => value instanceof Date ? value.toISOString() : String(value || '')
-  return [...sourceStories, ...newDrafts.map(draft => ({
+  return [...mergedSourceStories, ...newDrafts.map(draft => ({
     slug: draft.story_slug,
     title: draft.title || 'Untitled',
     description: draft.description || '',
@@ -36,6 +42,7 @@ async function readStories() {
     status: draft.is_draft === false ? 'Scheduled' : 'Draft',
     body: draft.body || '',
     version: `work-${draft.revision}`,
+    reviewStatus: draft.review_status || 'draft',
   }))]
 }
 
@@ -61,10 +68,12 @@ export default async (request: Request) => {
       if (requestedSlug) {
         const story = stories.find(item => item.slug === requestedSlug)
         if (!story) return Response.json({ error: 'Trail Journal story not found.' }, { status: 404, headers: HEADERS })
+        if (user.role === 'mom' && story.reviewStatus !== 'ready_for_mom') return Response.json({ error: 'This story is not waiting for your review.' }, { status: 403, headers: HEADERS })
         const [notes, workingDraft, versions] = await Promise.all([journalReviewNotes(story.slug), journalWorkingDraft(story.slug), journalWorkingVersions(story.slug)])
         return Response.json({ story, notes, workingDraft, versions }, { headers: HEADERS })
       }
-      const summaries = stories.map(({ body: _body, ...story }) => story).sort((a, b) => b.date.localeCompare(a.date))
+      const visibleStories = user.role === 'mom' ? stories.filter(story => story.reviewStatus === 'ready_for_mom') : stories
+      const summaries = visibleStories.map(({ body: _body, ...story }) => story).sort((a, b) => b.date.localeCompare(a.date))
       return Response.json({ stories: summaries }, { headers: HEADERS })
     }
     if (request.method === 'POST') {
@@ -93,6 +102,15 @@ export default async (request: Request) => {
         if (!id || !REVIEW_STATUSES.has(status) || revisedText.length > 10000) return Response.json({ error: 'Choose a valid review resolution.' }, { status: 400, headers: HEADERS })
         const note = await updateJournalReviewNote({ id, status, revisedText })
         return note ? Response.json({ note }, { headers: HEADERS }) : Response.json({ error: 'Review note not found.' }, { status: 404, headers: HEADERS })
+      }
+      if (payload.action === 'request-mom-review' || payload.action === 'complete-mom-review') {
+        const expectedRole = payload.action === 'request-mom-review' ? 'katie' : 'mom'
+        if (user.role !== expectedRole) return Response.json({ error: 'This review handoff is not part of your account.' }, { status: 403, headers: HEADERS })
+        const slug = String(payload.slug || '')
+        if (!slug) return Response.json({ error: 'Choose a Trail Journal story first.' }, { status: 400, headers: HEADERS })
+        const status = payload.action === 'request-mom-review' ? 'ready_for_mom' : 'back_with_katie'
+        const workingDraft = await setJournalReviewStatus(slug, status)
+        return workingDraft ? Response.json({ workingDraft }, { headers: HEADERS }) : Response.json({ error: 'Synchronize this draft before sending it for review.' }, { status: 404, headers: HEADERS })
       }
       if (payload.action === 'save-working-draft') {
         if (user.role !== 'katie') return Response.json({ error: 'Only Katie can change Trail Journal drafts.' }, { status: 403, headers: HEADERS })

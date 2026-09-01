@@ -9,7 +9,7 @@ const HEADERS = { 'Cache-Control': 'private, no-store, max-age=0', 'X-Content-Ty
 const templates = () => getStore('nomadic-paws-instagram-templates')
 
 async function authorized(request: Request) {
-  try { await requireAppUser(request, ['katie', 'trinitie']); return } catch (error) {
+  try { return await requireAppUser(request, request.method === 'GET' ? ['katie', 'trinitie', 'mom'] : ['katie', 'trinitie']) } catch (error) {
     const secret = process.env.EVENT_REGISTER_SESSION_SECRET || ''
     if (secret.length >= 32 && verifySellerToken(bearerToken(request.headers), secret)) return
     throw error
@@ -18,7 +18,7 @@ async function authorized(request: Request) {
 
 export default async (request: Request) => {
   try {
-    await authorized(request)
+    const user = await authorized(request)
     const url = new URL(request.url)
     const templateMatch = url.pathname.match(/\/template\/([0-9a-f-]+)$/i)
     if (request.method === 'GET' && templateMatch) {
@@ -27,7 +27,10 @@ export default async (request: Request) => {
       const blob = await templates().getWithMetadata(`templates/${template.id}`, { type: 'stream', consistency: 'strong' })
       return blob ? new Response(blob.data, { headers: { ...HEADERS, 'Content-Type': String(blob.metadata?.contentType || 'image/png') } }) : new Response('Template not found.', { status: 404, headers: HEADERS })
     }
-    if (request.method === 'GET') return Response.json(await getInstagramStudio(), { headers: HEADERS })
+    if (request.method === 'GET') {
+      const studio = await getInstagramStudio()
+      return Response.json(user?.role === 'mom' ? { rhythm: null, templates: [], posts: studio.posts.filter(post => post.shared_with_mom) } : studio, { headers: HEADERS })
+    }
     if (request.method === 'PUT') {
       const payload = await request.json().catch(() => ({})) as Record<string, unknown>
       if (!validInstagramRhythm(payload.rhythm)) return Response.json({ error: 'Instagram rhythm must include one valid theme for each day.' }, { status: 400, headers: HEADERS })
