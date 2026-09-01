@@ -45,7 +45,7 @@ public final class NomadicVideoRendererModule: Module {
         try audioTrack.insertTimeRange(CMTimeRange(start: .zero, duration: asset.duration), of: sourceAudio, at: .zero)
       }
     } catch {
-      promise.reject("VIDEO_READ_FAILED", "The selected video could not be prepared.", error)
+      promise.reject("VIDEO_READ_FAILED", "The selected video could not be prepared: \(error.localizedDescription)")
       return
     }
 
@@ -97,7 +97,8 @@ public final class NomadicVideoRendererModule: Module {
         case .cancelled:
           promise.reject("VIDEO_EXPORT_CANCELLED", "The video export was cancelled.")
         default:
-          promise.reject("VIDEO_EXPORT_FAILED", "The finished video could not be created.", exporter.error)
+          let detail = exporter.error?.localizedDescription ?? "Unknown export error"
+          promise.reject("VIDEO_EXPORT_FAILED", "The finished video could not be created: \(detail)")
         }
       }
     }
