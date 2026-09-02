@@ -10,7 +10,8 @@ test('adventures require a useful bounded title', () => {
 
 test('shared media details accept only the small approved tag vocabulary', () => {
   const mediaId = '11111111-1111-4111-8111-111111111111'
-  assert.equal(validMediaDetails({ mediaId, tags: ['Cheeto', 'Trail'], notes: 'Golden hour.' }), true)
+  assert.equal(validMediaDetails({ mediaId, displayName: 'Cheeto at golden hour', tags: ['Cheeto', 'Trail'], notes: 'Golden hour.' }), true)
+  assert.equal(validMediaDetails({ mediaId, displayName: 'x'.repeat(161), tags: [], notes: '' }), false)
   assert.equal(validMediaDetails({ mediaId, tags: ['Secret location'], notes: '' }), false)
   assert.equal(validMediaDetails({ mediaId, tags: [], notes: 'x'.repeat(501) }), false)
 })
@@ -34,6 +35,7 @@ test('chunked adventure uploads accept a real 30-second iPhone video safely', ()
   const input = {
     adventureId: '11111111-1111-4111-8111-111111111111',
     originalName: 'Cheeto-trail.mov',
+    displayName: 'Cheeto explores the wash',
     contentType: 'video/quicktime',
     byteSize: MAX_ADVENTURE_VIDEO_BYTES,
     durationSeconds: 30,

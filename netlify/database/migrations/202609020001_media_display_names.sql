@@ -1,0 +1,3 @@
+ALTER TABLE media_assets
+  ADD COLUMN IF NOT EXISTS display_name TEXT NOT NULL DEFAULT '';
+

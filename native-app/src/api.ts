@@ -7,7 +7,7 @@ export type AppRole = 'pending' | 'katie' | 'trinitie' | 'mom'
 export type AppUser = { id: string; email: string; name: string; role: AppRole; status: 'pending' | 'active' | 'revoked' }
 export type AppleSignInPayload = { identityToken: string; nonce: string; email?: string; name?: string }
 export type SharedAdventure = { id: string; title: string; notes: string; private_location: string; public_location: string; captured_at: string; assigned_to: 'Katie' | 'Trinitie'; status: 'Idea' | 'Draft' | 'Ready' | 'Handed Off' | 'Posted'; platforms: string[]; media_count: number; created_at: string; updated_at: string }
-export type SharedMediaAsset = { id: string; adventure_id: string | null; original_name: string; content_type: string; byte_size: number; width: number | null; height: number | null; kind: 'photo' | 'video'; tags: string[]; notes: string; usage_count: number; created_at: string }
+export type SharedMediaAsset = { id: string; adventure_id: string | null; display_name: string; original_name: string; content_type: string; byte_size: number; width: number | null; height: number | null; kind: 'photo' | 'video'; tags: string[]; notes: string; usage_count: number; created_at: string }
 export type WorkingVersion = { id: string; media_id: string; destination_type: string; destination_id: string; treatment: { logoColor: string; logoSize: string; logoSide: string; focus: string }; created_at: string }
 export type PinterestPin = { image: string; title: string; description: string; template: 'bark' | 'sage' | 'sand' | 'terracotta'; logo_size: 'small' | 'medium'; logo_placement: 'left' | 'right' }
 export type PinterestCampaign = { post_slug: string; campaign_title: string; board: string; keywords: string; retroactive: boolean; enabled: boolean; rss_pin: PinterestPin; day_7_pin: PinterestPin; day_14_pin: PinterestPin; day_21_pin: PinterestPin; updated_at?: string }
@@ -138,7 +138,7 @@ export async function createSharedAdventure(token: string, input: { title: strin
   return data.adventure
 }
 
-export async function uploadAdventurePhoto(token: string, adventureId: string, file: { uri: string; name: string; mimeType?: string | null; width?: number; height?: number }) {
+export async function uploadAdventurePhoto(token: string, adventureId: string, file: { uri: string; name: string; displayName?: string; mimeType?: string | null; width?: number; height?: number }) {
   // React Native's WHATWG FormData implementation does not accept the
   // `{ uri, name, type }` file-shaped object reliably on iOS. Let Expo's
   // native uploader read the Photos/iCloud file URI and construct the
@@ -151,6 +151,7 @@ export async function uploadAdventurePhoto(token: string, adventureId: string, f
     parameters: {
       adventureId,
       originalName: file.name,
+      displayName: file.displayName?.trim() || '',
       width: String(file.width || 0),
       height: String(file.height || 0),
     },
@@ -167,11 +168,12 @@ export async function uploadAdventurePhoto(token: string, adventureId: string, f
   return data.media as SharedMediaAsset
 }
 
-export async function uploadAdventureVideo(token: string, adventureId: string, file: { uri: string; name: string; mimeType?: string | null; byteSize: number; width?: number; height?: number; durationSeconds: number }, onProgress?: (current: number, total: number) => void) {
+export async function uploadAdventureVideo(token: string, adventureId: string, file: { uri: string; name: string; displayName?: string; mimeType?: string | null; byteSize: number; width?: number; height?: number; durationSeconds: number }, onProgress?: (current: number, total: number) => void) {
   const direct = await request<{ mode: 'r2'; uploadId: string; uploadUrl: string } | { mode: 'chunked' }>('/api/app/media', token, {
     method: 'POST',
     body: JSON.stringify({
       action: 'create-direct-video-upload', adventureId, originalName: file.name,
+      displayName: file.displayName?.trim() || '',
       contentType: file.mimeType || 'video/quicktime', byteSize: file.byteSize,
       width: file.width || 0, height: file.height || 0, durationSeconds: file.durationSeconds,
     }),
@@ -200,6 +202,7 @@ export async function uploadAdventureVideo(token: string, adventureId: string, f
     method: 'POST',
     body: JSON.stringify({
       action: 'start-video-upload', adventureId, originalName: file.name,
+      displayName: file.displayName?.trim() || '',
       contentType: file.mimeType || 'video/quicktime', byteSize: file.byteSize,
       width: file.width || 0, height: file.height || 0, durationSeconds: file.durationSeconds,
     }),
@@ -229,8 +232,8 @@ export function privateMediaUrl(id: string) { return `${API_URL}/api/app/media/f
 export function workingImageUrl(id: string) { return `${API_URL}/api/app/media/working/${encodeURIComponent(id)}` }
 export function publicWorkingImagePath(id: string) { return `/media/working/${encodeURIComponent(id)}.jpg` }
 
-export async function updateSharedMedia(token: string, mediaId: string, tags: string[], notes: string) {
-  const data = await request<{ media: SharedMediaAsset }>('/api/app/media', token, { method: 'POST', body: JSON.stringify({ action: 'update-media', mediaId, tags, notes }) })
+export async function updateSharedMedia(token: string, mediaId: string, displayName: string, tags: string[], notes: string) {
+  const data = await request<{ media: SharedMediaAsset }>('/api/app/media', token, { method: 'POST', body: JSON.stringify({ action: 'update-media', mediaId, displayName, tags, notes }) })
   return data.media
 }
 

@@ -6,6 +6,8 @@ Use this checklist on one consolidated build. A tester only needs to complete he
 
 - [ ] Sign in, close the app, reopen it, and unlock with the iPhone passcode without signing in again.
 - [ ] Create an Adventure with multiple photos and one video from Apple Photos.
+- [ ] Give each selected item a searchable name, upload it, then rename one item from the Media Library.
+- [ ] Confirm search finds media by its searchable name, original filename, Adventure, tag, and note.
 - [ ] Confirm the new media appears in the shared Media Library at full usable quality.
 - [ ] Open an existing Trail Journal draft and edit its title, date, excerpt, body, category, and links.
 - [ ] Confirm the future URL and GitHub filename change with the title and date.
@@ -17,6 +19,7 @@ Use this checklist on one consolidated build. A tester only needs to complete he
 - [ ] Create or open all four Pinterest images, verify 2:3 crops and logo treatments, and inspect RSS/CSV dates.
 - [ ] Open a video from Apple Photos and from the shared Media Library; preview an animated overlay and export once.
 - [ ] Force-close during an unsynchronized edit, reopen, and confirm the local safety copy recovers.
+- [ ] Tap Save Journal backup, choose Google Drive, and confirm the editable Markdown file opens from the Nomadic Paws Journal Backups folder.
 
 ## Trinitie
 
@@ -52,4 +55,3 @@ Use this checklist on one consolidated build. A tester only needs to complete he
 - [ ] Test with the keyboard open on the smallest iPhone available; no focused field or primary action is hidden.
 - [ ] Test with larger text enabled; titles and controls do not overlap.
 - [ ] Confirm Register never appears in Studio navigation and Studio never requests Stripe Bluetooth or location access.
-

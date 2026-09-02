@@ -20,6 +20,7 @@ export function validVideoUpload(value = {}) {
   const durationSeconds = Number(value.durationSeconds)
   return typeof value.adventureId === 'string' && /^[0-9a-f-]{36}$/i.test(value.adventureId)
     && typeof value.originalName === 'string' && value.originalName.trim().length > 0 && value.originalName.length <= 255
+    && typeof (value.displayName || '') === 'string' && String(value.displayName || '').trim().length <= 160
     && VIDEO_TYPES.has(String(value.contentType || '').toLowerCase())
     && Number.isInteger(Number(value.byteSize)) && Number(value.byteSize) > 0 && Number(value.byteSize) <= MAX_ADVENTURE_VIDEO_BYTES
     && Number.isFinite(durationSeconds) && durationSeconds > 0 && durationSeconds <= MAX_ADVENTURE_VIDEO_SECONDS
@@ -27,6 +28,7 @@ export function validVideoUpload(value = {}) {
 
 export function validMediaDetails(input) {
   return typeof input?.mediaId === 'string' && /^[0-9a-f-]{36}$/i.test(input.mediaId)
+    && typeof (input.displayName || '') === 'string' && String(input.displayName || '').trim().length <= 160
     && Array.isArray(input.tags) && input.tags.length <= MEDIA_TAGS.length
     && input.tags.every(tag => MEDIA_TAGS.includes(tag))
     && typeof input.notes === 'string' && input.notes.length <= 500

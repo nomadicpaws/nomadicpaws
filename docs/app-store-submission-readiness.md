@@ -34,8 +34,8 @@ Review the actual App Store privacy questionnaire rather than copying these note
 - App Review notes explaining that reviewer access is required and providing a safe review account or Apple-approved alternative when submission begins.
 - Verification that no screen, permission string, or review note describes the removed Event Register.
 - Final test of account revocation, sign-out, remembered sign-in, and device-passcode unlock.
+- Final test that the optional Journal backup uses the iOS share sheet and does not transmit Google credentials through Nomadic Paws services.
 
 ## Release gate
 
 Do not submit merely because a build processes successfully. Submit after the three-person TestFlight checklist passes and the privacy/support URLs are public and accurate.
-

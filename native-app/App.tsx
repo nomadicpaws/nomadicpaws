@@ -736,6 +736,7 @@ function JournalEditor({
       Object.fromEntries(notes.map((item) => [item.id, item.revised_text || ""])),
     ),
     [responseSaving, setResponseSaving] = useState("");
+  const [backupState, setBackupState] = useState("");
   const futureSlug = journalPreviewSlug(title, publishDate);
   const journalPhotos = media.filter((asset) => asset.kind === "photo" || asset.content_type.startsWith("image/"));
   const editVersion = useRef(0);
@@ -830,6 +831,47 @@ function JournalEditor({
       );
     } finally {
       setPublishing(false);
+    }
+  }
+  async function saveJournalBackup() {
+    const base = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+    if (!base || !(await Sharing.isAvailableAsync())) {
+      setSaveError("This iPhone cannot open the save sheet right now.");
+      return;
+    }
+    setSaveError("");
+    setBackupState("Preparing backup…");
+    try {
+      await persistLocalDraft();
+      const clean = (value: string) => value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\r?\n/g, " ");
+      const backup = [
+        "---",
+        `title: "${clean(title)}"`,
+        `description: "${clean(description)}"`,
+        `date: "${clean(publishDate)}"`,
+        `category: "${clean(category)}"`,
+        `image: "${clean(image)}"`,
+        `image_alt: "${clean(imageAlt)}"`,
+        `draft: ${isDraft ? "true" : "false"}`,
+        `studio_story_slug: "${clean(story.slug)}"`,
+        `studio_revision: ${revision}`,
+        `backed_up_at: "${new Date().toISOString()}"`,
+        "---",
+        "",
+        body,
+        "",
+      ].join("\n");
+      const target = `${base}${exportStem(publishDate.slice(0, 10) || localDateKey(), "journal")}-${exportStem(title, "trail-journal")}-backup.md`;
+      await FileSystem.writeAsStringAsync(target, backup);
+      await Sharing.shareAsync(target, {
+        mimeType: "text/markdown",
+        UTI: "net.daringfireball.markdown",
+        dialogTitle: "Save this Trail Journal backup to Google Drive",
+      });
+      setBackupState("Backup prepared. Choose the Nomadic Paws Drive folder in the save sheet.");
+    } catch (reason) {
+      setBackupState("");
+      setSaveError(reason instanceof Error ? reason.message : "That Journal backup could not be prepared.");
     }
   }
   async function sendToCatNana() {
@@ -1338,6 +1380,14 @@ function JournalEditor({
                 {dirty ? "Synchronize draft now" : "Draft synchronized"}
               </Text>
             </Pressable>
+            <Pressable onPress={saveJournalBackup} style={styles.secondary}>
+              <Text style={styles.secondaryText}>Save Journal backup</Text>
+            </Pressable>
+            <Text style={styles.helper}>
+              Saves an editable copy of this draft. Choose Google Drive and the
+              Nomadic Paws Journal Backups folder when the iPhone save sheet opens.
+            </Text>
+            {backupState ? <Text style={styles.success}>{backupState}</Text> : null}
             <View style={styles.reviewHandoffCard}>
               <Text style={styles.reviewHandoffTitle}>CatNana review</Text>
               <Text style={styles.reviewHandoffCopy}>
@@ -3158,6 +3208,7 @@ function NewAdventure({
     [note, setNote] = useState(""),
     [location, setLocation] = useState(""),
     [files, setFiles] = useState<ImagePicker.ImagePickerAsset[]>([]),
+    [uploadNames, setUploadNames] = useState<Record<string, string>>({}),
     [saving, setSaving] = useState(false),
     [progress, setProgress] = useState(""),
     [error, setError] = useState(""),
@@ -3171,13 +3222,21 @@ function NewAdventure({
       quality: 1,
       orderedSelection: true,
     });
-    if (!result.canceled)
+    if (!result.canceled) {
+      setUploadNames((current) => {
+        const next = { ...current };
+        result.assets.forEach((asset, index) => {
+          if (!(asset.uri in next)) next[asset.uri] = (asset.fileName || `Cheeto moment ${index + 1}`).replace(/\.[^.]+$/, "");
+        });
+        return next;
+      });
       setFiles((current) =>
         [...current, ...result.assets].filter(
           (item, index, all) =>
             all.findIndex((candidate) => candidate.uri === item.uri) === index,
         ),
       );
+    }
   }
   async function save() {
     setSaving(true);
@@ -3203,6 +3262,7 @@ function NewAdventure({
             {
               uri: file.uri,
               name: file.fileName || `Cheeto-video-${index + 1}.mov`,
+              displayName: uploadNames[file.uri] || "",
               mimeType: file.mimeType,
               byteSize,
               width: file.width,
@@ -3219,6 +3279,7 @@ function NewAdventure({
           await uploadAdventurePhoto(token, currentAdventureId, {
             uri: file.uri,
             name: file.fileName || `Cheeto-photo-${index + 1}.jpg`,
+            displayName: uploadNames[file.uri] || "",
             mimeType: file.mimeType,
             width: file.width,
             height: file.height,
@@ -3289,7 +3350,8 @@ function NewAdventure({
         </Text>
       </Pressable>
       {files.map((file, index) => (
-        <View key={file.uri} style={styles.selectedFile}>
+        <View key={file.uri} style={styles.selectedFileBlock}>
+        <View style={styles.selectedFile}>
           {file.type === "video" || file.mimeType?.startsWith("video/") ? (
             <View style={styles.selectedVideoIcon}>
               <Text style={styles.selectedVideoIconText}>▶</Text>
@@ -3307,11 +3369,27 @@ function NewAdventure({
             <Text style={styles.uploadedFile}>✓ Uploaded</Text>
           ) : (
             <Pressable
-              onPress={() => setFiles((current) => current.filter((item) => item.uri !== file.uri))}
+              onPress={() => {
+                setFiles((current) => current.filter((item) => item.uri !== file.uri));
+                setUploadNames((current) => {
+                  const next = { ...current };
+                  delete next[file.uri];
+                  return next;
+                });
+              }}
             >
               <Text style={styles.removeFile}>Remove</Text>
             </Pressable>
           )}
+        </View>
+        <TextInput
+          value={uploadNames[file.uri] || ""}
+          onChangeText={(value) => setUploadNames((current) => ({ ...current, [file.uri]: value }))}
+          maxLength={160}
+          placeholder={`Searchable name for item ${index + 1}`}
+          placeholderTextColor="#8b8075"
+          style={styles.uploadNameInput}
+        />
         </View>
       ))}
       {progress ? <Text style={styles.success}>{progress}</Text> : null}
@@ -5897,6 +5975,7 @@ function MediaLibrary({
     [query, setQuery] = useState(""),
     [selected, setSelected] = useState<SharedMediaAsset | null>(null),
     [workingAsset, setWorkingAsset] = useState<SharedMediaAsset | null>(null),
+    [draftDisplayName, setDraftDisplayName] = useState(""),
     [draftTags, setDraftTags] = useState<string[]>([]),
     [draftNotes, setDraftNotes] = useState(""),
     [savingDetails, setSavingDetails] = useState(false),
@@ -5906,6 +5985,7 @@ function MediaLibrary({
     "Unsorted Cheeto moment";
   function openAsset(asset: SharedMediaAsset) {
     setSelected(asset);
+    setDraftDisplayName(asset.display_name || "");
     setDraftTags(asset.tags || []);
     setDraftNotes(asset.notes || "");
     setDetailMessage("");
@@ -5924,7 +6004,7 @@ function MediaLibrary({
     try {
       const updated = {
         ...selected,
-        ...(await updateSharedMedia(token, selected.id, draftTags, draftNotes)),
+        ...(await updateSharedMedia(token, selected.id, draftDisplayName, draftTags, draftNotes)),
       };
       onUpdated(updated);
       setSelected(updated);
@@ -5944,7 +6024,7 @@ function MediaLibrary({
       filter === "all" ||
       (filter === "unused" ? !asset.usage_count : asset.usage_count > 0);
     const haystack =
-      `${asset.original_name} ${adventureName(asset.adventure_id)} ${asset.tags.join(" ")}`.toLowerCase();
+      `${asset.display_name || ""} ${asset.original_name} ${adventureName(asset.adventure_id)} ${asset.tags.join(" ")} ${asset.notes || ""}`.toLowerCase();
     return matchesState && haystack.includes(query.trim().toLowerCase());
   });
   const groups = adventures
@@ -5982,7 +6062,7 @@ function MediaLibrary({
         </View>
         <View style={styles.mediaInfo}>
           <Text numberOfLines={1} style={styles.mediaName}>
-            {asset.original_name}
+            {asset.display_name || asset.original_name}
           </Text>
           {asset.tags?.length ? (
             <Text numberOfLines={1} style={styles.mediaTagsLine}>
@@ -6152,12 +6232,21 @@ function MediaLibrary({
                     : "ORIGINAL · UNUSED"}
                 </Text>
                 <Text style={styles.mediaModalTitle}>
-                  {adventureName(selected.adventure_id)}
+                  {selected.display_name || adventureName(selected.adventure_id)}
                 </Text>
                 <Text numberOfLines={2} style={styles.mediaModalFile}>
-                  {selected.original_name} ·{" "}
+                  Original: {selected.original_name} ·{" "}
                   {(selected.byte_size / 1024 / 1024).toFixed(1)} MB
                 </Text>
+                <Text style={styles.controlLabel}>Searchable media name</Text>
+                <TextInput
+                  value={draftDisplayName}
+                  onChangeText={setDraftDisplayName}
+                  maxLength={160}
+                  placeholder="Cheeto watching the desert sunrise"
+                  placeholderTextColor="#8b8075"
+                  style={styles.input}
+                />
                 <Text style={styles.controlLabel}>Quick tags</Text>
                 <View style={styles.choiceRow}>
                   {mediaTags.map((tag) => (
@@ -7069,6 +7158,7 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: colors.terracottaDeep,
   },
+  selectedFileBlock: { marginBottom: 12 },
   selectedFile: {
     minHeight: 50,
     backgroundColor: colors.white,
@@ -7076,7 +7166,7 @@ const styles = StyleSheet.create({
     borderColor: colors.sandDeep,
     borderRadius: 13,
     paddingHorizontal: 13,
-    marginBottom: 7,
+    marginBottom: 6,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
@@ -7085,6 +7175,16 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: "700",
+    color: colors.bark,
+  },
+  uploadNameInput: {
+    minHeight: 46,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 13,
+    paddingHorizontal: 13,
+    fontSize: 14,
     color: colors.bark,
   },
   selectedVideoIcon: {

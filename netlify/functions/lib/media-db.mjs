@@ -30,9 +30,9 @@ export async function createAdventure(input, userId) {
 export async function addMediaAsset(input, userId) {
   const id = randomUUID()
   const result = await db().pool.query(
-    `INSERT INTO media_assets (id, adventure_id, blob_key, original_name, content_type, byte_size, width, height, duration_seconds, kind, created_by)
-     VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, 0), NULLIF($8, 0), NULLIF($9, 0), $10, $11) RETURNING *`,
-    [id, input.adventureId, input.blobKey, input.originalName, input.contentType, input.byteSize, input.width || 0, input.height || 0, input.durationSeconds || 0, input.kind || 'photo', userId],
+    `INSERT INTO media_assets (id, adventure_id, blob_key, display_name, original_name, content_type, byte_size, width, height, duration_seconds, kind, created_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, 0), NULLIF($9, 0), NULLIF($10, 0), $11, $12) RETURNING *`,
+    [id, input.adventureId, input.blobKey, String(input.displayName || '').trim(), input.originalName, input.contentType, input.byteSize, input.width || 0, input.height || 0, input.durationSeconds || 0, input.kind || 'photo', userId],
   )
   return result.rows[0]
 }
@@ -47,11 +47,11 @@ export async function mediaById(id) {
   return result.rows[0] || null
 }
 
-export async function updateMediaDetails(id, tags, notes) {
+export async function updateMediaDetails(id, displayName, tags, notes) {
   const result = await db().pool.query(
-    `UPDATE media_assets SET tags = $2::jsonb, notes = $3, updated_at = NOW()
+    `UPDATE media_assets SET display_name = $2, tags = $3::jsonb, notes = $4, updated_at = NOW()
      WHERE id = $1 AND status = 'ready' RETURNING *`,
-    [id, JSON.stringify(tags), notes.trim()],
+    [id, displayName.trim(), JSON.stringify(tags), notes.trim()],
   )
   return result.rows[0] || null
 }

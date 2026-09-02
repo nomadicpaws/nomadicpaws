@@ -47,14 +47,16 @@ export default async (request: Request) => {
       if (user.role !== 'katie') return Response.json({ error: 'Adventure uploads belong to Katie’s workspace.' }, { status: 403, headers: HEADERS })
       const form = await request.formData(), file = form.get('file'), adventureId = String(form.get('adventureId') || '')
       const requestedName = String(form.get('originalName') || '').trim()
+      const displayName = String(form.get('displayName') || '').trim()
       const width = Math.max(0, Math.min(50000, Number.parseInt(String(form.get('width') || '0'), 10) || 0))
       const height = Math.max(0, Math.min(50000, Number.parseInt(String(form.get('height') || '0'), 10) || 0))
       if (!(file instanceof File) || !validDirectPhoto(file)) return Response.json({ error: `Choose a JPG, PNG, WebP, HEIC, or HEIF photo no larger than ${Math.floor(MAX_DIRECT_PHOTO_BYTES / 1024 / 1024)} MB.` }, { status: 400, headers: HEADERS })
+      if (displayName.length > 160) return Response.json({ error: 'Keep the searchable media name under 160 characters.' }, { status: 400, headers: HEADERS })
       if (!/^[0-9a-f-]{36}$/i.test(adventureId) || !(await adventureExists(adventureId))) return Response.json({ error: 'Choose a saved adventure before adding photos.' }, { status: 400, headers: HEADERS })
       const blobKey = `originals/${adventureId}/${randomUUID()}`
       await store().set(blobKey, file, { metadata: { originalName: file.name, contentType: file.type, owner: user.id }, onlyIfNew: true })
       const originalName = requestedName && requestedName.length <= 255 ? requestedName : (file.name || 'Nomadic Paws photo')
-      const asset = await addMediaAsset({ adventureId, blobKey, originalName, contentType: file.type, byteSize: file.size, width, height }, user.id)
+      const asset = await addMediaAsset({ adventureId, blobKey, displayName, originalName, contentType: file.type, byteSize: file.size, width, height }, user.id)
       return Response.json({ media: asset }, { status: 201, headers: HEADERS })
     }
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
@@ -65,7 +67,7 @@ export default async (request: Request) => {
       if (!r2Configured()) return Response.json({ mode: 'chunked' }, { headers: HEADERS })
       const uploadId = randomUUID(), objectKey = `r2/originals/${String(body.adventureId)}/${uploadId}`
       const session = {
-        owner: user.id, objectKey, adventureId: String(body.adventureId), originalName: String(body.originalName),
+        owner: user.id, objectKey, adventureId: String(body.adventureId), displayName: String(body.displayName || '').trim(), originalName: String(body.originalName),
         contentType: String(body.contentType).toLowerCase(), byteSize: Number(body.byteSize),
         width: Number(body.width) || 0, height: Number(body.height) || 0, durationSeconds: Number(body.durationSeconds),
       }
@@ -77,7 +79,7 @@ export default async (request: Request) => {
       if (!/^[0-9a-f-]{36}$/i.test(uploadId)) return Response.json({ error: 'That video upload is not valid.' }, { status: 400, headers: HEADERS })
       const sessionKey = `r2-uploads/${user.id}/${uploadId}`
       const session = await store().get(sessionKey, { type: 'json', consistency: 'strong' }) as null | {
-        owner: string; objectKey: string; adventureId: string; originalName: string; contentType: string;
+        owner: string; objectKey: string; adventureId: string; displayName: string; originalName: string; contentType: string;
         byteSize: number; width: number; height: number; durationSeconds: number
       }
       if (!session || session.owner !== user.id) return Response.json({ error: 'That video upload has expired.' }, { status: 404, headers: HEADERS })
@@ -97,6 +99,7 @@ export default async (request: Request) => {
         owner: user.id,
         adventureId: String(body.adventureId),
         originalName: String(body.originalName),
+        displayName: String(body.displayName || '').trim(),
         contentType: String(body.contentType).toLowerCase(),
         byteSize: Number(body.byteSize),
         width: Math.max(0, Math.min(50000, Number(body.width) || 0)),
@@ -112,7 +115,7 @@ export default async (request: Request) => {
       if (!/^[0-9a-f-]{36}$/i.test(uploadId)) return Response.json({ error: 'That video upload is not valid.' }, { status: 400, headers: HEADERS })
       const sessionKey = `uploads/${user.id}/${uploadId}/session`
       const session = await store().get(sessionKey, { type: 'json', consistency: 'strong' }) as null | {
-        owner: string; adventureId: string; originalName: string; contentType: string; byteSize: number;
+        owner: string; adventureId: string; displayName: string; originalName: string; contentType: string; byteSize: number;
         width: number; height: number; durationSeconds: number; chunkCount: number
       }
       if (!session || session.owner !== user.id) return Response.json({ error: 'That video upload has expired.' }, { status: 404, headers: HEADERS })
@@ -143,7 +146,7 @@ export default async (request: Request) => {
     }
     if (body.action === 'update-media') {
       if (!validMediaDetails(body)) return Response.json({ error: 'Those photo details could not be saved.' }, { status: 400, headers: HEADERS })
-      const media = await updateMediaDetails(String(body.mediaId), body.tags as string[], String(body.notes))
+      const media = await updateMediaDetails(String(body.mediaId), String(body.displayName || ''), body.tags as string[], String(body.notes))
       return media ? Response.json({ media }, { headers: HEADERS }) : Response.json({ error: 'That photo is no longer available.' }, { status: 404, headers: HEADERS })
     }
     if (body.action === 'save-working-version') {
