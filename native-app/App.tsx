@@ -2706,6 +2706,8 @@ function Today({
   const [rhythm, setRhythm] = useState<InstagramDay[]>(initialInstagramRhythm);
   const [posts, setPosts] = useState<InstagramPostDraft[]>([]);
   const [reviewStories, setReviewStories] = useState<JournalStory[]>([]);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadMessage, setLoadMessage] = useState("");
   const weekday = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const dateHeading = new Date()
     .toLocaleDateString("en-US", {
@@ -2715,19 +2717,25 @@ function Today({
     })
     .toUpperCase();
   const todayTheme = rhythm.find((item) => item.day === weekday);
+  async function refreshToday() {
+    setLoadState("loading");
+    setLoadMessage("");
+    try {
+      const [instagram, journal] = await Promise.all([
+        loadInstagramStudio(token),
+        person === "Mom" ? loadStories(token) : Promise.resolve(null),
+      ]);
+      if (instagram.rhythm) setRhythm(instagram.rhythm);
+      setPosts(instagram.posts);
+      if (journal) setReviewStories(journal.stories.filter((story) => story.reviewStatus === "ready_for_mom"));
+      setLoadState("ready");
+    } catch (reason) {
+      setLoadState("error");
+      setLoadMessage(reason instanceof Error ? reason.message : "Today’s shared work could not be opened.");
+    }
+  }
   useEffect(() => {
-    loadInstagramStudio(token)
-        .then((data) => {
-          if (data.rhythm) setRhythm(data.rhythm);
-          setPosts(data.posts);
-        })
-        .catch(() => {});
-  }, [person, token]);
-  useEffect(() => {
-    if (person !== "Mom") return;
-    loadStories(token)
-      .then((data) => setReviewStories(data.stories.filter((story) => story.reviewStatus === "ready_for_mom")))
-      .catch(() => {});
+    refreshToday();
   }, [person, token]);
   const mine =
     person === "Mom"
@@ -2739,6 +2747,11 @@ function Today({
   const needsKatie = posts.filter(
     (post) => post.assignedTo === "Katie" && post.status !== "Posted",
   );
+  const visibleTodayCount = person === "Trinitie"
+    ? mine.length + posts.filter((post) => post.targetDate === localDateKey() && post.status !== "Posted").length
+    : person === "Mom"
+      ? reviewStories.length + posts.filter((post) => post.sharedWithMom).length
+      : mine.length + needsKatie.length;
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.todayHeader}>
@@ -2760,6 +2773,19 @@ function Today({
             ? "A quiet place to read Katie’s Trail Journal drafts and leave review notes."
             : "Your stories, campaigns, and Cheeto adventures are gathered in one place."}
       </Text>
+      {loadState === "loading" ? (
+        <View style={styles.inlineLoading}>
+          <ActivityIndicator color={colors.terracotta} />
+          <Text style={styles.helper}>Opening today’s shared work…</Text>
+        </View>
+      ) : loadState === "error" ? (
+        <View style={styles.retryCard}>
+          <Text style={styles.error}>{loadMessage}</Text>
+          <Pressable onPress={refreshToday} style={styles.secondary}>
+            <Text style={styles.secondaryText}>Try again</Text>
+          </Pressable>
+        </View>
+      ) : null}
       {person === "Katie" ? (
         <>
           <Pressable style={styles.adventureButton} onPress={onNewAdventure}>
@@ -2851,19 +2877,21 @@ function Today({
               : "In your hands"}
         </Text>
         <Text style={styles.listCount}>
-          {person === "Trinitie"
-            ? mine.length +
-              posts.filter(
-                (post) =>
-                  post.targetDate === localDateKey() &&
-                  post.status !== "Posted",
-              ).length
-            : person === "Mom"
-              ? reviewStories.length + posts.filter((post) => post.sharedWithMom).length
-              : mine.length}{" "}
-          items
+          {visibleTodayCount} item{visibleTodayCount === 1 ? "" : "s"}
         </Text>
       </View>
+      {loadState === "ready" && visibleTodayCount === 0 ? (
+        <View style={styles.emptyTodayCard}>
+          <Text style={styles.emptyTodayTitle}>
+            {person === "Mom" ? "Nothing is waiting for you." : "Your desk is clear."}
+          </Text>
+          <Text style={styles.emptyTodayCopy}>
+            {person === "Mom"
+              ? "A Journal review or shared Instagram preview will appear here only when Katie or Trinitie sends one."
+              : "There is no missing assignment hiding behind an empty queue. New work will appear here when it is ready."}
+          </Text>
+        </View>
+      ) : null}
       {person === "Trinitie"
         ? posts
             .filter(
@@ -7348,6 +7376,29 @@ const styles = StyleSheet.create({
   },
   primaryText: { color: colors.white, fontSize: 17, fontWeight: "800" },
   error: { color: "#a13d3d", lineHeight: 22, marginBottom: 12 },
+  inlineLoading: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 14,
+  },
+  retryCard: {
+    backgroundColor: "#fff7f4",
+    borderWidth: 1,
+    borderColor: "#e4b8a5",
+    borderRadius: 16,
+    padding: 14,
+    marginVertical: 12,
+  },
+  emptyTodayCard: {
+    backgroundColor: "#f3f6ef",
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 14,
+  },
+  emptyTodayTitle: { color: colors.bark, fontSize: 17, fontWeight: "900" },
+  emptyTodayCopy: { color: colors.barkSoft, fontSize: 13, lineHeight: 20, marginTop: 6 },
   appHeader: {
     height: 64,
     paddingHorizontal: 18,
