@@ -139,14 +139,31 @@ export async function createSharedAdventure(token: string, input: { title: strin
 }
 
 export async function uploadAdventurePhoto(token: string, adventureId: string, file: { uri: string; name: string; mimeType?: string | null; width?: number; height?: number }) {
-  const form = new FormData()
-  form.append('adventureId', adventureId)
-  if (file.width) form.append('width', String(file.width))
-  if (file.height) form.append('height', String(file.height))
-  form.append('file', { uri: file.uri, name: file.name, type: file.mimeType || 'image/jpeg' } as any)
-  const response = await fetch(`${API_URL}/api/app/media`, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` }, body: form })
-  const data = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(data.error || 'That photo could not be added to the shared library.')
+  // React Native's WHATWG FormData implementation does not accept the
+  // `{ uri, name, type }` file-shaped object reliably on iOS. Let Expo's
+  // native uploader read the Photos/iCloud file URI and construct the
+  // multipart request instead.
+  const result = await FileSystem.uploadAsync(`${API_URL}/api/app/media`, file.uri, {
+    httpMethod: 'POST',
+    uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+    fieldName: 'file',
+    mimeType: file.mimeType || 'image/jpeg',
+    parameters: {
+      adventureId,
+      originalName: file.name,
+      width: String(file.width || 0),
+      height: String(file.height || 0),
+    },
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  })
+  let data: { media?: SharedMediaAsset; error?: string } = {}
+  try { data = JSON.parse(result.body || '{}') as typeof data } catch { /* use the friendly fallback below */ }
+  if (result.status < 200 || result.status >= 300 || !data.media) {
+    throw new Error(data.error || 'That photo could not be added to the shared library.')
+  }
   return data.media as SharedMediaAsset
 }
 
