@@ -5,7 +5,7 @@ export async function getInstagramStudio() {
   const [settings, templates, posts] = await Promise.all([
     getDatabase().pool.query(`SELECT weekly_rhythm, updated_at FROM instagram_studio_settings WHERE profile_name = 'Trinitie'`),
     getDatabase().pool.query(`SELECT id, name, kind, aspect_ratio, source_url, has_transparency, favorite, created_at, updated_at FROM instagram_templates WHERE owner_name = 'Trinitie' ORDER BY favorite DESC, created_at DESC`),
-    getDatabase().pool.query(`SELECT id, title, caption, media_urls, target_date, theme, status, assigned_to, handoff_note, shared_with_mom, created_at, updated_at FROM instagram_post_drafts WHERE owner_name = 'Trinitie' ORDER BY target_date NULLS LAST, updated_at DESC`),
+    getDatabase().pool.query(`SELECT id, title, caption, media_urls, target_date, theme, status, assigned_to, handoff_note, shared_with_mom, alt_text, instagram_url, pinterest_reusable, posted_at, created_at, updated_at FROM instagram_post_drafts WHERE owner_name = 'Trinitie' ORDER BY target_date NULLS LAST, updated_at DESC`),
   ])
   return { rhythm: settings.rows[0]?.weekly_rhythm || null, templates: templates.rows, posts: posts.rows }
 }
@@ -24,14 +24,16 @@ export async function saveInstagramRhythm(rhythm) {
 export async function saveInstagramPost(input) {
   const id = input.id || crypto.randomUUID()
   const result = await getDatabase().pool.query(
-    `INSERT INTO instagram_post_drafts (id, owner_name, title, caption, media_urls, target_date, theme, status, assigned_to, handoff_note, shared_with_mom, created_at, updated_at)
-     VALUES ($1, 'Trinitie', $2, $3, $4::jsonb, NULLIF($5::text, '')::date, $6, $7, $8, $9, $10, NOW(), NOW())
+    `INSERT INTO instagram_post_drafts (id, owner_name, title, caption, media_urls, target_date, theme, status, assigned_to, handoff_note, shared_with_mom, alt_text, instagram_url, pinterest_reusable, posted_at, created_at, updated_at)
+     VALUES ($1, 'Trinitie', $2, $3, $4::jsonb, NULLIF($5::text, '')::date, $6, $7, $8, $9, $10, $11, $12, $13, CASE WHEN $7 = 'Posted' THEN COALESCE(NULLIF($14::text, '')::timestamptz, NOW()) ELSE NULLIF($14::text, '')::timestamptz END, NOW(), NOW())
      ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, caption = EXCLUDED.caption, media_urls = EXCLUDED.media_urls,
        target_date = EXCLUDED.target_date, theme = EXCLUDED.theme, status = EXCLUDED.status, assigned_to = EXCLUDED.assigned_to,
-       handoff_note = EXCLUDED.handoff_note, shared_with_mom = EXCLUDED.shared_with_mom, updated_at = NOW()
+       handoff_note = EXCLUDED.handoff_note, shared_with_mom = EXCLUDED.shared_with_mom, alt_text = EXCLUDED.alt_text,
+       instagram_url = EXCLUDED.instagram_url, pinterest_reusable = EXCLUDED.pinterest_reusable,
+       posted_at = CASE WHEN EXCLUDED.status = 'Posted' THEN COALESCE(instagram_post_drafts.posted_at, EXCLUDED.posted_at, NOW()) ELSE instagram_post_drafts.posted_at END, updated_at = NOW()
      WHERE instagram_post_drafts.owner_name = 'Trinitie'
-     RETURNING id, title, caption, media_urls, target_date, theme, status, assigned_to, handoff_note, shared_with_mom, created_at, updated_at`,
-    [id, input.title.trim(), input.caption, JSON.stringify(input.mediaUrls), input.targetDate || '', input.theme.trim(), input.status, input.assignedTo, input.handoffNote, input.sharedWithMom === true],
+     RETURNING id, title, caption, media_urls, target_date, theme, status, assigned_to, handoff_note, shared_with_mom, alt_text, instagram_url, pinterest_reusable, posted_at, created_at, updated_at`,
+    [id, input.title.trim(), input.caption, JSON.stringify(input.mediaUrls), input.targetDate || '', input.theme.trim(), input.status, input.assignedTo, input.handoffNote, input.sharedWithMom === true, String(input.altText || '').trim(), String(input.instagramUrl || '').trim(), input.pinterestReusable === true, input.postedAt || ''],
   )
   return result.rows[0]
 }

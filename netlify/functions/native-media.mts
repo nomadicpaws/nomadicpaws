@@ -3,7 +3,7 @@ import { getStore } from '@netlify/blobs'
 import type { Config } from '@netlify/functions'
 import { requireAppUser } from './lib/app-auth.mjs'
 import { addMediaAsset, adventureExists, adventuresWithMedia, createAdventure, mediaById, saveWorkingVersion, updateMediaDetails, workingVersionById } from './lib/media-db.mjs'
-import { MAX_ADVENTURE_VIDEO_BYTES, MAX_ADVENTURE_VIDEO_SECONDS, MAX_DIRECT_PHOTO_BYTES, VIDEO_CHUNK_BYTES, validAdventure, validDirectPhoto, validMediaDetails, validVideoUpload, validWorkingVersion } from './lib/media-settings.mjs'
+import { MAX_ADVENTURE_PHOTO_BYTES, MAX_ADVENTURE_VIDEO_BYTES, MAX_ADVENTURE_VIDEO_SECONDS, MAX_DIRECT_PHOTO_BYTES, VIDEO_CHUNK_BYTES, validAdventure, validDirectPhoto, validDirectPhotoUpload, validMediaDetails, validVideoUpload, validWorkingVersion } from './lib/media-settings.mjs'
 import { renderWorkingImage, workingFilename } from './lib/media-render.mjs'
 import { inspectR2Object, r2Configured, signedR2Download, signedR2Upload } from './lib/r2-media.mjs'
 
@@ -60,6 +60,35 @@ export default async (request: Request) => {
       return Response.json({ media: asset }, { status: 201, headers: HEADERS })
     }
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    if (body.action === 'create-direct-photo-upload') {
+      if (user.role !== 'katie') return Response.json({ error: 'Adventure uploads belong to Katie’s workspace.' }, { status: 403, headers: HEADERS })
+      if (!validDirectPhotoUpload(body)) return Response.json({ error: `Choose a JPG, PNG, WebP, HEIC, or HEIF photo no larger than ${Math.floor(MAX_ADVENTURE_PHOTO_BYTES / 1024 / 1024)} MB.` }, { status: 400, headers: HEADERS })
+      if (!(await adventureExists(String(body.adventureId)))) return Response.json({ error: 'Choose a saved adventure before adding photos.' }, { status: 400, headers: HEADERS })
+      if (!r2Configured()) return Response.json({ mode: 'multipart' }, { headers: HEADERS })
+      const uploadId = randomUUID(), objectKey = `r2/originals/${String(body.adventureId)}/${uploadId}`
+      const session = {
+        owner: user.id, objectKey, adventureId: String(body.adventureId), displayName: String(body.displayName || '').trim(),
+        originalName: String(body.originalName), contentType: String(body.contentType).toLowerCase(), byteSize: Number(body.byteSize),
+        width: Number(body.width) || 0, height: Number(body.height) || 0, durationSeconds: 0, kind: 'photo',
+      }
+      await store().setJSON(`r2-uploads/${user.id}/${uploadId}`, session, { onlyIfNew: true })
+      return Response.json({ mode: 'r2', uploadId, uploadUrl: await signedR2Upload(objectKey, session.contentType) }, { status: 201, headers: HEADERS })
+    }
+    if (body.action === 'finish-direct-photo-upload' && r2Configured()) {
+      const uploadId = String(body.uploadId || '')
+      if (!/^[0-9a-f-]{36}$/i.test(uploadId)) return Response.json({ error: 'That photo upload is not valid.' }, { status: 400, headers: HEADERS })
+      const sessionKey = `r2-uploads/${user.id}/${uploadId}`
+      const session = await store().get(sessionKey, { type: 'json', consistency: 'strong' }) as null | {
+        owner: string; objectKey: string; adventureId: string; displayName: string; originalName: string; contentType: string;
+        byteSize: number; width: number; height: number; durationSeconds: number; kind: 'photo'
+      }
+      if (!session || session.owner !== user.id || session.kind !== 'photo') return Response.json({ error: 'That photo upload has expired.' }, { status: 404, headers: HEADERS })
+      const uploaded = await inspectR2Object(session.objectKey)
+      if (Number(uploaded.ContentLength || 0) !== session.byteSize) return Response.json({ error: 'The uploaded photo did not match the original size.' }, { status: 409, headers: HEADERS })
+      const asset = await addMediaAsset({ ...session, blobKey: session.objectKey }, user.id)
+      await store().delete(sessionKey)
+      return Response.json({ media: asset }, { status: 201, headers: HEADERS })
+    }
     if (body.action === 'create-direct-video-upload') {
       if (user.role !== 'katie') return Response.json({ error: 'Adventure uploads belong to Katie’s workspace.' }, { status: 403, headers: HEADERS })
       if (!validVideoUpload(body)) return Response.json({ error: `Choose a video up to ${MAX_ADVENTURE_VIDEO_SECONDS} seconds and ${Math.floor(MAX_ADVENTURE_VIDEO_BYTES / 1024 / 1024)} MB.` }, { status: 400, headers: HEADERS })

@@ -6,6 +6,7 @@ Use this checklist on one consolidated build. A tester only needs to complete he
 
 - [ ] Sign in, close the app, reopen it, and unlock with the iPhone passcode without signing in again.
 - [ ] Create an Adventure with multiple photos and one video from Apple Photos.
+- [ ] Upload an original-quality photo larger than 5 MB and confirm Cloudflare progress is visible.
 - [ ] Give each selected item a searchable name, upload it, then rename one item from the Media Library.
 - [ ] Confirm search finds media by its searchable name, original filename, Adventure, tag, and note.
 - [ ] Confirm the new media appears in the shared Media Library at full usable quality.
@@ -32,6 +33,8 @@ Use this checklist on one consolidated build. A tester only needs to complete he
 - [ ] Share its preview with CatNana, then stop sharing and share it again.
 - [ ] Hand the post to Katie with a note, then confirm Katie can return it without losing Trinitie’s work.
 - [ ] Use Upload to Instagram and confirm the correct media and caption are available.
+- [ ] Add alt text, mark the handoff Posted, optionally paste its Instagram link, and confirm the posted time is retained.
+- [ ] Mark one posted item Available for Pinterest later and confirm it remains searchable in the Instagram archive.
 - [ ] Open a shared video project, edit an overlay, save it, and confirm Katie sees the same project.
 
 ## CatNana

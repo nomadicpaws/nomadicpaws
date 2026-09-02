@@ -1,4 +1,5 @@
 export const MAX_DIRECT_PHOTO_BYTES = 5 * 1024 * 1024
+export const MAX_ADVENTURE_PHOTO_BYTES = 50 * 1024 * 1024
 export const MAX_ADVENTURE_VIDEO_BYTES = 250 * 1024 * 1024
 export const MAX_ADVENTURE_VIDEO_SECONDS = 35
 export const VIDEO_CHUNK_BYTES = 2 * 1024 * 1024
@@ -14,6 +15,14 @@ export function validAdventure(value = {}) {
 
 export function validDirectPhoto(file) {
   return Boolean(file && PHOTO_TYPES.has(String(file.type || '').toLowerCase()) && Number(file.size) > 0 && Number(file.size) <= MAX_DIRECT_PHOTO_BYTES)
+}
+
+export function validDirectPhotoUpload(value = {}) {
+  return typeof value.adventureId === 'string' && /^[0-9a-f-]{36}$/i.test(value.adventureId)
+    && typeof value.originalName === 'string' && value.originalName.trim().length > 0 && value.originalName.length <= 255
+    && typeof (value.displayName || '') === 'string' && String(value.displayName || '').trim().length <= 160
+    && PHOTO_TYPES.has(String(value.contentType || '').toLowerCase())
+    && Number.isInteger(Number(value.byteSize)) && Number(value.byteSize) > 0 && Number(value.byteSize) <= MAX_ADVENTURE_PHOTO_BYTES
 }
 
 export function validVideoUpload(value = {}) {

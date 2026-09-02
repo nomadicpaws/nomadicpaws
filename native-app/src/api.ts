@@ -138,7 +138,36 @@ export async function createSharedAdventure(token: string, input: { title: strin
   return data.adventure
 }
 
-export async function uploadAdventurePhoto(token: string, adventureId: string, file: { uri: string; name: string; displayName?: string; mimeType?: string | null; width?: number; height?: number }) {
+export async function uploadAdventurePhoto(token: string, adventureId: string, file: { uri: string; name: string; displayName?: string; mimeType?: string | null; byteSize?: number; width?: number; height?: number }, onProgress?: (current: number, total: number) => void) {
+  const info = file.byteSize ? null : await FileSystem.getInfoAsync(file.uri)
+  const byteSize = file.byteSize || (info?.exists ? info.size || 0 : 0)
+  const direct = await request<{ mode: 'r2'; uploadId: string; uploadUrl: string } | { mode: 'multipart' }>('/api/app/media', token, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'create-direct-photo-upload', adventureId, originalName: file.name,
+      displayName: file.displayName?.trim() || '', contentType: file.mimeType || 'image/jpeg', byteSize,
+      width: file.width || 0, height: file.height || 0,
+    }),
+  })
+  if (direct.mode === 'r2') {
+    const task = FileSystem.createUploadTask(
+      direct.uploadUrl,
+      file.uri,
+      {
+        httpMethod: 'PUT',
+        uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+        headers: { 'Content-Type': file.mimeType || 'image/jpeg' },
+      },
+      ({ totalBytesSent, totalBytesExpectedToSend }) =>
+        onProgress?.(totalBytesSent, totalBytesExpectedToSend || byteSize),
+    )
+    const result = await task.uploadAsync()
+    if (!result || result.status < 200 || result.status >= 300) throw new Error('Cloud storage did not accept that photo. Please retry.')
+    const finished = await request<{ media: SharedMediaAsset }>('/api/app/media', token, {
+      method: 'POST', body: JSON.stringify({ action: 'finish-direct-photo-upload', uploadId: direct.uploadId }),
+    })
+    return finished.media
+  }
   // React Native's WHATWG FormData implementation does not accept the
   // `{ uri, name, type }` file-shaped object reliably on iOS. Let Expo's
   // native uploader read the Photos/iCloud file URI and construct the
@@ -292,9 +321,9 @@ export async function completeMomReview(token: string, slug: string) {
 
 export async function loadInstagramStudio(token: string) {
   const data = await cachedRequest('instagram-studio', () =>
-    request<{ rhythm: InstagramDay[] | null; templates: Array<{ id: string; name: string; kind: InstagramTemplate['kind']; aspect_ratio: string; source_url: string; favorite: boolean }>; posts: Array<{ id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; assigned_to: InstagramPostDraft['assignedTo']; handoff_note: string; shared_with_mom: boolean; updated_at: string }> }>('/api/app/instagram', token),
+    request<{ rhythm: InstagramDay[] | null; templates: Array<{ id: string; name: string; kind: InstagramTemplate['kind']; aspect_ratio: string; source_url: string; favorite: boolean }>; posts: Array<{ id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; assigned_to: InstagramPostDraft['assignedTo']; handoff_note: string; shared_with_mom: boolean; alt_text: string; instagram_url: string; pinterest_reusable: boolean; posted_at: string | null; updated_at: string }> }>('/api/app/instagram', token),
   )
-  return { rhythm: data.rhythm, templates: data.templates.map(template => ({ id: template.id, name: template.name, kind: template.kind, aspectRatio: template.aspect_ratio, previewUrl: template.source_url, favorite: template.favorite })), posts: data.posts.map(post => ({ id: post.id, title: post.title, caption: post.caption, mediaUrls: post.media_urls, targetDate: post.target_date, theme: post.theme, status: post.status, assignedTo: post.assigned_to, handoffNote: post.handoff_note, sharedWithMom: post.shared_with_mom, updatedAt: post.updated_at })) }
+  return { rhythm: data.rhythm, templates: data.templates.map(template => ({ id: template.id, name: template.name, kind: template.kind, aspectRatio: template.aspect_ratio, previewUrl: template.source_url, favorite: template.favorite })), posts: data.posts.map(post => ({ id: post.id, title: post.title, caption: post.caption, mediaUrls: post.media_urls, targetDate: post.target_date, theme: post.theme, status: post.status, assignedTo: post.assigned_to, handoffNote: post.handoff_note, sharedWithMom: post.shared_with_mom, altText: post.alt_text || '', instagramUrl: post.instagram_url || '', pinterestReusable: post.pinterest_reusable === true, postedAt: post.posted_at || null, updatedAt: post.updated_at })) }
 }
 
 export async function saveInstagramRhythm(token: string, rhythm: InstagramDay[]) {
@@ -304,10 +333,10 @@ export async function saveInstagramRhythm(token: string, rhythm: InstagramDay[])
 }
 
 export async function saveInstagramPost(token: string, post: Omit<InstagramPostDraft, 'updatedAt'>) {
-  const data = await request<{ post: { id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; assigned_to: InstagramPostDraft['assignedTo']; handoff_note: string; shared_with_mom: boolean; updated_at: string } }>('/api/app/instagram', token, {
+  const data = await request<{ post: { id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; assigned_to: InstagramPostDraft['assignedTo']; handoff_note: string; shared_with_mom: boolean; alt_text: string; instagram_url: string; pinterest_reusable: boolean; posted_at: string | null; updated_at: string } }>('/api/app/instagram', token, {
     method: 'POST', body: JSON.stringify({ action: 'save-post', ...post }),
   })
-  return { id: data.post.id, title: data.post.title, caption: data.post.caption, mediaUrls: data.post.media_urls, targetDate: data.post.target_date, theme: data.post.theme, status: data.post.status, assignedTo: data.post.assigned_to, handoffNote: data.post.handoff_note, sharedWithMom: data.post.shared_with_mom, updatedAt: data.post.updated_at }
+  return { id: data.post.id, title: data.post.title, caption: data.post.caption, mediaUrls: data.post.media_urls, targetDate: data.post.target_date, theme: data.post.theme, status: data.post.status, assignedTo: data.post.assigned_to, handoffNote: data.post.handoff_note, sharedWithMom: data.post.shared_with_mom, altText: data.post.alt_text || '', instagramUrl: data.post.instagram_url || '', pinterestReusable: data.post.pinterest_reusable === true, postedAt: data.post.posted_at || null, updatedAt: data.post.updated_at }
 }
 
 export async function uploadInstagramTemplate(token: string, file: { uri: string; name: string; mimeType?: string | null; width?: number; height?: number; kind?: InstagramTemplate['kind'] }) {

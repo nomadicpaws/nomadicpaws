@@ -14,6 +14,11 @@ export function validInstagramPost(value) {
   if (!['Katie', 'Trinitie'].includes(value.assignedTo)) return false
   if (typeof value.handoffNote !== 'string' || value.handoffNote.length > 300) return false
   if (value.sharedWithMom !== undefined && typeof value.sharedWithMom !== 'boolean') return false
+  if (typeof (value.altText || '') !== 'string' || String(value.altText || '').length > 1000) return false
+  if (typeof (value.instagramUrl || '') !== 'string' || String(value.instagramUrl || '').length > 1000) return false
+  if (value.instagramUrl && !/^https:\/\/(www\.)?instagram\.com\//i.test(value.instagramUrl)) return false
+  if (value.pinterestReusable !== undefined && typeof value.pinterestReusable !== 'boolean') return false
+  if (value.postedAt !== null && value.postedAt !== undefined && (typeof value.postedAt !== 'string' || Number.isNaN(Date.parse(value.postedAt)))) return false
   if (value.targetDate !== null && value.targetDate !== '' && (typeof value.targetDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value.targetDate))) return false
   return Array.isArray(value.mediaUrls) && value.mediaUrls.length <= 20 && value.mediaUrls.every(url => typeof url === 'string' && url.length <= 1000)
 }

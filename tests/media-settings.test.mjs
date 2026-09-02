@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { MAX_ADVENTURE_VIDEO_BYTES, MAX_DIRECT_PHOTO_BYTES, validAdventure, validDirectPhoto, validMediaDetails, validVideoUpload, validWorkingVersion } from '../netlify/functions/lib/media-settings.mjs'
+import { MAX_ADVENTURE_PHOTO_BYTES, MAX_ADVENTURE_VIDEO_BYTES, MAX_DIRECT_PHOTO_BYTES, validAdventure, validDirectPhoto, validDirectPhotoUpload, validMediaDetails, validVideoUpload, validWorkingVersion } from '../netlify/functions/lib/media-settings.mjs'
 
 test('adventures require a useful bounded title', () => {
   assert.equal(validAdventure({ title: 'Cheeto discovers a cactus shadow' }), true)
@@ -29,6 +29,19 @@ test('direct uploads preserve supported photos within the safe function limit', 
   assert.equal(validDirectPhoto({ type: 'image/heic', size: MAX_DIRECT_PHOTO_BYTES }), true)
   assert.equal(validDirectPhoto({ type: 'video/quicktime', size: 1000 }), false)
   assert.equal(validDirectPhoto({ type: 'image/jpeg', size: MAX_DIRECT_PHOTO_BYTES + 1 }), false)
+})
+
+test('full-resolution adventure photos can upload directly to private cloud storage', () => {
+  const input = {
+    adventureId: '11111111-1111-4111-8111-111111111111',
+    originalName: 'IMG_2977.HEIC',
+    displayName: 'Cheeto watching the sunrise',
+    contentType: 'image/heic',
+    byteSize: MAX_ADVENTURE_PHOTO_BYTES,
+  }
+  assert.equal(validDirectPhotoUpload(input), true)
+  assert.equal(validDirectPhotoUpload({ ...input, byteSize: MAX_ADVENTURE_PHOTO_BYTES + 1 }), false)
+  assert.equal(validDirectPhotoUpload({ ...input, displayName: 'x'.repeat(161) }), false)
 })
 
 test('chunked adventure uploads accept a real 30-second iPhone video safely', () => {

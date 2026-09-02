@@ -23,3 +23,14 @@ test('Instagram drafts support a target day without enabling automatic posting',
   assert.equal(validInstagramPost({ ...post, sharedWithMom: true }), true)
   assert.equal(validInstagramPost({ ...post, sharedWithMom: 'yes' }), false)
 })
+
+test('posted Instagram records can remain personal-account archives and opt into Pinterest reuse', () => {
+  const post = {
+    title: 'Desert window supervisor', caption: 'A very serious shift.', mediaUrls: ['working:11111111-1111-4111-8111-111111111111'],
+    targetDate: '2026-09-02', theme: 'Whisker Wisdom Wednesday', status: 'Posted', assignedTo: 'Trinitie', handoffNote: '',
+    sharedWithMom: false, altText: 'Cheeto watching the desert through a window.', instagramUrl: 'https://www.instagram.com/p/example/',
+    pinterestReusable: true, postedAt: '2026-09-02T12:00:00.000Z',
+  }
+  assert.equal(validInstagramPost(post), true)
+  assert.equal(validInstagramPost({ ...post, instagramUrl: 'https://example.com/not-instagram' }), false)
+})

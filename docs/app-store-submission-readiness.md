@@ -18,6 +18,7 @@ The final answers must match the production services at submission time. Expecte
 
 - Account identifier and email supplied through Sign in with Apple, used for authentication and team access.
 - User-generated content: private drafts, captions, review notes, photos, videos, templates, and project metadata.
+- Optional Instagram post URLs are stored only as private archive metadata; the app does not require Meta login or publish through Instagram APIs.
 - Optional precise/private location typed into an Adventure note. This is user-entered content; the app does not request device location and does not publish it automatically.
 - Diagnostics should be declared only if Expo, Apple, Netlify, or another enabled production service collects them in the submitted build.
 - No advertising tracking and no sale of user information.

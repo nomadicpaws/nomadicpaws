@@ -257,6 +257,9 @@ type LocalInstagramDraft = {
   theme: string;
   handoffNote: string;
   sharedWithMom: boolean;
+  altText?: string;
+  instagramUrl?: string;
+  pinterestReusable?: boolean;
 };
 
 function localJournalDraftPath(slug: string) {
@@ -3276,14 +3279,18 @@ function NewAdventure({
           );
         } else {
           setProgress(`Adding photo ${index + 1} of ${files.length}…`);
+          const info = await FileSystem.getInfoAsync(file.uri);
           await uploadAdventurePhoto(token, currentAdventureId, {
             uri: file.uri,
             name: file.fileName || `Cheeto-photo-${index + 1}.jpg`,
             displayName: uploadNames[file.uri] || "",
             mimeType: file.mimeType,
+            byteSize: file.fileSize || (info.exists ? info.size || 0 : 0),
             width: file.width,
             height: file.height,
-          });
+          }, (sent, total) => setProgress(
+            `Adding photo ${index + 1} of ${files.length} · ${Math.min(100, Math.round((sent / Math.max(1, total)) * 100))}%…`,
+          ));
         }
         setUploadedUris((current) => current.includes(file.uri) ? current : [...current, file.uri]);
       }
@@ -3476,6 +3483,9 @@ function InstagramPostEditor({
     [error, setError] = useState(""),
     [handoffNote, setHandoffNote] = useState(post?.handoffNote || ""),
     [sharedWithMom, setSharedWithMom] = useState(post?.sharedWithMom || false),
+    [altText, setAltText] = useState(post?.altText || ""),
+    [instagramUrl, setInstagramUrl] = useState(post?.instagramUrl || ""),
+    [pinterestReusable, setPinterestReusable] = useState(post?.pinterestReusable || false),
     [handoffMessage, setHandoffMessage] = useState(""),
     [welcomeAsset, setWelcomeAsset] = useState<SharedMediaAsset>(),
     [welcomeBlurred, setWelcomeBlurred] = useState(false),
@@ -3494,6 +3504,9 @@ function InstagramPostEditor({
       theme,
       handoffNote,
       sharedWithMom,
+      altText,
+      instagramUrl,
+      pinterestReusable,
     };
   }
   async function persistInstagramLocal() {
@@ -3516,6 +3529,9 @@ function InstagramPostEditor({
         setTargetDate(saved.targetDate);
         setTheme(saved.theme);
         setHandoffNote(saved.handoffNote);
+        setAltText(saved.altText || "");
+        setInstagramUrl(saved.instagramUrl || "");
+        setPinterestReusable(saved.pinterestReusable === true);
         setLocalSaveState("Restored from this iPhone");
       })
       .catch(() => setLocalSaveState(post ? "Synchronized" : "New local draft"))
@@ -3534,7 +3550,7 @@ function InstagramPostEditor({
       );
     }, 350);
     return () => clearTimeout(timer);
-  }, [title, caption, mediaUrls, targetDate, theme, handoffNote]);
+  }, [title, caption, mediaUrls, targetDate, theme, handoffNote, altText, instagramUrl, pinterestReusable]);
   async function save(
     status: InstagramPostDraft["status"],
     close = true,
@@ -3554,6 +3570,10 @@ function InstagramPostEditor({
           assignedTo,
           handoffNote,
           sharedWithMom,
+          altText,
+          instagramUrl,
+          pinterestReusable,
+          postedAt: status === "Posted" ? (post?.postedAt || new Date().toISOString()) : (post?.postedAt || null),
         });
       onSaved(saved);
       await FileSystem.deleteAsync(localInstagramDraftPath(draftKey), {
@@ -3673,6 +3693,10 @@ function InstagramPostEditor({
         assignedTo: "Katie",
         handoffNote,
         sharedWithMom,
+        altText,
+        instagramUrl,
+        pinterestReusable,
+        postedAt: post?.postedAt || null,
       });
       onSaved(saved);
       await FileSystem.deleteAsync(localInstagramDraftPath(draftKey), {
@@ -3849,6 +3873,38 @@ function InstagramPostEditor({
       />
       <Text style={styles.controlLabel}>Daily theme</Text>
       <TextInput value={theme} onChangeText={setTheme} style={styles.input} />
+      <Text style={styles.controlLabel}>Image description · alt text</Text>
+      <TextInput
+        value={altText}
+        onChangeText={setAltText}
+        maxLength={1000}
+        multiline
+        style={[styles.input, styles.notesInput]}
+        placeholder="Describe what is visible for anyone using a screen reader"
+        placeholderTextColor="#8b8075"
+      />
+      <View style={styles.archiveCard}>
+        <Text style={styles.eyebrow}>POST ARCHIVE</Text>
+        <Text style={styles.controlLabel}>Instagram link · optional after posting</Text>
+        <TextInput
+          value={instagramUrl}
+          onChangeText={setInstagramUrl}
+          autoCapitalize="none"
+          keyboardType="url"
+          style={styles.input}
+          placeholder="https://www.instagram.com/p/…"
+          placeholderTextColor="#8b8075"
+        />
+        <Pressable
+          onPress={() => setPinterestReusable((current) => !current)}
+          style={[styles.choice, pinterestReusable && styles.choiceSelected]}
+        >
+          <Text style={[styles.choiceText, pinterestReusable && styles.choiceTextSelected]}>
+            {pinterestReusable ? "✓ Available for Pinterest later" : "Make available for Pinterest later"}
+          </Text>
+        </Pressable>
+        <Text style={styles.helper}>No business account or automatic Instagram publishing is required.</Text>
+      </View>
       <Text style={styles.controlLabel}>Optional note if Katie takes this one</Text>
       <TextInput
         value={handoffNote}
@@ -3906,6 +3962,7 @@ function InstagramPostEditor({
               status: post?.status || "Draft",
               assignedTo: post?.assignedTo || "Trinitie",
               handoffNote, sharedWithMom: nextSharedWithMom,
+              altText, instagramUrl, pinterestReusable, postedAt: post?.postedAt || null,
             });
             setSharedWithMom(nextSharedWithMom);
             onSaved(saved);
@@ -4071,6 +4128,10 @@ function InstagramStudio({
       assignedTo: "Trinitie",
       handoffNote: sourceNote,
       sharedWithMom: false,
+      altText: "",
+      instagramUrl: "",
+      pinterestReusable: false,
+      postedAt: null,
       updatedAt: new Date().toISOString(),
     };
     setEditingPost(draft);
@@ -7186,6 +7247,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
     fontSize: 14,
     color: colors.bark,
+  },
+  archiveCard: {
+    backgroundColor: "#f0f3ec",
+    borderRadius: 18,
+    padding: 16,
+    marginTop: 18,
+    marginBottom: 12,
   },
   selectedVideoIcon: {
     width: 38,
