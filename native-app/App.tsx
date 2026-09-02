@@ -338,6 +338,12 @@ function journalPreviewSlug(title: string, publishDate: string) {
   return `${date}-${words || "trail-journal-story"}`;
 }
 
+function exportStem(value: string, fallback = "nomadic-paws") {
+  const safe = value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 72);
+  return safe || fallback;
+}
+
 function reminderLabel(time: string) {
   const [rawHour, minute = "00"] = time.split(":"),
     hour = Number(rawHour || 17),
@@ -3154,7 +3160,9 @@ function NewAdventure({
     [files, setFiles] = useState<ImagePicker.ImagePickerAsset[]>([]),
     [saving, setSaving] = useState(false),
     [progress, setProgress] = useState(""),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [adventureId, setAdventureId] = useState(""),
+    [uploadedUris, setUploadedUris] = useState<string[]>([]);
   async function choosePhotos() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images", "videos"],
@@ -3175,13 +3183,15 @@ function NewAdventure({
     setSaving(true);
     setError("");
     try {
-      const adventure = await createSharedAdventure(token, {
-        title,
-        notes: note,
-        privateLocation: location,
-      });
+      const currentAdventureId = adventureId || (await createSharedAdventure(token, {
+          title,
+          notes: note,
+          privateLocation: location,
+        })).id;
+      if (!adventureId) setAdventureId(currentAdventureId);
       for (let index = 0; index < files.length; index += 1) {
         const file = files[index]!;
+        if (uploadedUris.includes(file.uri)) continue;
         const isVideo =
           file.type === "video" || file.mimeType?.startsWith("video/");
         if (isVideo) {
@@ -3189,7 +3199,7 @@ function NewAdventure({
           const byteSize = file.fileSize || (info.exists ? info.size || 0 : 0);
           await uploadAdventureVideo(
             token,
-            adventure.id,
+            currentAdventureId,
             {
               uri: file.uri,
               name: file.fileName || `Cheeto-video-${index + 1}.mov`,
@@ -3206,7 +3216,7 @@ function NewAdventure({
           );
         } else {
           setProgress(`Adding photo ${index + 1} of ${files.length}…`);
-          await uploadAdventurePhoto(token, adventure.id, {
+          await uploadAdventurePhoto(token, currentAdventureId, {
             uri: file.uri,
             name: file.fileName || `Cheeto-photo-${index + 1}.jpg`,
             mimeType: file.mimeType,
@@ -3214,6 +3224,7 @@ function NewAdventure({
             height: file.height,
           });
         }
+        setUploadedUris((current) => current.includes(file.uri) ? current : [...current, file.uri]);
       }
       setProgress("Shared with the studio.");
       onSaved();
@@ -3223,6 +3234,7 @@ function NewAdventure({
           ? reason.message
           : "This adventure could not be saved.",
       );
+      setProgress("Your adventure and completed uploads are safe. Try the remaining items when the connection settles.");
     } finally {
       setSaving(false);
     }
@@ -3291,15 +3303,15 @@ function NewAdventure({
           <Text numberOfLines={1} style={styles.selectedFileName}>
             {file.fileName || `Cheeto moment ${index + 1}`}
           </Text>
-          <Pressable
-            onPress={() =>
-              setFiles((current) =>
-                current.filter((item) => item.uri !== file.uri),
-              )
-            }
-          >
-            <Text style={styles.removeFile}>Remove</Text>
-          </Pressable>
+          {uploadedUris.includes(file.uri) ? (
+            <Text style={styles.uploadedFile}>✓ Uploaded</Text>
+          ) : (
+            <Pressable
+              onPress={() => setFiles((current) => current.filter((item) => item.uri !== file.uri))}
+            >
+              <Text style={styles.removeFile}>Remove</Text>
+            </Pressable>
+          )}
         </View>
       ))}
       {progress ? <Text style={styles.success}>{progress}</Text> : null}
@@ -3313,7 +3325,7 @@ function NewAdventure({
         ]}
       >
         <Text style={styles.primaryText}>
-          {saving ? progress || "Saving…" : "Save shared adventure"}
+          {saving ? progress || "Saving…" : adventureId ? "Try remaining uploads" : "Save shared adventure"}
         </Text>
       </Pressable>
       <Pressable onPress={onCancel} style={styles.secondary}>
@@ -3537,7 +3549,7 @@ function InstagramPostEditor({
       }
       const downloads: string[] = [];
       for (const [index, id] of ids.entries()) {
-        const target = `${FileSystem.cacheDirectory}nomadic-paws-instagram-${index + 1}-${id}.jpg`;
+        const target = `${FileSystem.cacheDirectory}${targetDate || localDateKey()}-${exportStem(title, "cheeto-instagram")}-${index + 1}.jpg`;
         const download = await FileSystem.downloadAsync(
           workingImageUrl(id),
           target,
@@ -3779,7 +3791,11 @@ function InstagramPostEditor({
         style={[styles.primary, !title.trim() && styles.primaryDisabled]}
       >
         <Text style={styles.primaryText}>
-          {saving ? "Saving…" : "Save as post ready"}
+          {saving
+            ? "Saving…"
+            : post?.status === "Handed Off"
+              ? "Posting didn’t work · return to Ready"
+              : "Save as post ready"}
         </Text>
       </Pressable>
       {post?.assignedTo !== "Katie" ? (
@@ -4722,7 +4738,7 @@ function VideoStudio({
           boxed: Boolean(preset.boxed),
           uppercase: Boolean(preset.uppercase),
         }];
-    const destination = `${FileSystem.cacheDirectory}nomadic-paws-finished-${Date.now()}.mp4`;
+    const destination = `${FileSystem.cacheDirectory}${localDateKey()}-${exportStem(projectTitle || text, "nomadic-paws-video")}.mp4`;
     setRendering(true);
     setFinishedVideo(undefined);
     setRenderProgress(0.02);
@@ -5307,7 +5323,7 @@ function Pinterest({
     setMessage("Preparing the latest Pinterest CSV…");
     setError("");
     try {
-      const target = `${FileSystem.cacheDirectory}nomadic-paws-pinterest-schedule.csv`;
+      const target = `${FileSystem.cacheDirectory}${localDateKey()}-nomadic-paws-pinterest-schedule.csv`;
       const download = await FileSystem.downloadAsync(
         `${API_URL}/pinterest.csv?fresh=${Date.now()}`,
         target,
@@ -5647,7 +5663,8 @@ function WorkingPhotoEditor({
     setSharing(true);
     setMessage("Rendering the finished image…");
     try {
-      const target = `${FileSystem.cacheDirectory}nomadic-paws-${savedVersion.destination_type}-${savedVersion.id}.jpg`;
+      const originalStem = asset.original_name.replace(/\.[^.]+$/, "");
+      const target = `${FileSystem.cacheDirectory}${localDateKey()}-${exportStem(originalStem, "nomadic-paws")}-${savedVersion.destination_type}.jpg`;
       const download = await FileSystem.downloadAsync(
         workingImageUrl(savedVersion.id),
         target,
@@ -7084,6 +7101,7 @@ const styles = StyleSheet.create({
     fontWeight: "900",
   },
   removeFile: { fontSize: 11, fontWeight: "900", color: colors.terracottaDeep },
+  uploadedFile: { fontSize: 11, fontWeight: "900", color: colors.sageDeep },
   shareButton: {
     minHeight: 54,
     borderWidth: 2,
