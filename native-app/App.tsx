@@ -724,6 +724,7 @@ function JournalEditor({
       working?.publish_date || story.date,
     ),
     [revision, setRevision] = useState(working?.revision || 0),
+    [hasWorkingDraft, setHasWorkingDraft] = useState(Boolean(working)),
     [dirty, setDirty] = useState(false),
     [saveState, setSaveState] = useState(
       working ? "Synchronized" : "Loaded from GitHub",
@@ -777,7 +778,7 @@ function JournalEditor({
     };
   }
   async function synchronize() {
-    if (!dirty) return true;
+    if (!dirty && hasWorkingDraft) return true;
     const savingEdit = editVersion.current;
     setSaveState("Synchronizing…");
     setSaveError("");
@@ -795,6 +796,7 @@ function JournalEditor({
         expectedRevision: revision,
       });
       setRevision(data.workingDraft.revision);
+      setHasWorkingDraft(true);
       if (editVersion.current === savingEdit) {
         setDirty(false);
         setSaveState("Synchronized");
@@ -1365,7 +1367,7 @@ function JournalEditor({
               <Text style={styles.syncLadderTitle}>Publishing state</Text>
               <Text style={styles.syncLadderItem}>✓ Saved on this device</Text>
               <Text style={styles.syncLadderItem}>
-                {saveState === "Synchronized" ? "✓" : "○"} Synchronized
+                {hasWorkingDraft && !dirty ? "✓" : "○"} Synchronized
               </Text>
               <Text style={styles.syncLadderItem}>
                 {publishState === "committed" ? "✓" : "○"} Committed to GitHub
@@ -1376,11 +1378,18 @@ function JournalEditor({
             </View>
             <Pressable
               onPress={synchronize}
-              disabled={!dirty}
-              style={[styles.primary, !dirty && styles.primaryDisabled]}
+              disabled={!dirty && hasWorkingDraft}
+              style={[
+                styles.primary,
+                !dirty && hasWorkingDraft && styles.primaryDisabled,
+              ]}
             >
               <Text style={styles.primaryText}>
-                {dirty ? "Synchronize draft now" : "Draft synchronized"}
+                {dirty
+                  ? "Synchronize draft now"
+                  : hasWorkingDraft
+                    ? "Draft synchronized"
+                    : "Create synchronized draft"}
               </Text>
             </Pressable>
             <Pressable onPress={saveJournalBackup} style={styles.secondary}>
