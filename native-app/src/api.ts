@@ -144,6 +144,11 @@ export async function updateSharedAdventure(token: string, adventureId: string, 
   return data.adventure
 }
 
+export async function advanceAdventureToJournal(token: string, adventureId: string) {
+  const data = await request<{ adventure: SharedAdventure }>('/api/app/media', token, { method: 'POST', body: JSON.stringify({ action: 'advance-adventure-to-journal', adventureId }) })
+  return data.adventure
+}
+
 export async function uploadAdventurePhoto(token: string, adventureId: string, file: { uri: string; name: string; displayName?: string; mimeType?: string | null; byteSize?: number; width?: number; height?: number }, onProgress?: (current: number, total: number) => void) {
   const info = file.byteSize ? null : await FileSystem.getInfoAsync(file.uri)
   const byteSize = file.byteSize || (info?.exists ? info.size || 0 : 0)

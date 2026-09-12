@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { getStore } from '@netlify/blobs'
 import type { Config } from '@netlify/functions'
 import { requireAppUser } from './lib/app-auth.mjs'
-import { addMediaAsset, adventureExists, adventuresWithMedia, createAdventure, mediaById, saveWorkingVersion, updateAdventure, updateMediaDetails, workingVersionById } from './lib/media-db.mjs'
+import { addMediaAsset, advanceAdventureToJournal, adventureExists, adventuresWithMedia, createAdventure, mediaById, saveWorkingVersion, updateAdventure, updateMediaDetails, workingVersionById } from './lib/media-db.mjs'
 import { MAX_ADVENTURE_PHOTO_BYTES, MAX_ADVENTURE_VIDEO_BYTES, MAX_ADVENTURE_VIDEO_SECONDS, MAX_DIRECT_PHOTO_BYTES, VIDEO_CHUNK_BYTES, validAdventure, validDirectPhoto, validDirectPhotoUpload, validMediaDetails, validVideoUpload, validWorkingVersion } from './lib/media-settings.mjs'
 import { renderWorkingImage, workingFilename } from './lib/media-render.mjs'
 import { inspectR2Object, r2Configured, signedR2Download, signedR2Upload } from './lib/r2-media.mjs'
@@ -188,6 +188,12 @@ export default async (request: Request) => {
       if (!/^[0-9a-f-]{36}$/i.test(String(body.adventureId)) || !validAdventure(body)) return Response.json({ error: 'That adventure could not be updated.' }, { status: 400, headers: HEADERS })
       const adventure = await updateAdventure(String(body.adventureId), body)
       return adventure ? Response.json({ adventure }, { headers: HEADERS }) : Response.json({ error: 'That adventure is no longer available.' }, { status: 404, headers: HEADERS })
+    }
+    if (body.action === 'advance-adventure-to-journal') {
+      const adventureId = String(body.adventureId || '')
+      if (!/^[0-9a-f-]{36}$/i.test(adventureId)) return Response.json({ error: 'That Adventure could not be connected to the Journal.' }, { status: 400, headers: HEADERS })
+      const adventure = await advanceAdventureToJournal(adventureId)
+      return adventure ? Response.json({ adventure }, { headers: HEADERS }) : Response.json({ error: 'That Adventure is no longer available.' }, { status: 404, headers: HEADERS })
     }
     if (body.action !== 'create-adventure' || !validAdventure(body)) return Response.json({ error: 'Give this adventure a short name before saving it.' }, { status: 400, headers: HEADERS })
     return Response.json({ adventure: await createAdventure(body, user.id) }, { status: 201, headers: HEADERS })

@@ -37,6 +37,18 @@ export async function updateAdventure(id, input) {
   return result.rows[0] || null
 }
 
+export async function advanceAdventureToJournal(id) {
+  const result = await db().pool.query(
+    `UPDATE adventures
+        SET status = 'Draft',
+            platforms = CASE WHEN platforms @> '["Trail Journal"]'::jsonb THEN platforms ELSE platforms || '["Trail Journal"]'::jsonb END,
+            updated_at = NOW()
+      WHERE id = $1 RETURNING *`,
+    [id],
+  )
+  return result.rows[0] || null
+}
+
 export async function addMediaAsset(input, userId) {
   const id = randomUUID()
   const result = await db().pool.query(

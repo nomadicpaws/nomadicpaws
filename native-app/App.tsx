@@ -22,6 +22,7 @@ import {
 } from "react-native";
 import {
   addReviewNote,
+  advanceAdventureToJournal,
   askCheetoAssistant,
   API_URL,
   AppUser,
@@ -700,6 +701,8 @@ function JournalEditor({
   onStoryVideosChanged,
   onAdapt,
   onBack,
+  initialTab = "Write",
+  preferredAdventureId,
 }: {
   token: string;
   story: JournalStoryDetail;
@@ -711,8 +714,10 @@ function JournalEditor({
   onStoryVideosChanged: (videos: JournalStoryVideo[]) => void;
   onAdapt: (adaptation: JournalAdaptation) => void;
   onBack: () => void;
+  initialTab?: JournalTab;
+  preferredAdventureId?: string;
 }) {
-  const [tab, setTab] = useState<JournalTab>("Write"),
+  const [tab, setTab] = useState<JournalTab>(initialTab),
     [title, setTitle] = useState(working?.title || story.title),
     [description, setDescription] = useState(
       working?.description || story.description,
@@ -745,8 +750,10 @@ function JournalEditor({
     [responseSaving, setResponseSaving] = useState("");
   const [backupState, setBackupState] = useState("");
   const futureSlug = journalPreviewSlug(title, publishDate);
-  const journalPhotos = media.filter((asset) => asset.kind === "photo" || asset.content_type.startsWith("image/"));
-  const journalVideos = media.filter((asset) => asset.kind === "video" || asset.content_type.startsWith("video/"));
+  const preferredFirst = (left: SharedMediaAsset, right: SharedMediaAsset) =>
+    Number(right.adventure_id === preferredAdventureId) - Number(left.adventure_id === preferredAdventureId);
+  const journalPhotos = media.filter((asset) => asset.kind === "photo" || asset.content_type.startsWith("image/")).sort(preferredFirst);
+  const journalVideos = media.filter((asset) => asset.kind === "video" || asset.content_type.startsWith("video/")).sort(preferredFirst);
   const editVersion = useRef(0);
   const localDraftLoaded = useRef(false);
   function localSnapshot(): LocalJournalDraft {
@@ -1241,6 +1248,9 @@ function JournalEditor({
             <Text style={styles.controlLabel}>
               Choose from the shared Media Library
             </Text>
+            {preferredAdventureId ? (
+              <Text style={[styles.helper, { textAlign: "left", marginTop: 0 }]}>Photos from this Adventure are shown first.</Text>
+            ) : null}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -1967,13 +1977,19 @@ function Journal({
   onAdapt,
   initialStorySlug,
   onInitialStoryOpened,
+  initialEditorTab,
+  initialAdventureId,
 }: {
   token: string;
   person: Person;
   onAdapt: (adaptation: JournalAdaptation) => void;
   initialStorySlug?: string;
   onInitialStoryOpened: () => void;
+  initialEditorTab?: JournalTab;
+  initialAdventureId?: string;
 }) {
+  const initialEditorTabRef = useRef<JournalTab>(initialEditorTab || "Write");
+  const initialAdventureIdRef = useRef(initialAdventureId);
   const [stories, setStories] = useState<JournalStory[]>([]),
     [selected, setSelected] = useState<JournalStoryDetail>(),
     [working, setWorking] = useState<JournalWorkingDraft | null>(null),
@@ -2133,6 +2149,8 @@ function Journal({
         onStoryVideosChanged={setStoryVideos}
         onAdapt={onAdapt}
         onBack={() => setSelected(undefined)}
+        initialTab={initialEditorTabRef.current}
+        preferredAdventureId={initialAdventureIdRef.current}
       />
     );
   if (selected && person === "Mom")
@@ -2614,15 +2632,25 @@ const statusTone: Record<
   Posted: { backgroundColor: "#eee8f3", color: "#685675" },
 };
 
-function SeedCard({ seed, onPress }: { seed: ContentSeed; onPress?: () => void }) {
+function SeedCard({
+  seed,
+  token,
+  media,
+  onPress,
+  onStartJournal,
+  journalStarting = false,
+}: {
+  seed: ContentSeed;
+  token?: string;
+  media?: SharedMediaAsset[];
+  onPress?: () => void;
+  onStartJournal?: () => void;
+  journalStarting?: boolean;
+}) {
   const tone = statusTone[seed.status];
+  const attached = (media || []).filter((asset) => asset.adventure_id === seed.id);
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole={onPress ? "button" : undefined}
-      style={styles.seedCard}
-      accessibilityLabel={`${seed.title}, ${seed.status}, assigned to ${seed.assignedTo}${onPress ? ", tap to edit and add media" : ""}`}
-    >
+    <View style={styles.seedCard}>
       <View style={styles.seedTop}>
         <View
           style={[styles.seedStatus, { backgroundColor: tone.backgroundColor }]}
@@ -2635,6 +2663,20 @@ function SeedCard({ seed, onPress }: { seed: ContentSeed; onPress?: () => void }
       </View>
       <Text style={styles.seedTitle}>{seed.title}</Text>
       <Text style={styles.seedNote}>{seed.note}</Text>
+      {attached.length && token ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.adventurePreviewRow}>
+          {attached.slice(0, 4).map((asset) =>
+            asset.kind === "video" ? (
+              <View key={asset.id} style={[styles.adventurePreviewImage, styles.mediaVideoPlaceholder]}>
+                <Text style={styles.mediaVideoPlay}>▶</Text>
+                <Text style={styles.adventurePreviewVideoLabel}>VIDEO</Text>
+              </View>
+            ) : (
+              <Image key={asset.id} source={{ uri: privateMediaUrl(asset.id), headers: { Authorization: `Bearer ${token}` } }} style={styles.adventurePreviewImage} />
+            ),
+          )}
+        </ScrollView>
+      ) : null}
       <View style={styles.seedMeta}>
         <Text style={styles.seedMetaText}>{seed.mediaCount} media</Text>
         <Text style={styles.seedMetaText}>{seed.capturedAt}</Text>
@@ -2650,8 +2692,17 @@ function SeedCard({ seed, onPress }: { seed: ContentSeed; onPress?: () => void }
           </View>
         ))}
       </ScrollView>
-      {onPress ? <Text style={styles.helper}>Tap to edit or add photos and videos</Text> : null}
-    </Pressable>
+      {onStartJournal ? (
+        <Pressable disabled={journalStarting} onPress={onStartJournal} style={[styles.adventureNextPrimary, journalStarting && styles.primaryDisabled]}>
+          <Text style={styles.adventureNextPrimaryText}>{journalStarting ? "Opening Journal draft…" : seed.platforms.includes("Trail Journal") ? "Open Trail Journal draft" : "Start Trail Journal draft"}</Text>
+        </Pressable>
+      ) : null}
+      {onPress ? (
+        <Pressable onPress={onPress} style={styles.adventureNextSecondary}>
+          <Text style={styles.adventureNextSecondaryText}>Add more media or edit Adventure</Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
@@ -2904,28 +2955,34 @@ function Today({
   token,
   person,
   seeds,
+  media,
   onNewAdventure,
   onOpenPreviews,
   onOpenCalendar,
   onOpenInstagramPost,
   onOpenJournalStory,
   onOpenAdventure,
+  onStartJournal,
 }: {
   token: string;
   person: Person;
   seeds: ContentSeed[];
+  media: SharedMediaAsset[];
   onNewAdventure: () => void;
   onOpenPreviews: () => void;
   onOpenCalendar: () => void;
   onOpenInstagramPost: (postId: string) => void;
   onOpenJournalStory: (slug: string) => void;
   onOpenAdventure: (adventureId: string) => void;
+  onStartJournal: (seed: ContentSeed) => Promise<void>;
 }) {
   const [rhythm, setRhythm] = useState<InstagramDay[]>(initialInstagramRhythm);
   const [posts, setPosts] = useState<InstagramPostDraft[]>([]);
   const [reviewStories, setReviewStories] = useState<JournalStory[]>([]);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [loadMessage, setLoadMessage] = useState("");
+  const [startingJournal, setStartingJournal] = useState("");
+  const [workflowError, setWorkflowError] = useState("");
   const weekday = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const dateHeading = new Date()
     .toLocaleDateString("en-US", {
@@ -3157,6 +3214,7 @@ function Today({
             </Pressable>
           ))
         : null}
+      {workflowError ? <Text style={styles.error}>{workflowError}</Text> : null}
       {person === "Mom"
         ? reviewStories.map((story) => (
             <Pressable key={story.slug} onPress={() => onOpenJournalStory(story.slug)} style={styles.preparedPost}>
@@ -3183,7 +3241,25 @@ function Today({
           ))
         : null}
       {mine.map((seed) => (
-        <SeedCard key={seed.id} seed={seed} onPress={() => onOpenAdventure(seed.id)} />
+        <SeedCard
+          key={seed.id}
+          seed={seed}
+          token={token}
+          media={media}
+          journalStarting={startingJournal === seed.id}
+          onPress={() => onOpenAdventure(seed.id)}
+          onStartJournal={async () => {
+            setStartingJournal(seed.id);
+            setWorkflowError("");
+            try {
+              await onStartJournal(seed);
+            } catch (reason) {
+              setWorkflowError(reason instanceof Error ? reason.message : "That Journal draft could not be started.");
+            } finally {
+              setStartingJournal("");
+            }
+          }}
+        />
       ))}
       {person !== "Trinitie" ? (
         <Text style={styles.gentleNote}>
@@ -7051,6 +7127,8 @@ export default function App() {
     [adaptation, setAdaptation] = useState<JournalAdaptation>(),
     [initialInstagramPostId, setInitialInstagramPostId] = useState<string>(),
     [initialJournalStorySlug, setInitialJournalStorySlug] = useState<string>(),
+    [initialJournalEditorTab, setInitialJournalEditorTab] = useState<JournalTab>(),
+    [initialJournalAdventureId, setInitialJournalAdventureId] = useState<string>(),
     [pinterestBacklogCount, setPinterestBacklogCount] = useState<number | null>(null),
     [keyboardHeight, setKeyboardHeight] = useState(0);
   useEffect(() => {
@@ -7190,6 +7268,22 @@ export default function App() {
     setAdaptation(undefined);
     setTab("Journal");
   }
+  async function startJournalFromAdventure(seed: ContentSeed) {
+    const adventure = adventures.find((item) => item.id === seed.id);
+    const publishDate = dateKeyFrom(adventure?.captured_at || adventure?.created_at || "") || localDateKey();
+    const existing = (await loadStories(account!.token)).stories.find((story) => story.title === seed.title && dateKeyFrom(story.date) === publishDate);
+    const data = existing
+      ? { story: existing }
+      : await createJournalStory(account!.token, { title: seed.title, category: "Cheeto Diaries", publishDate });
+    if (!existing) {
+      await advanceAdventureToJournal(account!.token, seed.id);
+      await refreshShared();
+    }
+    setInitialJournalEditorTab("Photos");
+    setInitialJournalAdventureId(seed.id);
+    setInitialJournalStorySlug(data.story.slug);
+    setTab("Journal");
+  }
   useEffect(() => {
     refreshShared().catch(() => {});
     refreshPinterestBacklog().catch(() => {});
@@ -7244,6 +7338,7 @@ export default function App() {
       token={token}
       person={person}
       seeds={seeds}
+      media={media}
       onNewAdventure={() => {
         setEditingAdventure(undefined);
         setCreatingAdventure(true);
@@ -7256,6 +7351,7 @@ export default function App() {
       onOpenCalendar={() => setViewingCalendar(true)}
       onOpenInstagramPost={openInstagramPost}
       onOpenJournalStory={openJournalStory}
+      onStartJournal={startJournalFromAdventure}
     />
   ) : tab === "Media" ? (
     <MediaLibrary
@@ -7307,7 +7403,13 @@ export default function App() {
       person={person}
       onAdapt={beginJournalAdaptation}
       initialStorySlug={initialJournalStorySlug}
-      onInitialStoryOpened={() => setInitialJournalStorySlug(undefined)}
+      initialEditorTab={initialJournalEditorTab}
+      initialAdventureId={initialJournalAdventureId}
+      onInitialStoryOpened={() => {
+        setInitialJournalStorySlug(undefined);
+        setInitialJournalEditorTab(undefined);
+        setInitialJournalAdventureId(undefined);
+      }}
     />
   ) : (
     <Pinterest
@@ -8326,6 +8428,33 @@ const styles = StyleSheet.create({
     color: colors.barkSoft,
     marginTop: 6,
   },
+  adventurePreviewRow: { gap: 8, paddingTop: 12, paddingBottom: 2 },
+  adventurePreviewImage: {
+    width: 74,
+    height: 74,
+    borderRadius: 12,
+    backgroundColor: colors.sand,
+    overflow: "hidden",
+  },
+  adventurePreviewVideoLabel: { color: colors.barkSoft, fontSize: 8, fontWeight: "900", marginTop: 3 },
+  adventureNextPrimary: {
+    minHeight: 48,
+    borderRadius: 14,
+    backgroundColor: colors.terracotta,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    marginTop: 14,
+  },
+  adventureNextPrimaryText: { color: colors.white, fontSize: 14, fontWeight: "900" },
+  adventureNextSecondary: {
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    marginTop: 4,
+  },
+  adventureNextSecondaryText: { color: colors.terracottaDeep, fontSize: 12, fontWeight: "800" },
   seedMeta: { flexDirection: "row", gap: 14, marginTop: 12 },
   seedMetaText: { fontSize: 12, fontWeight: "700", color: colors.sageDeep },
   platforms: { gap: 6, paddingTop: 12 },
