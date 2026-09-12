@@ -3505,6 +3505,12 @@ function NewAdventure({
           to 30 seconds and upload privately in small, reliable pieces.
         </Text>
       </Pressable>
+      {files.length ? (
+        <View style={styles.noticeBox}>
+          <Text style={styles.noticeTitle}>Name each moment so you can find it later</Text>
+          <Text style={[styles.helper, { textAlign: "left" }]}>Use what you would naturally search for, such as “Cheeto yowling beside the bed.” The original iPhone filename stays safely attached too.</Text>
+        </View>
+      ) : null}
       {files.map((file, index) => (
         <View key={file.uri} style={styles.selectedFileBlock}>
         <View style={styles.selectedFile}>
@@ -3538,11 +3544,12 @@ function NewAdventure({
             </Pressable>
           )}
         </View>
+        <Text style={styles.uploadNameLabel}>Searchable name · item {index + 1}</Text>
         <TextInput
           value={uploadNames[file.uri] || ""}
           onChangeText={(value) => setUploadNames((current) => ({ ...current, [file.uri]: value }))}
           maxLength={160}
-          placeholder={`Searchable name for item ${index + 1}`}
+          placeholder="What is happening in this photo or video?"
           placeholderTextColor="#8b8075"
           style={styles.uploadNameInput}
         />
@@ -6389,7 +6396,7 @@ function MediaLibrary({
             <TextInput
               value={query}
               onChangeText={setQuery}
-              placeholder="Search adventures or file names"
+              placeholder="Search names, notes, adventures, tags, or files"
               placeholderTextColor="#8b8075"
               style={styles.input}
             />
@@ -7496,6 +7503,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: colors.bark,
+  },
+  uploadNameLabel: {
+    color: colors.barkSoft,
+    fontSize: 12,
+    fontWeight: "800",
+    marginBottom: 5,
+    marginLeft: 2,
   },
   uploadNameInput: {
     minHeight: 46,
