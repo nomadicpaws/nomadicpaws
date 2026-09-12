@@ -64,7 +64,7 @@ export default async (request: Request) => {
       if (user.role !== 'katie') return Response.json({ error: 'Adventure uploads belong to Katie’s workspace.' }, { status: 403, headers: HEADERS })
       if (!validDirectPhotoUpload(body)) return Response.json({ error: `Choose a JPG, PNG, WebP, HEIC, or HEIF photo no larger than ${Math.floor(MAX_ADVENTURE_PHOTO_BYTES / 1024 / 1024)} MB.` }, { status: 400, headers: HEADERS })
       if (!(await adventureExists(String(body.adventureId)))) return Response.json({ error: 'Choose a saved adventure before adding photos.' }, { status: 400, headers: HEADERS })
-      if (!r2Configured()) return Response.json({ mode: 'multipart' }, { headers: HEADERS })
+      if (!r2Configured() || body.preferMultipart === true) return Response.json({ mode: 'multipart' }, { headers: HEADERS })
       const uploadId = randomUUID(), objectKey = `r2/originals/${String(body.adventureId)}/${uploadId}`
       const session = {
         owner: user.id, objectKey, adventureId: String(body.adventureId), displayName: String(body.displayName || '').trim(),
@@ -175,7 +175,8 @@ export default async (request: Request) => {
     }
     if (body.action === 'update-media') {
       if (!validMediaDetails(body)) return Response.json({ error: 'Those photo details could not be saved.' }, { status: 400, headers: HEADERS })
-      const media = await updateMediaDetails(String(body.mediaId), String(body.displayName || ''), body.tags as string[], String(body.notes))
+      const hashtags = Array.from(new Set((String(body.hashtags || '').match(/#[A-Za-z0-9_-]+/g) || []).map((tag) => tag.toLowerCase())))
+      const media = await updateMediaDetails(String(body.mediaId), String(body.displayName || ''), [...(body.tags as string[]), ...hashtags], String(body.notes))
       return media ? Response.json({ media }, { headers: HEADERS }) : Response.json({ error: 'That photo is no longer available.' }, { status: 404, headers: HEADERS })
     }
     if (body.action === 'save-working-version') {

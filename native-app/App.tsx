@@ -225,6 +225,7 @@ const mediaTags = [
 ];
 
 const LOGIN_KEYBOARD_ACCESSORY = "nomadic-paws-login-keyboard";
+const MOM_NOTE_KEYBOARD_ACCESSORY = "nomadic-paws-mom-note-keyboard";
 const APP_SESSION_KEY = "nomadic-paws-private-session";
 const TRINITIE_WELCOME_KEY = "nomadic-paws-trinitie-studio-welcome";
 const INSTAGRAM_REMINDER_SETTING = "nomadic-paws-instagram-reminder";
@@ -1743,6 +1744,7 @@ function MomJournalReview({
       <Modal visible={Boolean(anchor)} transparent animationType="slide" onRequestClose={() => setAnchor(undefined)}>
         <KeyboardAvoidingView style={styles.reviewModalBackdrop} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={styles.reviewModalCard}>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <Text style={styles.anchorLabel}>NOTE ON THIS PASSAGE</Text>
           <Text style={styles.anchorQuote}>{anchor?.quote || "Selected passage"}</Text>
           <TextInput
@@ -1751,6 +1753,7 @@ function MomJournalReview({
             multiline
             placeholder="Type or dictate your note…"
             placeholderTextColor="#8b8075"
+            inputAccessoryViewID={Platform.OS === "ios" ? MOM_NOTE_KEYBOARD_ACCESSORY : undefined}
             style={[styles.input, styles.notesInput]}
           />
           <Pressable
@@ -1763,8 +1766,25 @@ function MomJournalReview({
           <Pressable onPress={() => setAnchor(undefined)} style={styles.reviewModalCancel}>
             <Text style={styles.reviewModalCancelText}>Keep reading</Text>
           </Pressable>
+          </ScrollView>
         </View>
         </KeyboardAvoidingView>
+        {Platform.OS === "ios" ? (
+          <InputAccessoryView nativeID={MOM_NOTE_KEYBOARD_ACCESSORY}>
+            <View style={styles.momNoteKeyboardBar}>
+              <Text style={styles.momNoteKeyboardHint}>{note.trim() ? "Ready to add this note?" : "Type or dictate a note"}</Text>
+              <Pressable
+                disabled={!note.trim()}
+                onPress={queueNote}
+                accessibilityRole="button"
+                accessibilityLabel="Save note on this passage"
+                style={[styles.momNoteKeyboardSave, !note.trim() && styles.primaryDisabled]}
+              >
+                <Text style={styles.momNoteKeyboardSaveText}>Save note</Text>
+              </Pressable>
+            </View>
+          </InputAccessoryView>
+        ) : null}
       </Modal>
       {pending.length ? (
         <Text style={styles.pendingCount}>
@@ -6250,6 +6270,7 @@ function MediaLibrary({
     [workingAsset, setWorkingAsset] = useState<SharedMediaAsset | null>(null),
     [draftDisplayName, setDraftDisplayName] = useState(""),
     [draftTags, setDraftTags] = useState<string[]>([]),
+    [draftHashtags, setDraftHashtags] = useState(""),
     [draftNotes, setDraftNotes] = useState(""),
     [savingDetails, setSavingDetails] = useState(false),
     [detailMessage, setDetailMessage] = useState("");
@@ -6260,6 +6281,7 @@ function MediaLibrary({
     setSelected(asset);
     setDraftDisplayName(asset.display_name || "");
     setDraftTags(asset.tags || []);
+    setDraftHashtags((asset.tags || []).filter((tag) => tag.startsWith("#")).join(" "));
     setDraftNotes(asset.notes || "");
     setDetailMessage("");
   }
@@ -6277,7 +6299,7 @@ function MediaLibrary({
     try {
       const updated = {
         ...selected,
-        ...(await updateSharedMedia(token, selected.id, draftDisplayName, draftTags, draftNotes)),
+        ...(await updateSharedMedia(token, selected.id, draftDisplayName, draftTags.filter((tag) => !tag.startsWith("#")), draftNotes, draftHashtags)),
       };
       onUpdated(updated);
       setSelected(updated);
@@ -6543,6 +6565,15 @@ function MediaLibrary({
                   ))}
                 </View>
                 <Text style={styles.controlLabel}>Shared note</Text>
+                <Text style={styles.controlLabel}>Search hashtags</Text>
+                <TextInput
+                  value={draftHashtags}
+                  onChangeText={setDraftHashtags}
+                  maxLength={500}
+                  placeholder="#yowling #bedroom #appleairtag"
+                  placeholderTextColor="#8b8075"
+                  style={styles.input}
+                />
                 <TextInput
                   value={draftNotes}
                   onChangeText={setDraftNotes}
@@ -9308,6 +9339,27 @@ const styles = StyleSheet.create({
   },
   reviewModalCancel: { minHeight: 48, alignItems: "center", justifyContent: "center", marginTop: 8 },
   reviewModalCancelText: { fontSize: 14, fontWeight: "800", color: colors.barkSoft },
+  momNoteKeyboardBar: {
+    minHeight: 58,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: colors.sandDeep,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  momNoteKeyboardHint: { flex: 1, color: colors.barkSoft, fontSize: 12, fontWeight: "700" },
+  momNoteKeyboardSave: {
+    minHeight: 42,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.terracotta,
+  },
+  momNoteKeyboardSaveText: { color: colors.white, fontSize: 14, fontWeight: "900" },
   reviewFinishPrompt: { marginTop: 22, marginBottom: 9, textAlign: "center", fontSize: 14, fontWeight: "900", color: colors.bark },
   anchorLabel: {
     fontSize: 10,

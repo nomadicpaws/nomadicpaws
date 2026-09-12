@@ -168,7 +168,21 @@ export async function uploadAdventurePhoto(token: string, adventureId: string, f
         onProgress?.(totalBytesSent, totalBytesExpectedToSend || byteSize),
     )
     const result = await task.uploadAsync()
-    if (!result || result.status < 200 || result.status >= 300) throw new Error('Cloud storage did not accept that photo. Please retry.')
+    if (!result || result.status < 200 || result.status >= 300) {
+      // A signed R2 PUT can be refused by a network, iCloud placeholder, or
+      // restrictive relay. Retry small photos through the proven multipart
+      // path instead of making the user reselect everything.
+      const fallback = await request<{ mode: 'multipart' }>('/api/app/media', token, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'create-direct-photo-upload', preferMultipart: true, adventureId, originalName: file.name,
+          displayName: file.displayName?.trim() || '', contentType: file.mimeType || 'image/jpeg', byteSize,
+          width: file.width || 0, height: file.height || 0,
+        }),
+      })
+      if (fallback.mode !== 'multipart') throw new Error('Cloud storage did not accept that photo. Please retry.')
+      return uploadAdventurePhotoMultipart(token, adventureId, file, onProgress)
+    }
     const finished = await request<{ media: SharedMediaAsset }>('/api/app/media', token, {
       method: 'POST', body: JSON.stringify({ action: 'finish-direct-photo-upload', uploadId: direct.uploadId }),
     })
@@ -263,12 +277,28 @@ export async function uploadAdventureVideo(token: string, adventureId: string, f
   return finished.media
 }
 
+async function uploadAdventurePhotoMultipart(token: string, adventureId: string, file: { uri: string; name: string; displayName?: string; mimeType?: string | null; byteSize?: number; width?: number; height?: number }, onProgress?: (current: number, total: number) => void) {
+  const result = await FileSystem.uploadAsync(`${API_URL}/api/app/media`, file.uri, {
+    httpMethod: 'POST',
+    uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+    fieldName: 'file',
+    mimeType: file.mimeType || 'image/jpeg',
+    parameters: { adventureId, originalName: file.name, displayName: file.displayName?.trim() || '', width: String(file.width || 0), height: String(file.height || 0) },
+    headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+  })
+  let data: { media?: SharedMediaAsset; error?: string } = {}
+  try { data = JSON.parse(result.body || '{}') as typeof data } catch { /* friendly error below */ }
+  if (result.status < 200 || result.status >= 300 || !data.media) throw new Error(data.error || 'That photo could not be added to the shared library.')
+  onProgress?.(file.byteSize || 1, file.byteSize || 1)
+  return data.media
+}
+
 export function privateMediaUrl(id: string) { return `${API_URL}/api/app/media/file/${encodeURIComponent(id)}` }
 export function workingImageUrl(id: string) { return `${API_URL}/api/app/media/working/${encodeURIComponent(id)}` }
 export function publicWorkingImagePath(id: string) { return `/media/working/${encodeURIComponent(id)}.jpg` }
 
-export async function updateSharedMedia(token: string, mediaId: string, displayName: string, tags: string[], notes: string) {
-  const data = await request<{ media: SharedMediaAsset }>('/api/app/media', token, { method: 'POST', body: JSON.stringify({ action: 'update-media', mediaId, displayName, tags, notes }) })
+export async function updateSharedMedia(token: string, mediaId: string, displayName: string, tags: string[], notes: string, hashtags = '') {
+  const data = await request<{ media: SharedMediaAsset }>('/api/app/media', token, { method: 'POST', body: JSON.stringify({ action: 'update-media', mediaId, displayName, tags, notes, hashtags }) })
   return data.media
 }
 

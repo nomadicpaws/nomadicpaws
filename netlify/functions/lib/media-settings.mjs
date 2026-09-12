@@ -36,10 +36,12 @@ export function validVideoUpload(value = {}) {
 }
 
 export function validMediaDetails(input) {
+  const hashtags = String(input.hashtags || '').match(/#[A-Za-z0-9_-]+/g) || []
   return typeof input?.mediaId === 'string' && /^[0-9a-f-]{36}$/i.test(input.mediaId)
     && typeof (input.displayName || '') === 'string' && String(input.displayName || '').trim().length <= 160
     && Array.isArray(input.tags) && input.tags.length <= MEDIA_TAGS.length
     && input.tags.every(tag => MEDIA_TAGS.includes(tag))
+    && hashtags.length <= 20 && hashtags.every(tag => tag.length <= 48)
     && typeof input.notes === 'string' && input.notes.length <= 500
 }
 

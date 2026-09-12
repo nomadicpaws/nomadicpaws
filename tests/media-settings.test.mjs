@@ -8,12 +8,14 @@ test('adventures require a useful bounded title', () => {
   assert.equal(validAdventure({ title: 'x'.repeat(161) }), false)
 })
 
-test('shared media details accept only the small approved tag vocabulary', () => {
+test('shared media details accept approved categories and safe searchable hashtags', () => {
   const mediaId = '11111111-1111-4111-8111-111111111111'
   assert.equal(validMediaDetails({ mediaId, displayName: 'Cheeto at golden hour', tags: ['Cheeto', 'Trail'], notes: 'Golden hour.' }), true)
   assert.equal(validMediaDetails({ mediaId, displayName: 'x'.repeat(161), tags: [], notes: '' }), false)
   assert.equal(validMediaDetails({ mediaId, tags: ['Secret location'], notes: '' }), false)
   assert.equal(validMediaDetails({ mediaId, tags: [], notes: 'x'.repeat(501) }), false)
+  assert.equal(validMediaDetails({ mediaId, tags: ['Cheeto'], hashtags: '#yowling #bedroom #appleairtag', notes: '' }), true)
+  assert.equal(validMediaDetails({ mediaId, tags: [], hashtags: Array.from({ length: 21 }, (_, index) => `#tag${index}`).join(' '), notes: '' }), false)
 })
 
 test('working versions keep destination and treatment choices bounded', () => {
