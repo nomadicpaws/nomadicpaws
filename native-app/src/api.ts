@@ -9,7 +9,7 @@ export type AppleSignInPayload = { identityToken: string; nonce: string; email?:
 export type SharedAdventure = { id: string; title: string; notes: string; private_location: string; public_location: string; captured_at: string; assigned_to: 'Katie' | 'Trinitie'; status: 'Idea' | 'Draft' | 'Ready' | 'Handed Off' | 'Posted'; platforms: string[]; media_count: number; created_at: string; updated_at: string }
 export type SharedMediaAsset = { id: string; adventure_id: string | null; display_name: string; original_name: string; content_type: string; byte_size: number; width: number | null; height: number | null; kind: 'photo' | 'video'; tags: string[]; notes: string; usage_count: number; created_at: string }
 export type WorkingVersion = { id: string; media_id: string; destination_type: string; destination_id: string; treatment: { logoColor: string; logoSize: string; logoSide: string; focus: string }; created_at: string }
-export type PinterestPin = { image: string; title: string; description: string; template: 'bark' | 'sage' | 'sand' | 'terracotta'; logo_size: 'small' | 'medium'; logo_placement: 'left' | 'right' }
+export type PinterestPin = { image: string; title: string; description: string; template: 'bark' | 'sage' | 'sand' | 'terracotta'; logo_size: 'small' | 'medium'; logo_placement: 'left' | 'right'; media_type?: 'image' | 'video'; thumbnail?: string }
 export type PinterestCampaign = { post_slug: string; campaign_title: string; board: string; keywords: string; retroactive: boolean; enabled: boolean; rss_pin: PinterestPin; day_7_pin: PinterestPin; day_14_pin: PinterestPin; day_21_pin: PinterestPin; updated_at?: string }
 export type EventProduct = { sku: string; snipcartId: string; name: string; image: string; unitPriceCents: number; stock: number; active: boolean }
 export type EventSale = { saleId: string; paymentIntentId: string; clientSecret: string; subtotalCents: number; taxCents: number; totalCents: number; currency: 'usd'; mode: 'test' }
@@ -67,6 +67,7 @@ export type JournalWorkingDraft = {
   review_completed_at?: string | null
 }
 export type JournalWorkingVersion = { id: string; revision: number; snapshot: JournalWorkingDraft; created_at: string }
+export type JournalStoryVideo = { id: string; story_slug: string; media_id: string; caption: string; sort_order: number; is_public: boolean; display_name: string; original_name: string; content_type: string; duration_seconds: number | null }
 
 async function request<T>(path: string, token: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
@@ -284,12 +285,24 @@ export async function loadStories(token: string) {
 
 export async function loadStory(token: string, slug: string) {
   return cachedRequest(`journal-story-${slug}`, () =>
-    request<{ story: JournalStoryDetail; notes: JournalReviewNote[]; workingDraft: JournalWorkingDraft | null; versions: JournalWorkingVersion[] }>(`/api/app/journal?slug=${encodeURIComponent(slug)}`, token),
+    request<{ story: JournalStoryDetail; notes: JournalReviewNote[]; workingDraft: JournalWorkingDraft | null; versions: JournalWorkingVersion[]; storyVideos: JournalStoryVideo[] }>(`/api/app/journal?slug=${encodeURIComponent(slug)}`, token),
   )
 }
 
+export async function saveJournalStoryVideo(token: string, input: { slug: string; mediaId: string; caption: string }) {
+  return request<{ storyVideos: JournalStoryVideo[] }>('/api/app/journal', token, {
+    method: 'POST', body: JSON.stringify({ action: 'save-story-video', ...input }),
+  })
+}
+
+export async function removeJournalStoryVideo(token: string, slug: string, id: string) {
+  return request<{ storyVideos: JournalStoryVideo[] }>('/api/app/journal', token, {
+    method: 'POST', body: JSON.stringify({ action: 'remove-story-video', slug, id }),
+  })
+}
+
 export async function createJournalStory(token: string, input: { title: string; category: string; publishDate: string }) {
-  return request<{ story: JournalStoryDetail; notes: JournalReviewNote[]; workingDraft: JournalWorkingDraft; versions: JournalWorkingVersion[] }>('/api/app/journal', token, {
+  return request<{ story: JournalStoryDetail; notes: JournalReviewNote[]; workingDraft: JournalWorkingDraft; versions: JournalWorkingVersion[]; storyVideos?: JournalStoryVideo[] }>('/api/app/journal', token, {
     method: 'POST',
     body: JSON.stringify({ action: 'create-working-draft', ...input }),
   })

@@ -182,6 +182,25 @@
             margin: 28px auto;
             box-shadow: 0 8px 26px rgba(44,24,16,0.12);
         }
+        .np-story-video {
+            width: min(100%, 620px);
+            margin: 32px auto;
+        }
+        .np-story-video video {
+            display: block;
+            width: 100%;
+            max-height: 76vh;
+            background: var(--bark);
+            border-radius: 16px;
+            box-shadow: 0 8px 26px rgba(44,24,16,0.14);
+        }
+        .np-story-video figcaption {
+            margin-top: 10px;
+            color: var(--bark-mid);
+            font-size: 0.94rem;
+            line-height: 1.55;
+            text-align: center;
+        }
         .article-body blockquote {
             border-left: 3px solid var(--terra);
             padding-left: 20px;
@@ -730,6 +749,30 @@
                         figure.className = 'np-editorial-photo';
                         figure.setAttribute('aria-label', 'Photo from this story');
                         figure.innerHTML = `<img src="${escapeAttribute(optimizedImageUrl(photo.image, 900))}" srcset="${escapeAttribute(optimizedImageUrl(photo.image, 560))} 560w, ${escapeAttribute(optimizedImageUrl(photo.image, 900))} 900w" sizes="(max-width: 560px) 92vw, 620px" alt="${escapeAttribute(photo.alt || post.title)}" width="1000" height="1500" loading="lazy" decoding="async">`;
+                        paragraphs[targetIndex].insertAdjacentElement('afterend', figure);
+                    });
+                }
+                const storyVideos = Array.isArray(post.videos) ? post.videos : [];
+                if (storyVideos.length && paragraphs.length) {
+                    storyVideos.forEach((video, index) => {
+                        const targetIndex = Math.min(
+                            paragraphs.length - 1,
+                            Math.max(0, Math.round(((index + 1) * paragraphs.length) / (storyVideos.length + 1)) - 1)
+                        );
+                        const figure = document.createElement('figure');
+                        figure.className = 'np-story-video';
+                        const player = document.createElement('video');
+                        player.controls = true;
+                        player.playsInline = true;
+                        player.preload = 'metadata';
+                        player.src = `/media/story-video/${encodeURIComponent(video.id)}`;
+                        player.setAttribute('aria-label', video.caption || `Video from ${post.title}`);
+                        figure.appendChild(player);
+                        if (video.caption) {
+                            const caption = document.createElement('figcaption');
+                            caption.textContent = video.caption;
+                            figure.appendChild(caption);
+                        }
                         paragraphs[targetIndex].insertAdjacentElement('afterend', figure);
                     });
                 }

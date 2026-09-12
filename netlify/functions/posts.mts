@@ -2,6 +2,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Config } from '@netlify/functions'
 import { brandedMediaUrl } from './lib/pinterest-content.mjs'
+import { publicJournalStoryVideos } from './lib/journal-db.mjs'
 
 // Blog posts are authored in Decap CMS, which commits one Markdown file per
 // post into the repo's `_posts/` folder. That folder is bundled with this
@@ -75,7 +76,14 @@ export default async (request: Request) => {
   }
 
   const pinterestByPost = new Map<string, Array<{ image: string; alt: string }>>()
+  const videosByPost = new Map<string, Array<{ id: string; caption: string }>>()
   if (!summariesOnly) {
+    const storyVideos = await publicJournalStoryVideos().catch(() => [])
+    for (const video of storyVideos) {
+      const current = videosByPost.get(video.story_slug) || []
+      current.push({ id: video.id, caption: video.caption || '' })
+      videosByPost.set(video.story_slug, current)
+    }
     const pinterestFiles = await readdir(PINTEREST_DIR).catch(() => [])
     await Promise.all(pinterestFiles.filter((file) => file.endsWith('.json')).map(async (file) => {
       try {
@@ -109,6 +117,7 @@ export default async (request: Request) => {
         excerpt: excerpt(body),
         readTime: readTime(body),
         ...(!summariesOnly && { pinterestImages: pinterestByPost.get(file.replace(/\.md$/, '')) || [] }),
+        ...(!summariesOnly && { videos: videosByPost.get(file.replace(/\.md$/, '')) || [] }),
         ...(!summariesOnly && { body }),
       }
     }),

@@ -26,6 +26,7 @@ export function absoluteMediaUrl(path = '') {
 
 export function brandedMediaUrl(pin = {}) {
   const source = absoluteMediaUrl(pin.image || '')
+  if (pin.media_type === 'video') return source
   if (!pin.template) return source
   const template = ['bark', 'sage', 'sand', 'terracotta'].includes(pin.template) ? pin.template : 'bark'
   const size = ['small', 'medium'].includes(pin.logo_size) ? pin.logo_size : 'small'
@@ -50,7 +51,7 @@ export function buildRss(campaigns, postsBySlug, now = new Date()) {
       if (!post || !publishDate || Number.isNaN(publishDate.getTime())) return []
       if (publishDate > now) return []
       const pin = campaign.rss_pin
-      if (!pin?.image || !pin?.title) return []
+      if (!pin?.image || !pin?.title || pin.media_type === 'video') return []
       const link = postUrl(campaign.post_slug)
       return [{ campaign, post, pin, link, publishDate }]
     })
@@ -112,7 +113,7 @@ export function buildCsv(campaigns, postsBySlug, now = new Date()) {
         pin.title.slice(0, 100),
         brandedMediaUrl(pin),
         campaign.board || 'Nomadic Paws Trail Journal',
-        '',
+        pin.media_type === 'video' ? absoluteMediaUrl(pin.thumbnail || '') : '',
         (pin.description || '').slice(0, 500),
         postUrl(campaign.post_slug),
         dateOnly(dates[index]),
@@ -137,7 +138,7 @@ export function buildCsv(campaigns, postsBySlug, now = new Date()) {
         pin.title.slice(0, 100),
         brandedMediaUrl(pin),
         campaign.board || 'Nomadic Paws Trail Journal',
-        '',
+        pin.media_type === 'video' ? absoluteMediaUrl(pin.thumbnail || '') : '',
         (pin.description || '').slice(0, 500),
         postUrl(campaign.post_slug),
         dateOnly(cursor),

@@ -149,6 +149,74 @@ export async function journalWorkingVersions(slug) {
   return result.rows
 }
 
+export async function journalStoryVideos(slug) {
+  const result = await getDatabase().pool.query(
+    `SELECT jsv.id, jsv.story_slug, jsv.media_id, jsv.caption, jsv.sort_order,
+            jsv.is_public, jsv.created_at, jsv.updated_at,
+            ma.display_name, ma.original_name, ma.content_type, ma.duration_seconds
+       FROM journal_story_videos jsv
+       JOIN media_assets ma ON ma.id = jsv.media_id
+      WHERE jsv.story_slug = $1 AND ma.kind = 'video' AND ma.status = 'ready'
+      ORDER BY jsv.sort_order, jsv.created_at`,
+    [slug],
+  )
+  return result.rows
+}
+
+export async function saveJournalStoryVideo({ slug, mediaId, caption }) {
+  const id = randomUUID()
+  const result = await getDatabase().pool.query(
+    `INSERT INTO journal_story_videos (id, story_slug, media_id, caption, sort_order)
+     SELECT $1, $2, ma.id, $4,
+            COALESCE((SELECT MAX(sort_order) + 1 FROM journal_story_videos WHERE story_slug = $2), 0)
+       FROM media_assets ma
+      WHERE ma.id = $3 AND ma.kind = 'video' AND ma.status = 'ready'
+     ON CONFLICT (story_slug, media_id) DO UPDATE
+       SET caption = EXCLUDED.caption, updated_at = NOW()
+     RETURNING *`,
+    [id, slug, mediaId, String(caption || '').trim()],
+  )
+  return result.rows[0] || null
+}
+
+export async function removeJournalStoryVideo(slug, id) {
+  const result = await getDatabase().pool.query(
+    `DELETE FROM journal_story_videos WHERE id = $1 AND story_slug = $2 RETURNING id`,
+    [id, slug],
+  )
+  return Boolean(result.rowCount)
+}
+
+export async function publishJournalStoryVideos(slug) {
+  await getDatabase().pool.query(
+    `UPDATE journal_story_videos SET is_public = TRUE, updated_at = NOW() WHERE story_slug = $1`,
+    [slug],
+  )
+}
+
+export async function publicJournalStoryVideos() {
+  const result = await getDatabase().pool.query(
+    `SELECT jsv.id, jsv.story_slug, jsv.caption, jsv.sort_order
+       FROM journal_story_videos jsv
+       JOIN media_assets ma ON ma.id = jsv.media_id
+      WHERE jsv.is_public = TRUE AND ma.kind = 'video' AND ma.status = 'ready'
+      ORDER BY jsv.story_slug, jsv.sort_order, jsv.created_at`,
+  )
+  return result.rows
+}
+
+export async function publicJournalVideoById(id) {
+  const result = await getDatabase().pool.query(
+    `SELECT jsv.id, jsv.caption, ma.blob_key, ma.content_type
+       FROM journal_story_videos jsv
+       JOIN media_assets ma ON ma.id = jsv.media_id
+      WHERE jsv.id = $1 AND jsv.is_public = TRUE AND ma.kind = 'video' AND ma.status = 'ready'
+      LIMIT 1`,
+    [id],
+  )
+  return result.rows[0] || null
+}
+
 export async function renameJournalStory(oldSlug, newSlug) {
   if (!oldSlug || !newSlug || oldSlug === newSlug) return
   const client = await getDatabase().pool.connect()
@@ -171,6 +239,7 @@ export async function renameJournalStory(oldSlug, newSlug) {
       [oldSlug, newSlug],
     )
     await client.query(`UPDATE video_studio_projects SET source_story_slug = $2, updated_at = NOW() WHERE source_story_slug = $1`, [oldSlug, newSlug])
+    await client.query(`UPDATE journal_story_videos SET story_slug = $2, updated_at = NOW() WHERE story_slug = $1`, [oldSlug, newSlug])
     await client.query('COMMIT')
   } catch (error) {
     await client.query('ROLLBACK')

@@ -3,7 +3,13 @@ const sizes = ['small', 'medium']
 const sides = ['left', 'right']
 
 function validPin(pin) {
-  return pin && typeof pin.image === 'string' && pin.image.length <= 1000
+  const mediaType = pin?.media_type || 'image'
+  const validMedia = mediaType === 'image'
+    ? typeof pin?.image === 'string' && pin.image.length <= 1000
+    : mediaType === 'video'
+      && typeof pin?.image === 'string' && pin.image.length > 0 && pin.image.length <= 1000
+      && typeof pin.thumbnail === 'string' && pin.thumbnail.length > 0 && pin.thumbnail.length <= 1000
+  return pin && validMedia
     && typeof pin.title === 'string' && pin.title.trim().length > 0 && pin.title.length <= 100
     && typeof pin.description === 'string' && pin.description.length <= 500
     && colors.includes(pin.template) && sizes.includes(pin.logo_size) && sides.includes(pin.logo_placement)
@@ -15,6 +21,6 @@ export function validPinterestCampaign(value) {
     && typeof value.board === 'string' && value.board.trim().length > 0 && value.board.length <= 120
     && typeof value.keywords === 'string' && value.keywords.length <= 500
     && typeof value.retroactive === 'boolean' && typeof value.enabled === 'boolean'
+    && value.rss_pin?.media_type !== 'video'
     && [value.rss_pin, value.day_7_pin, value.day_14_pin, value.day_21_pin].every(validPin)
 }
-

@@ -36,6 +36,7 @@ import {
   JournalReviewNote,
   JournalStory,
   JournalStoryDetail,
+  JournalStoryVideo,
   JournalWorkingDraft,
   JournalWorkingVersion,
   loadInstagramStudio,
@@ -56,6 +57,7 @@ import {
   saveInstagramRhythm,
   saveJournalContribution,
   saveJournalWorkingDraft,
+  saveJournalStoryVideo,
   savePinterestCampaign,
   saveWorkingVersion,
   saveVideoProject,
@@ -63,6 +65,7 @@ import {
   SharedMediaAsset,
   signInWithApple,
   signOutApp,
+  removeJournalStoryVideo,
   updateReviewNote,
   updateSharedAdventure,
   updateSharedMedia,
@@ -128,6 +131,10 @@ type PhotoDestination =
   | "instagram";
 type PinterestPinDraft = {
   asset?: SharedMediaAsset;
+  mediaType?: "image" | "video";
+  storyVideo?: JournalStoryVideo;
+  savedVideoUrl?: string;
+  savedThumbnail?: string;
   finishedImage?: string;
   title: string;
   description: string;
@@ -688,6 +695,8 @@ function JournalEditor({
   versions,
   notes,
   media,
+  storyVideos,
+  onStoryVideosChanged,
   onAdapt,
   onBack,
 }: {
@@ -697,6 +706,8 @@ function JournalEditor({
   versions: JournalWorkingVersion[];
   notes: JournalReviewNote[];
   media: SharedMediaAsset[];
+  storyVideos: JournalStoryVideo[];
+  onStoryVideosChanged: (videos: JournalStoryVideo[]) => void;
   onAdapt: (adaptation: JournalAdaptation) => void;
   onBack: () => void;
 }) {
@@ -734,6 +745,7 @@ function JournalEditor({
   const [backupState, setBackupState] = useState("");
   const futureSlug = journalPreviewSlug(title, publishDate);
   const journalPhotos = media.filter((asset) => asset.kind === "photo" || asset.content_type.startsWith("image/"));
+  const journalVideos = media.filter((asset) => asset.kind === "video" || asset.content_type.startsWith("video/"));
   const editVersion = useRef(0);
   const localDraftLoaded = useRef(false);
   function localSnapshot(): LocalJournalDraft {
@@ -1014,6 +1026,31 @@ function JournalEditor({
       );
     }
   }
+  async function attachStoryVideo(asset: SharedMediaAsset) {
+    setSaveState("Adding video to this story…");
+    setSaveError("");
+    try {
+      const result = await saveJournalStoryVideo(token, {
+        slug: story.slug,
+        mediaId: asset.id,
+        caption: asset.display_name || asset.notes || "Cheeto video from this story",
+      });
+      onStoryVideosChanged(result.storyVideos);
+      setSaveState("Video attached to this story");
+    } catch (reason) {
+      setSaveError(reason instanceof Error ? reason.message : "That video could not be attached to this story.");
+    }
+  }
+  async function detachStoryVideo(id: string) {
+    setSaveError("");
+    try {
+      const result = await removeJournalStoryVideo(token, story.slug, id);
+      onStoryVideosChanged(result.storyVideos);
+      setSaveState("Video removed from this story");
+    } catch (reason) {
+      setSaveError(reason instanceof Error ? reason.message : "That video could not be removed from this story.");
+    }
+  }
   const checks = [
     { label: "Title", okay: Boolean(title.trim()) },
     { label: "Excerpt", okay: Boolean(description.trim()) },
@@ -1259,6 +1296,53 @@ function JournalEditor({
                 changing its original or its Pinterest version.
               </Text>
             </View>
+            <Text style={styles.controlLabel}>Videos for this story</Text>
+            <Text style={styles.helper}>
+              Attach as many clips as the story needs. They stay private while the story is a draft and become playable on the website only when you publish.
+            </Text>
+            {storyVideos.map((video) => (
+              <View key={video.id} style={styles.selectedFile}>
+                <View style={styles.selectedVideoIcon}>
+                  <Text style={styles.selectedVideoIconText}>▶</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text numberOfLines={1} style={styles.selectedFileName}>
+                    {video.caption || video.display_name || video.original_name}
+                  </Text>
+                  <Text style={styles.helper}>{video.is_public ? "Live with the published story" : "Private draft video"}</Text>
+                </View>
+                <Pressable onPress={() => detachStoryVideo(video.id)}>
+                  <Text style={styles.removeFile}>Remove</Text>
+                </Pressable>
+              </View>
+            ))}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.journalMediaRow}
+            >
+              {journalVideos
+                .filter((asset) => !storyVideos.some((video) => video.media_id === asset.id))
+                .map((asset) => (
+                  <View key={asset.id} style={styles.journalMediaCard}>
+                    <View style={[styles.journalMediaImage, styles.selectedVideoIcon]}>
+                      <Text style={styles.selectedVideoIconText}>▶</Text>
+                    </View>
+                    <Text numberOfLines={2} style={styles.helper}>
+                      {asset.display_name || asset.original_name}
+                    </Text>
+                    <Pressable onPress={() => attachStoryVideo(asset)} style={styles.journalMediaAction}>
+                      <Text style={styles.journalMediaActionText}>Use in story</Text>
+                    </Pressable>
+                  </View>
+                ))}
+            </ScrollView>
+            {!journalVideos.length ? (
+              <View style={styles.teamEmpty}>
+                <Text style={styles.teamEmptyTitle}>No shared videos yet.</Text>
+                <Text style={styles.teamEmptyCopy}>Add a video through an Adventure and it will become available here and in Video Studio.</Text>
+              </View>
+            ) : null}
           </>
         ) : null}
         {tab === "Social" ? (
@@ -1875,6 +1959,7 @@ function Journal({
     [working, setWorking] = useState<JournalWorkingDraft | null>(null),
     [versions, setVersions] = useState<JournalWorkingVersion[]>([]),
     [notes, setNotes] = useState<JournalReviewNote[]>([]),
+    [storyVideos, setStoryVideos] = useState<JournalStoryVideo[]>([]),
     [reviewNote, setReviewNote] = useState(""),
     [loading, setLoading] = useState(true),
     [opening, setOpening] = useState(false),
@@ -1923,6 +2008,7 @@ function Journal({
       setNotes(data.notes);
       setWorking(data.workingDraft);
       setVersions(data.versions);
+      setStoryVideos(data.storyVideos || []);
     } catch (reason) {
       setError(
         reason instanceof Error ? reason.message : "Unable to open this story.",
@@ -1954,6 +2040,7 @@ function Journal({
       setWorking(data.workingDraft);
       setVersions(data.versions);
       setNotes(data.notes);
+      setStoryVideos(data.storyVideos || []);
       setCreatingStory(false);
       setNewStoryTitle("");
     } catch (reason) {
@@ -2022,6 +2109,8 @@ function Journal({
         versions={versions}
         notes={notes}
         media={journalMedia}
+        storyVideos={storyVideos}
+        onStoryVideosChanged={setStoryVideos}
         onAdapt={onAdapt}
         onBack={() => setSelected(undefined)}
       />
@@ -2298,6 +2387,7 @@ function Journal({
 function PinCard({
   token,
   media,
+  storyVideos,
   number,
   value,
   onChange,
@@ -2306,6 +2396,7 @@ function PinCard({
 }: {
   token: string;
   media: SharedMediaAsset[];
+  storyVideos: JournalStoryVideo[];
   number: number;
   value: PinterestPinDraft;
   onChange: (value: PinterestPinDraft) => void;
@@ -2314,16 +2405,50 @@ function PinCard({
 }) {
   const patch = (next: Partial<PinterestPinDraft>) =>
     onChange({ ...value, ...next });
+  const isVideo = value.mediaType === "video";
   return (
     <View style={styles.pinCard}>
       <View style={styles.pinHeading}>
         <Text style={styles.pinTitle}>Pin {number}</Text>
         <Text style={styles.pinTiming}>
           {number === 1
-            ? "RSS · within 24 hours"
-            : `CSV · day ${(number - 1) * 7}`}
+            ? "RSS · photo required · within 24 hours"
+            : `CSV · photo or video · day ${(number - 1) * 7}`}
         </Text>
       </View>
+      {number === 1 ? (
+        <View style={styles.noticeBox}>
+          <Text style={styles.noticeTitle}>RSS must be a photo</Text>
+          <Text style={styles.helper}>Pinterest reads this first image automatically from the published Journal story.</Text>
+        </View>
+      ) : (
+        <>
+          <Text style={styles.controlLabel}>Use in this CSV slot</Text>
+          <View style={styles.choiceRow}>
+            <Choice value="image" label="Photo" current={value.mediaType || "image"} onPress={(mediaType) => patch({ mediaType, storyVideo: undefined, savedVideoUrl: undefined })} />
+            <Choice value="video" label="Video" current={value.mediaType || "image"} onPress={(mediaType) => patch({ mediaType, finishedImage: undefined })} />
+          </View>
+        </>
+      )}
+      {isVideo ? (
+        <View>
+          <Text style={styles.controlLabel}>Choose a story video</Text>
+          {storyVideos.length ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pinMediaRow}>
+              {storyVideos.map((video) => (
+                <Pressable key={video.id} onPress={() => patch({ storyVideo: video, savedVideoUrl: undefined })} style={[styles.templateCard, value.storyVideo?.id === video.id && styles.templateCardActive]}>
+                  <Text style={styles.templateName}>{video.display_name || video.original_name || "Story video"}</Text>
+                  <Text style={styles.helper}>{video.duration_seconds ? `${Math.round(video.duration_seconds)} seconds` : "Video"}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          ) : (
+            <Text style={styles.helper}>Attach a video in the Journal Photos screen first.</Text>
+          )}
+          <Text style={styles.controlLabel}>Choose its Pinterest cover photo</Text>
+          <Text style={styles.helper}>This still image appears while the video loads and keeps the Pin recognizable.</Text>
+        </View>
+      ) : null}
       <View style={styles.preview}>
         {value.asset ? (
           <Image
@@ -2350,7 +2475,7 @@ function PinCard({
         ) : (
           <View style={styles.emptyPreview}>
             <Text style={styles.emptyIcon}>＋</Text>
-            <Text style={styles.emptyText}>Add a vertical photo</Text>
+            <Text style={styles.emptyText}>{isVideo ? "Add a vertical cover photo" : "Add a vertical photo"}</Text>
           </View>
         )}
         <Image
@@ -2363,14 +2488,14 @@ function PinCard({
           resizeMode="contain"
         />
       </View>
-      <Text style={styles.controlLabel}>Choose a photo</Text>
+      <Text style={styles.controlLabel}>{isVideo ? "Choose a cover photo" : "Choose a photo"}</Text>
       <Pressable
         disabled={uploading}
         onPress={onChooseFromPhotos}
         style={styles.pinDirectUpload}
       >
         <Text style={styles.pinDirectUploadText}>
-          {uploading ? "Adding original…" : "Choose a different photo from iPhone Photos"}
+          {uploading ? "Adding original…" : isVideo ? "Choose a cover from iPhone Photos" : "Choose a different photo from iPhone Photos"}
         </Text>
       </Pressable>
       <ScrollView
@@ -2378,7 +2503,7 @@ function PinCard({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.pinMediaRow}
       >
-        {media.map((asset) => (
+        {media.filter((asset) => asset.kind === "photo").map((asset) => (
           <Pressable
             key={asset.id}
             onPress={() => patch({ asset, finishedImage: undefined })}
@@ -5380,6 +5505,7 @@ function Pinterest({
 }) {
   const [stories, setStories] = useState<JournalStory[]>([]),
     [media, setMedia] = useState<SharedMediaAsset[]>([]),
+    [storyVideos, setStoryVideos] = useState<JournalStoryVideo[]>([]),
     [campaigns, setCampaigns] = useState<PinterestCampaign[]>([]),
     [selected, setSelected] = useState<JournalStory>(),
     [loading, setLoading] = useState(true),
@@ -5423,9 +5549,13 @@ function Pinterest({
     selectStory(story);
     onInitialStoryOpened();
   }, [initialStorySlug, onInitialStoryOpened, selected, stories]);
-  function selectStory(story: JournalStory) {
+  async function selectStory(story: JournalStory) {
     setSelected(story);
     setMessage("");
+    setStoryVideos([]);
+    loadStory(token, story.slug)
+      .then((data) => setStoryVideos(data.storyVideos || []))
+      .catch(() => setStoryVideos([]));
     const saved = campaigns.find((campaign) => campaign.post_slug === story.slug);
     setBoard(saved?.board || "Nomadic Paws Trail Journal");
     setKeywords(saved?.keywords || "");
@@ -5435,13 +5565,16 @@ function Pinterest({
       : [];
     setPins(
       ["bark", "sage", "sand", "terracotta"].map((color, index) => ({
+        mediaType: index === 0 ? "image" : savedPins[index]?.media_type || "image",
         title: savedPins[index]?.title || story.title,
         description: savedPins[index]?.description || story.description,
         logo: (savedPins[index]?.template || color) as Exclude<LogoColor, "none">,
         size: savedPins[index]?.logo_size || "small",
         side: savedPins[index]?.logo_placement || "left",
         focus: "center",
-        finishedImage: savedPins[index]?.image,
+        finishedImage: savedPins[index]?.media_type === "video" ? undefined : savedPins[index]?.image,
+        savedVideoUrl: savedPins[index]?.media_type === "video" ? savedPins[index]?.image : undefined,
+        savedThumbnail: savedPins[index]?.thumbnail,
       })),
     );
   }
@@ -5518,16 +5651,43 @@ function Pinterest({
   }
   async function saveCampaign() {
     if (!selected) return;
-    if (pins.some((pin) => !pin.asset && !pin.finishedImage)) {
-      setError("Choose a photo for each of the four Pins first.");
+    if (pins.some((pin, index) => index === 0
+      ? !pin.asset && !pin.finishedImage
+      : pin.mediaType === "video"
+        ? (!pin.storyVideo && !pin.savedVideoUrl) || (!pin.asset && !pin.savedThumbnail)
+        : !pin.asset && !pin.finishedImage)) {
+      setError("Pin 1 needs a photo. Every later slot needs either a photo, or a story video with a cover photo.");
       return;
     }
     setSaving(true);
     setError("");
-    setMessage("Preparing four finished Pinterest images…");
+    setMessage("Preparing the four-piece Pinterest campaign…");
     try {
       const finished = [];
       for (const pin of pins) {
+        if (pin.mediaType === "video") {
+          let thumbnail = pin.savedThumbnail || "";
+          if (pin.asset) {
+            const cover = await saveWorkingVersion(token, pin.asset.id, "pinterest", {
+              logoColor: pin.logo,
+              logoSize: pin.size,
+              logoSide: pin.side,
+              focus: pin.focus,
+            });
+            thumbnail = publicWorkingImagePath(cover.id);
+          }
+          finished.push({
+            image: pin.storyVideo ? `/media/story-video/${pin.storyVideo.id}` : pin.savedVideoUrl!,
+            thumbnail,
+            media_type: "video" as const,
+            title: pin.title.trim(),
+            description: pin.description.trim(),
+            template: pin.logo,
+            logo_size: pin.size,
+            logo_placement: pin.side,
+          });
+          continue;
+        }
         let imagePath = pin.finishedImage || "";
         if (pin.asset) {
           const version = await saveWorkingVersion(token, pin.asset.id, "pinterest", {
@@ -5540,6 +5700,7 @@ function Pinterest({
         }
         finished.push({
           image: imagePath,
+          media_type: "image" as const,
           title: pin.title.trim(),
           description: pin.description.trim(),
           template: pin.logo,
@@ -5626,6 +5787,7 @@ function Pinterest({
               key={index}
               token={token}
               media={media}
+              storyVideos={storyVideos}
               number={index + 1}
               value={pin}
               onChange={(next) => setPins((current) => current.map((item, itemIndex) => itemIndex === index ? next : item))}
@@ -7745,11 +7907,31 @@ const styles = StyleSheet.create({
   pinHeading: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "baseline",
+    alignItems: "flex-start",
+    gap: 10,
     marginBottom: 10,
   },
   pinTitle: { fontSize: 21, fontWeight: "800", color: colors.bark },
-  pinTiming: { fontSize: 12, color: colors.barkSoft },
+  pinTiming: { flex: 1, fontSize: 12, lineHeight: 17, color: colors.barkSoft, textAlign: "right" },
+  noticeBox: {
+    backgroundColor: colors.sand,
+    borderRadius: 13,
+    padding: 12,
+    marginBottom: 12,
+  },
+  noticeTitle: { color: colors.bark, fontSize: 14, fontWeight: "900" },
+  templateCard: {
+    width: 150,
+    minHeight: 74,
+    borderWidth: 2,
+    borderColor: colors.sandDeep,
+    borderRadius: 13,
+    padding: 10,
+    backgroundColor: colors.white,
+    justifyContent: "center",
+  },
+  templateCardActive: { borderColor: colors.terracotta, backgroundColor: "#fff8f3" },
+  templateName: { color: colors.bark, fontSize: 13, fontWeight: "900" },
   preview: {
     aspectRatio: 2 / 3,
     borderRadius: 14,

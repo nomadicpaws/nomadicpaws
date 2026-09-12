@@ -81,3 +81,24 @@ test('retroactive dates skip the regular RSS window and weekly follow-ups', () =
   assert.doesNotMatch(csv, /2026-09-02,adventure cat/)
   assert.match(csv, /2026-09-03/)
 })
+
+test('CSV follow-up slots support video with a required thumbnail', () => {
+  const videoPin = {
+    image: '/media/story-video/11111111-1111-4111-8111-111111111111',
+    thumbnail: '/media/working/video-cover.jpg',
+    media_type: 'video',
+    title: 'Cheeto explains the night shift',
+    description: 'A short Cheeto video.',
+    template: 'bark',
+    logo_size: 'small',
+    logo_placement: 'left',
+  }
+  const imagePin = { image: '/media/working/photo.jpg', title: 'Cheeto photo', description: 'A Cheeto photo.', template: 'sage', logo_size: 'small', logo_placement: 'left' }
+  const videoCampaign = { ...campaign, retroactive: false, rss_pin: { ...imagePin, template: 'bark' }, day_7_pin: videoPin, day_14_pin: imagePin, day_21_pin: { ...imagePin, template: 'terracotta' } }
+  const csv = buildCsv([videoCampaign], posts, new Date('2026-08-23T12:00:00Z'))
+  assert.match(csv, /\/media\/story-video\/11111111-1111-4111-8111-111111111111/)
+  assert.match(csv, /\/media\/working\/video-cover\.jpg/)
+  assert.equal(validPinterestCampaign(videoCampaign), true)
+  assert.equal(validPinterestCampaign({ ...videoCampaign, day_7_pin: { ...videoPin, thumbnail: '' } }), false)
+  assert.equal(validPinterestCampaign({ ...videoCampaign, rss_pin: videoPin }), false)
+})

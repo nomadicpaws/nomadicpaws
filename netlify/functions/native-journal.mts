@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import type { Config } from '@netlify/functions'
 import { requireAppUser } from './lib/app-auth.mjs'
 import { bearerToken, verifySellerToken } from './lib/event-auth.mjs'
-import { addJournalReviewNote, allJournalWorkingDrafts, journalContributions, journalReviewNotes, journalWorkingDraft, journalWorkingVersions, renameJournalStory, saveJournalContribution, saveJournalWorkingDraft, setJournalReviewStatus, updateJournalReviewNote } from './lib/journal-db.mjs'
+import { addJournalReviewNote, allJournalWorkingDrafts, journalContributions, journalReviewNotes, journalStoryVideos, journalWorkingDraft, journalWorkingVersions, publishJournalStoryVideos, removeJournalStoryVideo, renameJournalStory, saveJournalContribution, saveJournalStoryVideo, saveJournalWorkingDraft, setJournalReviewStatus, updateJournalReviewNote } from './lib/journal-db.mjs'
 import { REVIEW_STATUSES, validContribution, validReviewAnchor } from './lib/journal-collaboration.mjs'
 import { journalSlug, journalStatus, journalVersion, parseJournalFile } from './lib/journal-content.mjs'
 import { commitJournalDraft } from './lib/journal-github.mjs'
@@ -69,8 +69,8 @@ export default async (request: Request) => {
         const story = stories.find(item => item.slug === requestedSlug)
         if (!story) return Response.json({ error: 'Trail Journal story not found.' }, { status: 404, headers: HEADERS })
         if (user.role === 'mom' && story.reviewStatus !== 'ready_for_mom') return Response.json({ error: 'This story is not waiting for your review.' }, { status: 403, headers: HEADERS })
-        const [notes, workingDraft, versions] = await Promise.all([journalReviewNotes(story.slug), journalWorkingDraft(story.slug), journalWorkingVersions(story.slug)])
-        return Response.json({ story, notes, workingDraft, versions }, { headers: HEADERS })
+        const [notes, workingDraft, versions, storyVideos] = await Promise.all([journalReviewNotes(story.slug), journalWorkingDraft(story.slug), journalWorkingVersions(story.slug), journalStoryVideos(story.slug)])
+        return Response.json({ story, notes, workingDraft, versions, storyVideos }, { headers: HEADERS })
       }
       const visibleStories = user.role === 'mom' ? stories.filter(story => story.reviewStatus === 'ready_for_mom') : stories
       const summaries = visibleStories.map(({ body: _body, ...story }) => story).sort((a, b) => b.date.localeCompare(a.date))
@@ -95,6 +95,19 @@ export default async (request: Request) => {
         if (!validContribution(payload)) return Response.json({ error: 'Keep the contribution within the available fields and add a thought before sending it.' }, { status: 400, headers: HEADERS })
         const contribution = await saveJournalContribution({ id: String(payload.id || ''), title: String(payload.title || ''), body: String(payload.body || ''), memoryClue: String(payload.memoryClue || ''), status: String(payload.status || 'draft') })
         return Response.json({ contribution }, { status: 201, headers: HEADERS })
+      }
+      if (payload.action === 'save-story-video' || payload.action === 'remove-story-video') {
+        if (user.role !== 'katie') return Response.json({ error: 'Only Katie can change Journal story media.' }, { status: 403, headers: HEADERS })
+        const slug = String(payload.slug || ''), id = String(payload.id || ''), mediaId = String(payload.mediaId || '')
+        if (!(await readStories()).some(story => story.slug === slug)) return Response.json({ error: 'Trail Journal story not found.' }, { status: 404, headers: HEADERS })
+        if (payload.action === 'remove-story-video') {
+          if (!id || !(await removeJournalStoryVideo(slug, id))) return Response.json({ error: 'That story video is no longer attached.' }, { status: 404, headers: HEADERS })
+        } else {
+          if (!/^[0-9a-f-]{36}$/i.test(mediaId)) return Response.json({ error: 'Choose a saved video first.' }, { status: 400, headers: HEADERS })
+          const video = await saveJournalStoryVideo({ slug, mediaId, caption: String(payload.caption || '') })
+          if (!video) return Response.json({ error: 'That video is not available in the Media Library.' }, { status: 404, headers: HEADERS })
+        }
+        return Response.json({ storyVideos: await journalStoryVideos(slug) }, { headers: HEADERS })
       }
       if (payload.action === 'update-review-note') {
         if (!['katie', 'mom'].includes(user.role)) return Response.json({ error: 'This review action is not part of your account.' }, { status: 403, headers: HEADERS })
@@ -131,6 +144,7 @@ export default async (request: Request) => {
         const nextSlug = journalSlug(draft.title, draft.publish_date)
         const result = await commitJournalDraft(draft, nextSlug)
         if (nextSlug !== slug) await renameJournalStory(slug, nextSlug)
+        await publishJournalStoryVideos(nextSlug)
         return Response.json({ ...result, slug: nextSlug, state: 'committed' }, { headers: HEADERS })
       }
       if (payload.action !== 'add-review-note') return Response.json({ error: 'Unknown Journal action.' }, { status: 400, headers: HEADERS })
