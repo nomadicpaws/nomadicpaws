@@ -5371,10 +5371,12 @@ function Pinterest({
   token,
   initialStorySlug,
   onInitialStoryOpened,
+  onCampaignSaved,
 }: {
   token: string;
   initialStorySlug?: string;
   onInitialStoryOpened: () => void;
+  onCampaignSaved: () => void;
 }) {
   const [stories, setStories] = useState<JournalStory[]>([]),
     [media, setMedia] = useState<SharedMediaAsset[]>([]),
@@ -5559,6 +5561,7 @@ function Pinterest({
       };
       const saved = (await savePinterestCampaign(token, campaign)).campaign;
       setCampaigns((current) => [saved, ...current.filter((item) => item.post_slug !== saved.post_slug)]);
+      onCampaignSaved();
       setMessage(
         retroactive
           ? "Campaign saved. All four images will fill the next open CSV dates."
@@ -5571,6 +5574,12 @@ function Pinterest({
       setSaving(false);
     }
   }
+  const selectedCampaign = selected
+    ? campaigns.find((campaign) => campaign.post_slug === selected.slug)
+    : undefined;
+  const needsArchiveSchedulingChoice = Boolean(
+    selected && selected.status === "Published" && !selectedCampaign,
+  );
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <Text style={styles.eyebrow}>PINTEREST WORKSPACE</Text>
@@ -5603,13 +5612,15 @@ function Pinterest({
             placeholder="Comma-separated phrases that genuinely fit the story"
             placeholderTextColor="#8b8075"
           />
-          <Pressable onPress={() => setRetroactive((current) => !current)} style={styles.retroactiveChoice}>
-            <Text style={styles.retroactiveCheck}>{retroactive ? "✓" : "○"}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.retroactiveTitle}>Retroactive article</Text>
-              <Text style={styles.retroactiveCopy}>Use the next open CSV dates instead of the new-article RSS sequence.</Text>
-            </View>
-          </Pressable>
+          {needsArchiveSchedulingChoice ? (
+            <Pressable onPress={() => setRetroactive((current) => !current)} style={styles.retroactiveChoice}>
+              <Text style={styles.retroactiveCheck}>{retroactive ? "✓" : "○"}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.retroactiveTitle}>Add this older story to the archive queue</Text>
+                <Text style={styles.retroactiveCopy}>Its four Pins will use the next open CSV dates. This option disappears after the campaign is saved.</Text>
+              </View>
+            </Pressable>
+          ) : null}
           {pins.map((pin, index) => (
             <PinCard
               key={index}
@@ -6840,6 +6851,7 @@ export default function App() {
     [adaptation, setAdaptation] = useState<JournalAdaptation>(),
     [initialInstagramPostId, setInitialInstagramPostId] = useState<string>(),
     [initialJournalStorySlug, setInitialJournalStorySlug] = useState<string>(),
+    [pinterestBacklogCount, setPinterestBacklogCount] = useState<number | null>(null),
     [keyboardHeight, setKeyboardHeight] = useState(0);
   useEffect(() => {
     const show = Keyboard.addListener(
@@ -6923,6 +6935,26 @@ export default function App() {
       })),
     );
   }
+  async function refreshPinterestBacklog() {
+    if (!account || account.user.role !== "katie") {
+      setPinterestBacklogCount(0);
+      return;
+    }
+    const [storyData, campaignData] = await Promise.all([
+      loadStories(account.token),
+      loadPinterestCampaigns(account.token),
+    ]);
+    const prepared = new Set(
+      campaignData.campaigns
+        .filter((campaign) => campaign.enabled)
+        .map((campaign) => campaign.post_slug),
+    );
+    setPinterestBacklogCount(
+      storyData.stories.filter(
+        (story) => story.status === "Published" && !prepared.has(story.slug),
+      ).length,
+    );
+  }
   function beginJournalAdaptation(next: JournalAdaptation) {
     setAdaptation(next);
     setTeamOpen(false);
@@ -6960,6 +6992,7 @@ export default function App() {
   }
   useEffect(() => {
     refreshShared().catch(() => {});
+    refreshPinterestBacklog().catch(() => {});
   }, [account?.token, account?.user.role]);
   if (restoring)
     return (
@@ -7083,6 +7116,7 @@ export default function App() {
         adaptation?.platform === "Pinterest" ? adaptation.slug : undefined
       }
       onInitialStoryOpened={() => setAdaptation(undefined)}
+      onCampaignSaved={() => refreshPinterestBacklog().catch(() => {})}
     />
   );
   const tabs: Tab[] =
@@ -7090,7 +7124,16 @@ export default function App() {
       ? ["Today", "Media", "Studio", "Video", "Journal"]
       : person === "Mom"
         ? ["Today", "Journal"]
-        : ["Today", "Media", "Studio", "Video", "Journal", "Pinterest"];
+        : [
+            "Today",
+            "Media",
+            "Studio",
+            "Video",
+            "Journal",
+            ...(pinterestBacklogCount === null || pinterestBacklogCount > 0
+              ? (["Pinterest"] as Tab[])
+              : []),
+          ];
   return (
     <SafeAreaView style={styles.shell}>
       <StatusBar barStyle="dark-content" />
