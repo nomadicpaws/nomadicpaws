@@ -2998,11 +2998,15 @@ function Today({
     try {
       const [instagram, journal] = await Promise.all([
         loadInstagramStudio(token),
-        person === "Mom" ? loadStories(token) : Promise.resolve(null),
+        person === "Trinitie" ? Promise.resolve(null) : loadStories(token),
       ]);
       if (instagram.rhythm) setRhythm(instagram.rhythm);
       setPosts(instagram.posts);
-      if (journal) setReviewStories(journal.stories.filter((story) => story.reviewStatus === "ready_for_mom"));
+      if (journal) setReviewStories(journal.stories.filter((story) =>
+        person === "Mom"
+          ? story.reviewStatus === "ready_for_mom"
+          : story.reviewStatus === "back_with_katie",
+      ));
       setLoadState("ready");
     } catch (reason) {
       setLoadState("error");
@@ -3026,7 +3030,7 @@ function Today({
     ? mine.length + posts.filter((post) => post.targetDate === localDateKey() && post.status !== "Posted").length
     : person === "Mom"
       ? reviewStories.length + posts.filter((post) => post.sharedWithMom).length
-      : mine.length + needsKatie.length;
+      : mine.length + needsKatie.length + reviewStories.length;
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.todayHeader}>
@@ -3118,7 +3122,7 @@ function Today({
               ? readyInstagram
               : person === "Mom"
                 ? reviewStories.length + posts.filter((post) => post.sharedWithMom).length
-                : needsKatie.length}
+                : needsKatie.length + reviewStories.length}
           </Text>
           <Text style={styles.readinessLabel}>
             {person === "Trinitie"
@@ -3127,7 +3131,9 @@ function Today({
                 : "Posts ready"
               : person === "Mom"
                 ? "Ready & shared"
-                : "Needs Katie"}
+                : reviewStories.length
+                  ? "Returned to Katie"
+                  : "Needs Katie"}
           </Text>
         </Pressable>
         <View style={styles.readinessCard}>
@@ -3209,6 +3215,18 @@ function Today({
                 <Text style={styles.preparedPostMeta}>
                   {post.handoffNote || "Trinitie handed you today’s Instagram post."}
                 </Text>
+              </View>
+              <Text style={styles.journalArrow}>›</Text>
+            </Pressable>
+          ))
+        : null}
+      {person === "Katie"
+        ? reviewStories.map((story) => (
+            <Pressable key={story.slug} onPress={() => onOpenJournalStory(story.slug)} style={styles.preparedPost}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.preparedPostStatus}>CATNANA REVIEW RETURNED</Text>
+                <Text style={styles.preparedPostTitle}>{story.title}</Text>
+                <Text style={styles.preparedPostMeta}>Trail Journal · Open the draft and respond to her passage notes</Text>
               </View>
               <Text style={styles.journalArrow}>›</Text>
             </Pressable>
