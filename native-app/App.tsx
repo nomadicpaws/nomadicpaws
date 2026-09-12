@@ -64,6 +64,7 @@ import {
   signInWithApple,
   signOutApp,
   updateReviewNote,
+  updateSharedAdventure,
   updateSharedMedia,
   uploadAdventurePhoto,
   uploadAdventureVideo,
@@ -2468,12 +2469,14 @@ const statusTone: Record<
   Posted: { backgroundColor: "#eee8f3", color: "#685675" },
 };
 
-function SeedCard({ seed }: { seed: ContentSeed }) {
+function SeedCard({ seed, onPress }: { seed: ContentSeed; onPress?: () => void }) {
   const tone = statusTone[seed.status];
   return (
     <Pressable
+      onPress={onPress}
+      accessibilityRole={onPress ? "button" : undefined}
       style={styles.seedCard}
-      accessibilityLabel={`${seed.title}, ${seed.status}, assigned to ${seed.assignedTo}`}
+      accessibilityLabel={`${seed.title}, ${seed.status}, assigned to ${seed.assignedTo}${onPress ? ", tap to edit and add media" : ""}`}
     >
       <View style={styles.seedTop}>
         <View
@@ -2502,12 +2505,22 @@ function SeedCard({ seed }: { seed: ContentSeed }) {
           </View>
         ))}
       </ScrollView>
+      {onPress ? <Text style={styles.helper}>Tap to edit or add photos and videos</Text> : null}
     </Pressable>
   );
 }
 
 function dateKeyFrom(value: string) {
   return value.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || "";
+}
+
+function formatAdventureDate(value: string) {
+  const key = dateKeyFrom(value || "");
+  if (!key) return "Date not set";
+  const date = new Date(`${key}T12:00:00`);
+  return Number.isNaN(date.getTime())
+    ? "Date not set"
+    : date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 function shiftedDateKey(value: string, days: number) {
@@ -2751,6 +2764,7 @@ function Today({
   onOpenCalendar,
   onOpenInstagramPost,
   onOpenJournalStory,
+  onOpenAdventure,
 }: {
   token: string;
   person: Person;
@@ -2760,6 +2774,7 @@ function Today({
   onOpenCalendar: () => void;
   onOpenInstagramPost: (postId: string) => void;
   onOpenJournalStory: (slug: string) => void;
+  onOpenAdventure: (adventureId: string) => void;
 }) {
   const [rhythm, setRhythm] = useState<InstagramDay[]>(initialInstagramRhythm);
   const [posts, setPosts] = useState<InstagramPostDraft[]>([]);
@@ -3023,7 +3038,7 @@ function Today({
           ))
         : null}
       {mine.map((seed) => (
-        <SeedCard key={seed.id} seed={seed} />
+        <SeedCard key={seed.id} seed={seed} onPress={() => onOpenAdventure(seed.id)} />
       ))}
       {person !== "Trinitie" ? (
         <Text style={styles.gentleNote}>
@@ -3199,22 +3214,24 @@ function SharedPreviews({
 
 function NewAdventure({
   token,
+  adventure,
   onSaved,
   onCancel,
 }: {
   token: string;
+  adventure?: SharedAdventure;
   onSaved: () => void;
   onCancel: () => void;
 }) {
-  const [title, setTitle] = useState(""),
-    [note, setNote] = useState(""),
-    [location, setLocation] = useState(""),
+  const [title, setTitle] = useState(adventure?.title || ""),
+    [note, setNote] = useState(adventure?.notes || ""),
+    [location, setLocation] = useState(adventure?.private_location || ""),
     [files, setFiles] = useState<ImagePicker.ImagePickerAsset[]>([]),
     [uploadNames, setUploadNames] = useState<Record<string, string>>({}),
     [saving, setSaving] = useState(false),
     [progress, setProgress] = useState(""),
     [error, setError] = useState(""),
-    [adventureId, setAdventureId] = useState(""),
+    [adventureId, setAdventureId] = useState(adventure?.id || ""),
     [uploadedUris, setUploadedUris] = useState<string[]>([]);
   async function choosePhotos() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -3244,10 +3261,18 @@ function NewAdventure({
     setSaving(true);
     setError("");
     try {
+      if (adventure) {
+        await updateSharedAdventure(token, adventure.id, {
+          title,
+          notes: note,
+          privateLocation: location,
+        });
+      }
       const currentAdventureId = adventureId || (await createSharedAdventure(token, {
           title,
           notes: note,
           privateLocation: location,
+          capturedAt: localDateKey(),
         })).id;
       if (!adventureId) setAdventureId(currentAdventureId);
       for (let index = 0; index < files.length; index += 1) {
@@ -3312,7 +3337,7 @@ function NewAdventure({
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.eyebrow}>ADVENTURE INBOX</Text>
-      <Text style={styles.pageTitle}>Capture it while it’s fresh.</Text>
+      <Text style={styles.pageTitle}>{adventure ? `Add to ${adventure.title}.` : "Capture it while it’s fresh."}</Text>
       <Text style={styles.copy}>
         Start with the moment. Photos, videos, voice notes, and platform
         adaptations can be added without overwriting the originals.
@@ -3409,7 +3434,15 @@ function NewAdventure({
         ]}
       >
         <Text style={styles.primaryText}>
-          {saving ? progress || "Saving…" : adventureId ? "Try remaining uploads" : "Save shared adventure"}
+          {saving
+            ? progress || "Saving…"
+            : adventure
+              ? files.some((file) => !uploadedUris.includes(file.uri))
+                ? "Add selected media"
+                : "Done"
+              : adventureId
+                ? "Try remaining uploads"
+                : "Save shared adventure"}
         </Text>
       </Pressable>
       <Pressable onPress={onCancel} style={styles.secondary}>
@@ -6800,6 +6833,7 @@ export default function App() {
     [adventures, setAdventures] = useState<SharedAdventure[]>([]),
     [media, setMedia] = useState<SharedMediaAsset[]>([]),
     [creatingAdventure, setCreatingAdventure] = useState(false),
+    [editingAdventure, setEditingAdventure] = useState<SharedAdventure>(),
     [viewingPreviews, setViewingPreviews] = useState(false),
     [viewingCalendar, setViewingCalendar] = useState(false),
     [teamOpen, setTeamOpen] = useState(false),
@@ -6870,10 +6904,7 @@ export default function App() {
         id: item.id,
         title: item.title,
         note: item.notes || "A shared Nomadic Paws adventure.",
-        capturedAt: new Date(`${item.captured_at}T12:00:00`).toLocaleDateString(
-          "en-US",
-          { month: "short", day: "numeric", year: "numeric" },
-        ),
+        capturedAt: formatAdventureDate(item.captured_at || item.created_at),
         assignedTo: item.assigned_to,
         status: item.status,
         platforms: item.platforms.filter(
@@ -6896,6 +6927,7 @@ export default function App() {
     setAdaptation(next);
     setTeamOpen(false);
     setCreatingAdventure(false);
+    setEditingAdventure(undefined);
     setViewingPreviews(false);
     setViewingCalendar(false);
     setTab(
@@ -6910,6 +6942,7 @@ export default function App() {
     setInitialInstagramPostId(postId);
     setTeamOpen(false);
     setCreatingAdventure(false);
+    setEditingAdventure(undefined);
     setViewingPreviews(false);
     setViewingCalendar(false);
     setAdaptation(undefined);
@@ -6919,6 +6952,7 @@ export default function App() {
     setInitialJournalStorySlug(slug);
     setTeamOpen(false);
     setCreatingAdventure(false);
+    setEditingAdventure(undefined);
     setViewingPreviews(false);
     setViewingCalendar(false);
     setAdaptation(undefined);
@@ -6958,12 +6992,17 @@ export default function App() {
       person={person}
       onClose={() => setViewingCalendar(false)}
     />
-  ) : creatingAdventure ? (
+  ) : creatingAdventure || editingAdventure ? (
     <NewAdventure
       token={token}
-      onCancel={() => setCreatingAdventure(false)}
+      adventure={editingAdventure}
+      onCancel={() => {
+        setCreatingAdventure(false);
+        setEditingAdventure(undefined);
+      }}
       onSaved={() => {
         setCreatingAdventure(false);
+        setEditingAdventure(undefined);
         refreshShared().catch(() => {});
       }}
     />
@@ -6972,7 +7011,14 @@ export default function App() {
       token={token}
       person={person}
       seeds={seeds}
-      onNewAdventure={() => setCreatingAdventure(true)}
+      onNewAdventure={() => {
+        setEditingAdventure(undefined);
+        setCreatingAdventure(true);
+      }}
+      onOpenAdventure={(adventureId) => {
+        const adventure = adventures.find((item) => item.id === adventureId);
+        if (adventure) setEditingAdventure(adventure);
+      }}
       onOpenPreviews={() => setViewingPreviews(true)}
       onOpenCalendar={() => setViewingCalendar(true)}
       onOpenInstagramPost={openInstagramPost}
@@ -7068,6 +7114,7 @@ export default function App() {
             onPress={() => {
               setTeamOpen((value) => !value);
               setCreatingAdventure(false);
+              setEditingAdventure(undefined);
               setViewingPreviews(false);
               setViewingCalendar(false);
             }}
@@ -7092,6 +7139,7 @@ export default function App() {
             onPress={() => {
               setTeamOpen(false);
               setCreatingAdventure(false);
+              setEditingAdventure(undefined);
               setViewingPreviews(false);
               setViewingCalendar(false);
               setAdaptation(undefined);

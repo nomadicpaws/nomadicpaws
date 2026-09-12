@@ -138,6 +138,11 @@ export async function createSharedAdventure(token: string, input: { title: strin
   return data.adventure
 }
 
+export async function updateSharedAdventure(token: string, adventureId: string, input: { title: string; notes: string; privateLocation: string }) {
+  const data = await request<{ adventure: SharedAdventure }>('/api/app/media', token, { method: 'POST', body: JSON.stringify({ action: 'update-adventure', adventureId, ...input }) })
+  return data.adventure
+}
+
 export async function uploadAdventurePhoto(token: string, adventureId: string, file: { uri: string; name: string; displayName?: string; mimeType?: string | null; byteSize?: number; width?: number; height?: number }, onProgress?: (current: number, total: number) => void) {
   const info = file.byteSize ? null : await FileSystem.getInfoAsync(file.uri)
   const byteSize = file.byteSize || (info?.exists ? info.size || 0 : 0)

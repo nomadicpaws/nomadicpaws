@@ -27,6 +27,16 @@ export async function createAdventure(input, userId) {
   return result.rows[0]
 }
 
+export async function updateAdventure(id, input) {
+  const result = await db().pool.query(
+    `UPDATE adventures
+     SET title = $2, notes = $3, private_location = $4, updated_at = NOW()
+     WHERE id = $1 RETURNING *`,
+    [id, input.title.trim(), String(input.notes || '').trim(), String(input.privateLocation || '').trim()],
+  )
+  return result.rows[0] || null
+}
+
 export async function addMediaAsset(input, userId) {
   const id = randomUUID()
   const result = await db().pool.query(
