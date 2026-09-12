@@ -29,12 +29,9 @@ import {
   approveTeamAccess,
   claimKatieAccount,
   CheetoSuggestion,
-  createEventSale,
   completeMomReview,
   createJournalStory,
   createSharedAdventure,
-  createTerminalConnectionToken,
-  EventProduct,
   JournalContribution,
   JournalReviewNote,
   JournalStory,
@@ -42,8 +39,6 @@ import {
   JournalWorkingDraft,
   JournalWorkingVersion,
   loadInstagramStudio,
-  loadEventProducts,
-  loadEventSaleStatus,
   loadJournalContributions,
   loadPinterestCampaigns,
   loadSharedMedia,
@@ -106,11 +101,6 @@ import {
   listenForRenderProgress,
   renderNomadicVideo,
 } from "./modules/nomadic-video-renderer";
-import {
-  Reader,
-  StripeTerminalProvider,
-  useStripeTerminal,
-} from "@stripe/stripe-terminal-react-native";
 
 type Tab =
   | "Today"
@@ -6383,6 +6373,12 @@ function MediaLibrary({
   );
 }
 
+/*
+ * The original Event Register implementation is intentionally preserved in
+ * git history at commit 34ba554 and in the dedicated future-event-register
+ * project notes. Studio must not compile or link Stripe Terminal because
+ * checkout is a separate app with separate permissions.
+ *
 function eventMoney(cents: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -6794,6 +6790,7 @@ function EventRegister({ token }: { token: string }) {
     </ScrollView>
   );
 }
+*/
 
 export default function App() {
   const [account, setAccount] = useState<SignedInAccount | null>(null),
