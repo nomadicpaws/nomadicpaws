@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Easing,
   Image,
@@ -33,6 +34,7 @@ import {
   completeMomReview,
   createJournalStory,
   createSharedAdventure,
+  ensureStudioUploadAdventure,
   JournalContribution,
   JournalReviewNote,
   JournalStory,
@@ -3768,6 +3770,8 @@ function InstagramPostEditor({
     [welcomeAsset, setWelcomeAsset] = useState<SharedMediaAsset>(),
     [welcomeBlurred, setWelcomeBlurred] = useState(false),
     [assistantBusy, setAssistantBusy] = useState(false),
+    [uploadingOwnPhoto, setUploadingOwnPhoto] = useState(false),
+    [editingPhoto, setEditingPhoto] = useState<SharedMediaAsset | null>(null),
     [suggestion, setSuggestion] = useState<CheetoSuggestion>(),
     [localSaveState, setLocalSaveState] = useState("Opening local safety copy…");
   const localInstagramLoaded = useRef(false);
@@ -3906,6 +3910,40 @@ function InstagramPostEditor({
       setAddingMedia("");
     }
   }
+  async function addOwnFinishedPhotos() {
+    setError("");
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      selectionLimit: 10,
+      quality: 1,
+      orderedSelection: true,
+    });
+    if (result.canceled) return;
+    setUploadingOwnPhoto(true);
+    setHandoffMessage(`Adding ${result.assets.length} finished ${result.assets.length === 1 ? "photo" : "photos"}…`);
+    try {
+      const collection = await ensureStudioUploadAdventure(token);
+      for (const [index, picked] of result.assets.entries()) {
+        const info = await FileSystem.getInfoAsync(picked.uri);
+        const uploaded = await uploadAdventurePhoto(token, collection.id, {
+          uri: picked.uri,
+          name: picked.fileName || `Trinitie-finished-${Date.now()}-${index + 1}.jpg`,
+          displayName: (picked.fileName || `Trinitie finished photo ${index + 1}`).replace(/\.[^.]+$/, ""),
+          mimeType: picked.mimeType,
+          byteSize: picked.fileSize || (info.exists ? info.size || 0 : 0),
+          width: picked.width,
+          height: picked.height,
+        });
+        await addMedia(uploaded);
+      }
+      setHandoffMessage("Your finished photos are in this post and safely saved in the shared Media Library.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "That finished photo could not be added.");
+    } finally {
+      setUploadingOwnPhoto(false);
+    }
+  }
   async function handoff() {
     const ids = mediaUrls
       .filter((item) => item.startsWith("working:"))
@@ -3997,6 +4035,21 @@ function InstagramPostEditor({
         notes: caption,
       });
       setSuggestion(result.suggestion);
+      Keyboard.dismiss();
+      Alert.alert(
+        "Cheeto has thoughts",
+        `${result.suggestion.caption.trim()}\n\n${result.suggestion.hashtags.map((item) => item.tag).join(" ")}`,
+        [
+          { text: "Keep editing", style: "cancel" },
+          {
+            text: "Use suggestion",
+            onPress: () => {
+              setCaption(`${result.suggestion.caption.trim()}\n\n${result.suggestion.hashtags.map((item) => item.tag).join(" ")}`);
+              setSuggestion(undefined);
+            },
+          },
+        ],
+      );
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -4009,6 +4062,33 @@ function InstagramPostEditor({
   }
   return (
     <View style={styles.instagramDraftEditor}>
+      <Modal
+        visible={Boolean(editingPhoto)}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditingPhoto(null)}
+      >
+        {editingPhoto ? (
+          <SafeAreaView style={styles.workingModal}>
+            <ScrollView contentContainerStyle={styles.workingModalPage}>
+              <Pressable onPress={() => setEditingPhoto(null)}>
+                <Text style={styles.backText}>‹ Instagram post</Text>
+              </Pressable>
+              <WorkingPhotoEditor
+                token={token}
+                asset={editingPhoto}
+                destinations={["instagram"]}
+                initialDestination="instagram"
+                onSaved={(version) => {
+                  if (version) setMediaUrls((current) => [...current, `working:${version.id}`]);
+                  setEditingPhoto(null);
+                  setHandoffMessage("Edited photo added to this post. The original is still untouched.");
+                }}
+              />
+            </ScrollView>
+          </SafeAreaView>
+        ) : null}
+      </Modal>
       <Text style={styles.eyebrow}>CLOUD POST DRAFT</Text>
       <Text style={styles.pageTitle}>
         {post ? "Keep shaping it." : "Prepare a post."}
@@ -4071,16 +4151,25 @@ function InstagramPostEditor({
         Tap a photo to make an Instagram-ready working copy. Katie’s original
         always stays untouched.
       </Text>
+      {person === "Trinitie" ? (
+        <Pressable
+          disabled={uploadingOwnPhoto}
+          onPress={addOwnFinishedPhotos}
+          style={[styles.secondary, uploadingOwnPhoto && styles.primaryDisabled]}
+        >
+          <Text style={styles.secondaryText}>
+            {uploadingOwnPhoto ? "Adding from Photos…" : "Add my own finished photos"}
+          </Text>
+        </Pressable>
+      ) : null}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.instagramMediaRow}
       >
         {media.map((asset) => (
-          <Pressable
+          <View
             key={asset.id}
-            onPress={() => addMedia(asset)}
-            disabled={addingMedia === asset.id}
             style={styles.instagramMediaCard}
           >
             <Image
@@ -4098,10 +4187,15 @@ function InstagramPostEditor({
                 {asset.width}×{asset.height}
               </Text>
             ) : null}
-            <Text style={styles.instagramMediaAdd}>
-              {addingMedia === asset.id ? "Preparing…" : "Use photo"}
-            </Text>
-          </Pressable>
+            <Pressable disabled={addingMedia === asset.id} onPress={() => addMedia(asset)}>
+              <Text style={styles.instagramMediaAdd}>
+                {addingMedia === asset.id ? "Preparing…" : "Use photo"}
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => setEditingPhoto(asset)} style={styles.instagramEditPhoto}>
+              <Text style={styles.instagramEditPhotoText}>Edit first</Text>
+            </Pressable>
+          </View>
         ))}
       </ScrollView>
       {mediaUrls.length ? (
@@ -6347,15 +6441,19 @@ function SharedVideoPreview({
 
 function MediaLibrary({
   token,
+  person,
   adventures,
   media,
   onUpdated,
+  onUploaded,
   onWorkingSaved,
 }: {
   token: string;
+  person: Person;
   adventures: SharedAdventure[];
   media: SharedMediaAsset[];
   onUpdated: (asset: SharedMediaAsset) => void;
+  onUploaded: () => void;
   onWorkingSaved: () => void;
 }) {
   const [filter, setFilter] = useState<"all" | "unused" | "used">("all"),
@@ -6367,7 +6465,9 @@ function MediaLibrary({
     [draftHashtags, setDraftHashtags] = useState(""),
     [draftNotes, setDraftNotes] = useState(""),
     [savingDetails, setSavingDetails] = useState(false),
-    [detailMessage, setDetailMessage] = useState("");
+    [detailMessage, setDetailMessage] = useState(""),
+    [uploadingFinished, setUploadingFinished] = useState(false),
+    [uploadMessage, setUploadMessage] = useState("");
   const adventureName = (id: string | null) =>
     adventures.find((item) => item.id === id)?.title ||
     "Unsorted Cheeto moment";
@@ -6406,6 +6506,40 @@ function MediaLibrary({
       );
     } finally {
       setSavingDetails(false);
+    }
+  }
+  async function uploadFinishedPhotos() {
+    setUploadMessage("");
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      selectionLimit: 20,
+      quality: 1,
+      orderedSelection: true,
+    });
+    if (result.canceled) return;
+    setUploadingFinished(true);
+    try {
+      const collection = await ensureStudioUploadAdventure(token);
+      for (const [index, picked] of result.assets.entries()) {
+        setUploadMessage(`Adding finished photo ${index + 1} of ${result.assets.length}…`);
+        const info = await FileSystem.getInfoAsync(picked.uri);
+        await uploadAdventurePhoto(token, collection.id, {
+          uri: picked.uri,
+          name: picked.fileName || `Trinitie-finished-${Date.now()}-${index + 1}.jpg`,
+          displayName: (picked.fileName || `Trinitie finished photo ${index + 1}`).replace(/\.[^.]+$/, ""),
+          mimeType: picked.mimeType,
+          byteSize: picked.fileSize || (info.exists ? info.size || 0 : 0),
+          width: picked.width,
+          height: picked.height,
+        });
+      }
+      setUploadMessage("Saved in Trinitie finished edits. Katie can see them too.");
+      onUploaded();
+    } catch (reason) {
+      setUploadMessage(reason instanceof Error ? reason.message : "Those finished photos could not be added.");
+    } finally {
+      setUploadingFinished(false);
     }
   }
   const visible = media.filter((asset) => {
@@ -6507,6 +6641,20 @@ function MediaLibrary({
           Original photos and videos are shared privately between Katie and
           Trinitie. Every edit uses a working copy—never the original.
         </Text>
+        {person === "Trinitie" ? (
+          <View style={styles.noticeBox}>
+            <Text style={styles.noticeTitle}>Bring in edits from your iPhone</Text>
+            <Text style={[styles.helper, { textAlign: "left" }]}>Upload photos you already finished in another app. They stay separate from Katie’s originals.</Text>
+            <Pressable
+              disabled={uploadingFinished}
+              onPress={uploadFinishedPhotos}
+              style={[styles.primary, uploadingFinished && styles.primaryDisabled]}
+            >
+              <Text style={styles.primaryText}>{uploadingFinished ? "Adding…" : "Upload finished photos"}</Text>
+            </Pressable>
+            {uploadMessage ? <Text style={styles.success}>{uploadMessage}</Text> : null}
+          </View>
+        ) : null}
         {media.length ? (
           <>
             <TextInput
@@ -7374,6 +7522,7 @@ export default function App() {
   ) : tab === "Media" ? (
     <MediaLibrary
       token={token}
+      person={person}
       adventures={adventures}
       media={media}
       onUpdated={(updated) =>
@@ -7383,6 +7532,7 @@ export default function App() {
           ),
         )
       }
+      onUploaded={() => refreshShared().catch(() => {})}
       onWorkingSaved={() => refreshShared().catch(() => {})}
     />
   ) : tab === "Studio" ? (
@@ -9052,6 +9202,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     marginTop: 5,
+  },
+  instagramEditPhoto: {
+    borderTopWidth: 1,
+    borderTopColor: colors.sandDeep,
+    marginTop: 7,
+    paddingTop: 7,
+  },
+  instagramEditPhotoText: {
+    color: colors.sageDeep,
+    fontSize: 12,
+    fontWeight: "800",
   },
   instagramSelectedCard: {
     width: 118,

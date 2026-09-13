@@ -139,6 +139,14 @@ export async function createSharedAdventure(token: string, input: { title: strin
   return data.adventure
 }
 
+export async function ensureStudioUploadAdventure(token: string) {
+  const data = await request<{ adventure: SharedAdventure }>('/api/app/media', token, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'ensure-studio-upload-adventure' }),
+  })
+  return data.adventure
+}
+
 export async function updateSharedAdventure(token: string, adventureId: string, input: { title: string; notes: string; privateLocation: string }) {
   const data = await request<{ adventure: SharedAdventure }>('/api/app/media', token, { method: 'POST', body: JSON.stringify({ action: 'update-adventure', adventureId, ...input }) })
   return data.adventure

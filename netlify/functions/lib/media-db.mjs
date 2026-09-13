@@ -27,6 +27,36 @@ export async function createAdventure(input, userId) {
   return result.rows[0]
 }
 
+export async function ensureStudioUploadAdventure(userId) {
+  const existing = await db().pool.query(
+    `SELECT * FROM adventures
+      WHERE created_by = $1 AND title = 'Trinitie finished edits'
+      ORDER BY created_at DESC LIMIT 1`,
+    [userId],
+  )
+  if (existing.rows[0]) return existing.rows[0]
+  const id = randomUUID()
+  const result = await db().pool.query(
+    `INSERT INTO adventures (id, title, notes, private_location, captured_at, assigned_to, status, platforms, created_by)
+     VALUES ($1, 'Trinitie finished edits', 'Finished photos uploaded from Trinitie’s iPhone for Instagram Studio.', '', CURRENT_DATE, 'Trinitie', 'Draft', '["Instagram"]'::jsonb, $2)
+     RETURNING *`,
+    [id, userId],
+  )
+  return result.rows[0]
+}
+
+export async function adventureUploadAllowed(id, user) {
+  if (user.role === 'katie') return adventureExists(id)
+  const result = await db().pool.query(
+    `SELECT EXISTS (
+       SELECT 1 FROM adventures
+        WHERE id = $1 AND created_by = $2 AND title = 'Trinitie finished edits'
+     ) AS found`,
+    [id, user.id],
+  )
+  return Boolean(result.rows[0]?.found)
+}
+
 export async function updateAdventure(id, input) {
   const result = await db().pool.query(
     `UPDATE adventures

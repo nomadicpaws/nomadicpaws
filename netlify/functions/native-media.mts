@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { getStore } from '@netlify/blobs'
 import type { Config } from '@netlify/functions'
 import { requireAppUser } from './lib/app-auth.mjs'
-import { addMediaAsset, advanceAdventureToJournal, adventureExists, adventuresWithMedia, createAdventure, mediaById, saveWorkingVersion, updateAdventure, updateMediaDetails, workingVersionById } from './lib/media-db.mjs'
+import { addMediaAsset, advanceAdventureToJournal, adventureExists, adventureUploadAllowed, adventuresWithMedia, createAdventure, ensureStudioUploadAdventure, mediaById, saveWorkingVersion, updateAdventure, updateMediaDetails, workingVersionById } from './lib/media-db.mjs'
 import { MAX_ADVENTURE_PHOTO_BYTES, MAX_ADVENTURE_VIDEO_BYTES, MAX_ADVENTURE_VIDEO_SECONDS, MAX_DIRECT_PHOTO_BYTES, VIDEO_CHUNK_BYTES, validAdventure, validDirectPhoto, validDirectPhotoUpload, validMediaDetails, validVideoUpload, validWorkingVersion } from './lib/media-settings.mjs'
 import { renderWorkingImage, workingFilename } from './lib/media-render.mjs'
 import { inspectR2Object, r2Configured, signedR2Download, signedR2Upload } from './lib/r2-media.mjs'
@@ -44,7 +44,6 @@ export default async (request: Request) => {
     if (request.method !== 'POST') return Response.json({ error: 'Method not allowed.' }, { status: 405, headers: HEADERS })
     const contentType = request.headers.get('content-type') || ''
     if (contentType.includes('multipart/form-data')) {
-      if (user.role !== 'katie') return Response.json({ error: 'Adventure uploads belong to Katie’s workspace.' }, { status: 403, headers: HEADERS })
       const form = await request.formData(), file = form.get('file'), adventureId = String(form.get('adventureId') || '')
       const requestedName = String(form.get('originalName') || '').trim()
       const displayName = String(form.get('displayName') || '').trim()
@@ -52,7 +51,7 @@ export default async (request: Request) => {
       const height = Math.max(0, Math.min(50000, Number.parseInt(String(form.get('height') || '0'), 10) || 0))
       if (!(file instanceof File) || !validDirectPhoto(file)) return Response.json({ error: `Choose a JPG, PNG, WebP, HEIC, or HEIF photo no larger than ${Math.floor(MAX_DIRECT_PHOTO_BYTES / 1024 / 1024)} MB.` }, { status: 400, headers: HEADERS })
       if (displayName.length > 160) return Response.json({ error: 'Keep the searchable media name under 160 characters.' }, { status: 400, headers: HEADERS })
-      if (!/^[0-9a-f-]{36}$/i.test(adventureId) || !(await adventureExists(adventureId))) return Response.json({ error: 'Choose a saved adventure before adding photos.' }, { status: 400, headers: HEADERS })
+      if (!/^[0-9a-f-]{36}$/i.test(adventureId) || !(await adventureUploadAllowed(adventureId, user))) return Response.json({ error: 'Choose a media collection you can add to.' }, { status: 403, headers: HEADERS })
       const blobKey = `originals/${adventureId}/${randomUUID()}`
       await store().set(blobKey, file, { metadata: { originalName: file.name, contentType: file.type, owner: user.id }, onlyIfNew: true })
       const originalName = requestedName && requestedName.length <= 255 ? requestedName : (file.name || 'Nomadic Paws photo')
@@ -60,10 +59,13 @@ export default async (request: Request) => {
       return Response.json({ media: asset }, { status: 201, headers: HEADERS })
     }
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    if (body.action === 'ensure-studio-upload-adventure') {
+      if (user.role !== 'trinitie') return Response.json({ error: 'This upload space belongs to Trinitie.' }, { status: 403, headers: HEADERS })
+      return Response.json({ adventure: await ensureStudioUploadAdventure(user.id) }, { headers: HEADERS })
+    }
     if (body.action === 'create-direct-photo-upload') {
-      if (user.role !== 'katie') return Response.json({ error: 'Adventure uploads belong to Katie’s workspace.' }, { status: 403, headers: HEADERS })
       if (!validDirectPhotoUpload(body)) return Response.json({ error: `Choose a JPG, PNG, WebP, HEIC, or HEIF photo no larger than ${Math.floor(MAX_ADVENTURE_PHOTO_BYTES / 1024 / 1024)} MB.` }, { status: 400, headers: HEADERS })
-      if (!(await adventureExists(String(body.adventureId)))) return Response.json({ error: 'Choose a saved adventure before adding photos.' }, { status: 400, headers: HEADERS })
+      if (!(await adventureUploadAllowed(String(body.adventureId), user))) return Response.json({ error: 'Choose a media collection you can add to.' }, { status: 403, headers: HEADERS })
       if (!r2Configured() || body.preferMultipart === true) return Response.json({ mode: 'multipart' }, { headers: HEADERS })
       const uploadId = randomUUID(), objectKey = `r2/originals/${String(body.adventureId)}/${uploadId}`
       const session = {
