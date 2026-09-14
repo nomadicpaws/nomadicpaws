@@ -335,6 +335,14 @@ function localDateKey(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+function instagramThemeForDate(value: string, rhythm: InstagramDay[]) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "";
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return "";
+  const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
+  return rhythm.find((item) => item.day === weekday)?.theme || "";
+}
+
 function journalPreviewSlug(title: string, publishDate: string) {
   const date = publishDate.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || new Date().toISOString().slice(0, 10);
   const words = title.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
@@ -3763,7 +3771,11 @@ function InstagramPostEditor({
     [caption, setCaption] = useState(post?.caption || ""),
     [mediaUrls, setMediaUrls] = useState(post?.mediaUrls || []),
     [targetDate, setTargetDate] = useState(post?.targetDate || localDateKey()),
-    [theme, setTheme] = useState(post?.theme || defaultTheme),
+    [theme, setTheme] = useState(
+      post?.theme ||
+        instagramThemeForDate(post?.targetDate || localDateKey(), rhythm) ||
+        defaultTheme,
+    ),
     [saving, setSaving] = useState(false),
     [addingMedia, setAddingMedia] = useState(""),
     [error, setError] = useState(""),
@@ -4244,7 +4256,11 @@ function InstagramPostEditor({
       <Text style={styles.controlLabel}>Target date</Text>
       <TextInput
         value={targetDate}
-        onChangeText={setTargetDate}
+        onChangeText={(value) => {
+          setTargetDate(value);
+          const datedTheme = instagramThemeForDate(value, rhythm);
+          if (datedTheme) setTheme(datedTheme);
+        }}
         style={styles.input}
         placeholder="YYYY-MM-DD"
         placeholderTextColor="#8b8075"
@@ -4638,15 +4654,16 @@ function InstagramStudio({
   }
   function openSeed(seed: ContentSeed) {
     const parsedDate = new Date(seed.capturedAt);
+    const targetDate = Number.isNaN(parsedDate.getTime())
+      ? localDateKey()
+      : localDateKey(parsedDate);
     setEditingPost({
       id: "",
       title: seed.title,
       caption: seed.note,
       mediaUrls: [],
-      targetDate: Number.isNaN(parsedDate.getTime())
-        ? localDateKey()
-        : localDateKey(parsedDate),
-      theme: "Cheeto moment",
+      targetDate,
+      theme: instagramThemeForDate(targetDate, rhythm) || "Cheeto moment",
       status: "Draft",
       assignedTo: person === "Trinitie" ? "Trinitie" : "Katie",
       handoffNote: `Started from ${seed.title}. Its ${seed.mediaCount} shared media ${seed.mediaCount === 1 ? "item is" : "items are"} available below.`,
