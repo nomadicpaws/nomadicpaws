@@ -3860,7 +3860,7 @@ function InstagramPostEditor({
           sharedWithMom,
           altText,
           instagramUrl,
-          pinterestReusable,
+          pinterestReusable: status === "Posted" ? true : pinterestReusable,
           postedAt: status === "Posted" ? (post?.postedAt || new Date().toISOString()) : (post?.postedAt || null),
         });
       onSaved(saved);
@@ -4281,7 +4281,9 @@ function InstagramPostEditor({
             {pinterestReusable ? "✓ Available for Pinterest later" : "Make available for Pinterest later"}
           </Text>
         </Pressable>
-        <Text style={styles.helper}>No business account or automatic Instagram publishing is required.</Text>
+        <Text style={styles.helper}>
+          Posted media is automatically kept available for Pinterest later. The Instagram link is optional and only helps with your records.
+        </Text>
       </View>
       <Text style={styles.controlLabel}>Optional note if Katie takes this one</Text>
       <TextInput

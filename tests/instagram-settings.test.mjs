@@ -33,4 +33,5 @@ test('posted Instagram records can remain personal-account archives and opt into
   }
   assert.equal(validInstagramPost(post), true)
   assert.equal(validInstagramPost({ ...post, instagramUrl: 'https://example.com/not-instagram' }), false)
+  assert.equal(validInstagramPost({ ...post, instagramUrl: '', pinterestReusable: true }), true)
 })
