@@ -2652,7 +2652,13 @@ function SeedCard({
   const tone = statusTone[seed.status];
   const attached = (media || []).filter((asset) => asset.adventure_id === seed.id);
   return (
-    <View style={styles.seedCard}>
+    <Pressable
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityLabel={onPress ? `Open ${seed.title}` : undefined}
+      disabled={!onPress}
+      onPress={onPress}
+      style={styles.seedCard}
+    >
       <View style={styles.seedTop}>
         <View
           style={[styles.seedStatus, { backgroundColor: tone.backgroundColor }]}
@@ -2704,7 +2710,7 @@ function SeedCard({
           <Text style={styles.adventureNextSecondaryText}>Add more media or edit Adventure</Text>
         </Pressable>
       ) : null}
-    </View>
+    </Pressable>
   );
 }
 
@@ -4628,6 +4634,28 @@ function InstagramStudio({
       () => {},
     );
   }
+  function openSeed(seed: ContentSeed) {
+    const parsedDate = new Date(seed.capturedAt);
+    setEditingPost({
+      id: "",
+      title: seed.title,
+      caption: seed.note,
+      mediaUrls: [],
+      targetDate: Number.isNaN(parsedDate.getTime())
+        ? localDateKey()
+        : localDateKey(parsedDate),
+      theme: "Cheeto moment",
+      status: "Draft",
+      assignedTo: person === "Trinitie" ? "Trinitie" : "Katie",
+      handoffNote: `Started from ${seed.title}. Its ${seed.mediaCount} shared media ${seed.mediaCount === 1 ? "item is" : "items are"} available below.`,
+      sharedWithMom: false,
+      altText: "",
+      instagramUrl: "",
+      pinterestReusable: false,
+      postedAt: null,
+      updatedAt: new Date().toISOString(),
+    });
+  }
   return (
     <ScrollView
       contentContainerStyle={styles.page}
@@ -4857,7 +4885,7 @@ function InstagramStudio({
         <Text style={styles.listCount}>{seeds.length} seeds</Text>
       </View>
       {seeds.map((seed) => (
-        <SeedCard key={seed.id} seed={seed} />
+        <SeedCard key={seed.id} seed={seed} onPress={() => openSeed(seed)} />
       ))}
     </ScrollView>
   );
