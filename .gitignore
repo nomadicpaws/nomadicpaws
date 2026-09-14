@@ -9,3 +9,4 @@ node_modules/
 native-app/.expo/
 native-app/.expo-build-check/
 native-app/.expo-release-check/
+.firecrawl/
