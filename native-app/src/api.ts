@@ -68,6 +68,17 @@ export type JournalWorkingDraft = {
 }
 export type JournalWorkingVersion = { id: string; revision: number; snapshot: JournalWorkingDraft; created_at: string }
 export type JournalStoryVideo = { id: string; story_slug: string; media_id: string; caption: string; sort_order: number; is_public: boolean; display_name: string; original_name: string; content_type: string; duration_seconds: number | null }
+export type SharedCalendarEvent = {
+  id: string
+  title: string
+  event_date: string
+  location: string
+  notes: string
+  status: 'Planned' | 'Confirmed' | 'Done' | 'Canceled'
+  created_by: 'Katie' | 'Trinitie'
+  created_at: string
+  updated_at: string
+}
 
 async function request<T>(path: string, token: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
@@ -132,6 +143,25 @@ export async function signOutApp(token: string) {
 
 export async function loadSharedMedia(token: string) {
   return request<{ adventures: SharedAdventure[]; media: SharedMediaAsset[]; workingVersions: WorkingVersion[] }>('/api/app/media', token)
+}
+
+export async function loadCalendarEvents(token: string) {
+  return request<{ events: SharedCalendarEvent[] }>('/api/app/calendar', token)
+}
+
+export async function saveCalendarEvent(token: string, input: {
+  id?: string
+  title: string
+  eventDate: string
+  location: string
+  notes: string
+  status: SharedCalendarEvent['status']
+}) {
+  const data = await request<{ event: SharedCalendarEvent }>('/api/app/calendar', token, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'save-event', ...input }),
+  })
+  return data.event
 }
 
 export async function createSharedAdventure(token: string, input: { title: string; notes: string; privateLocation: string; capturedAt?: string }) {

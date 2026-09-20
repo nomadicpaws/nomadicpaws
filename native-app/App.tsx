@@ -43,6 +43,7 @@ import {
   JournalWorkingDraft,
   JournalWorkingVersion,
   loadInstagramStudio,
+  loadCalendarEvents,
   loadJournalContributions,
   loadPinterestCampaigns,
   loadSharedMedia,
@@ -57,6 +58,7 @@ import {
   publicWorkingImagePath,
   restoreAppSession,
   saveInstagramPost,
+  saveCalendarEvent,
   saveInstagramRhythm,
   saveJournalContribution,
   saveJournalWorkingDraft,
@@ -65,6 +67,7 @@ import {
   saveWorkingVersion,
   saveVideoProject,
   SharedAdventure,
+  SharedCalendarEvent,
   SharedMediaAsset,
   signInWithApple,
   signOutApp,
@@ -149,9 +152,10 @@ type PinterestPinDraft = {
 
 type CalendarItem = {
   id: string;
+  sourceId: string;
   date: string;
   title: string;
-  platform: "Trail Journal" | "Instagram" | "Pinterest";
+  platform: "Trail Journal" | "Instagram" | "Pinterest" | "Event";
   status: string;
   detail: string;
 };
@@ -590,11 +594,7 @@ function StoryPicker({
             <Text style={styles.storyTitle}>{selected.title}</Text>
             <Text style={styles.storyMeta}>
               {selected.status} ·{" "}
-              {new Date(selected.date).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
+              {formatAdventureDate(selected.date)}
             </Text>
           </View>
           <Text style={styles.change}>Change</Text>
@@ -617,11 +617,7 @@ function StoryPicker({
               <Text style={styles.storyTitle}>{story.title}</Text>
               <Text style={styles.storyMeta}>
                 {story.status} ·{" "}
-                {new Date(story.date).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                {formatAdventureDate(story.date)}
               </Text>
             </Pressable>
           ))}
@@ -2195,11 +2191,7 @@ function Journal({
             <Text style={styles.journalStatusText}>{selected.status}</Text>
           </View>
           <Text style={styles.journalDate}>
-            {new Date(selected.date).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
+            {formatAdventureDate(selected.date)}
           </Text>
         </View>
         <Text style={styles.pageTitle}>{working?.title || selected.title}</Text>
@@ -2416,11 +2408,7 @@ function Journal({
               </View>
               <Text style={styles.seedTitle}>{story.title}</Text>
               <Text style={styles.storyMeta}>
-                {new Date(story.date).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                {formatAdventureDate(story.date)}
                 {story.category ? ` · ${story.category}` : ""}
               </Text>
             </View>
@@ -2759,14 +2747,30 @@ function ContentCalendar({
   token,
   person,
   onClose,
+  onOpenInstagramPost,
+  onOpenJournalStory,
+  onOpenPinterestStory,
 }: {
   token: string;
   person: Person;
   onClose: () => void;
+  onOpenInstagramPost: (postId: string) => void;
+  onOpenJournalStory: (slug: string) => void;
+  onOpenPinterestStory: (slug: string) => void;
 }) {
   const [stories, setStories] = useState<JournalStory[]>([]);
   const [posts, setPosts] = useState<InstagramPostDraft[]>([]);
   const [campaigns, setCampaigns] = useState<PinterestCampaign[]>([]);
+  const [events, setEvents] = useState<SharedCalendarEvent[]>([]);
+  const [eventEditorOpen, setEventEditorOpen] = useState(false);
+  const [eventId, setEventId] = useState<string>();
+  const [eventTitle, setEventTitle] = useState("");
+  const [eventDate, setEventDate] = useState(localDateKey());
+  const [eventLocation, setEventLocation] = useState("");
+  const [eventNotes, setEventNotes] = useState("");
+  const [eventStatus, setEventStatus] = useState<SharedCalendarEvent["status"]>("Planned");
+  const [savingEvent, setSavingEvent] = useState(false);
+  const [eventMessage, setEventMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -2782,12 +2786,14 @@ function ContentCalendar({
       person === "Katie"
         ? loadPinterestCampaigns(token)
         : Promise.resolve({ campaigns: [] as PinterestCampaign[] }),
+      loadCalendarEvents(token),
     ])
-      .then(([journal, instagram, pinterest]) => {
+      .then(([journal, instagram, pinterest, calendar]) => {
         if (!active) return;
         setStories(journal.stories);
         setPosts(instagram.posts);
         setCampaigns(pinterest.campaigns);
+        setEvents(calendar.events);
       })
       .catch((reason) => {
         if (active)
@@ -2809,6 +2815,7 @@ function ContentCalendar({
     const next: CalendarItem[] = stories
       .map((story) => ({
         id: `journal-${story.slug}`,
+        sourceId: story.slug,
         date: dateKeyFrom(story.date),
         title: story.title,
         platform: "Trail Journal" as const,
@@ -2827,6 +2834,7 @@ function ContentCalendar({
         if (!post.targetDate) return;
         next.push({
           id: `instagram-${post.id}`,
+          sourceId: post.id,
           date: post.targetDate,
           title: post.title,
           platform: "Instagram",
@@ -2851,6 +2859,7 @@ function ContentCalendar({
           if (!date) return;
           next.push({
             id: `pinterest-${campaign.post_slug}-${days}`,
+            sourceId: campaign.post_slug,
             date,
             title: campaign.campaign_title,
             platform: "Pinterest",
@@ -2864,6 +2873,18 @@ function ContentCalendar({
       });
     }
 
+    events.forEach((event) => {
+      next.push({
+        id: `event-${event.id}`,
+        sourceId: event.id,
+        date: dateKeyFrom(event.event_date),
+        title: event.title,
+        platform: "Event",
+        status: event.status,
+        detail: [event.location, event.created_by].filter(Boolean).join(" · ") || "Shared plan",
+      });
+    });
+
     const recentCutoff = shiftedDateKey(localDateKey(), -7);
     return next
       .filter((item) => item.date >= recentCutoff)
@@ -2872,7 +2893,7 @@ function ContentCalendar({
           ? a.platform.localeCompare(b.platform)
           : a.date.localeCompare(b.date),
       );
-  }, [campaigns, person, posts, stories]);
+  }, [campaigns, events, person, posts, stories]);
 
   const grouped = useMemo(() => {
     const groups = new Map<string, CalendarItem[]>();
@@ -2884,6 +2905,43 @@ function ContentCalendar({
   const retroactive = campaigns.filter(
     (campaign) => campaign.enabled && campaign.retroactive,
   ).length;
+
+  function editEvent(event?: SharedCalendarEvent) {
+    setEventId(event?.id);
+    setEventTitle(event?.title || "");
+    setEventDate(dateKeyFrom(event?.event_date || "") || localDateKey());
+    setEventLocation(event?.location || "");
+    setEventNotes(event?.notes || "");
+    setEventStatus(event?.status || "Planned");
+    setEventMessage("");
+    setEventEditorOpen(true);
+  }
+
+  async function persistEvent() {
+    if (!eventTitle.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
+      setEventMessage("Add an event name and a date like 2026-10-03.");
+      return;
+    }
+    setSavingEvent(true);
+    setEventMessage("");
+    try {
+      const saved = await saveCalendarEvent(token, {
+        id: eventId,
+        title: eventTitle,
+        eventDate,
+        location: eventLocation,
+        notes: eventNotes,
+        status: eventStatus,
+      });
+      setEvents((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
+      setEventMessage("Saved to the shared calendar.");
+      setEventId(saved.id);
+    } catch (reason) {
+      setEventMessage(reason instanceof Error ? reason.message : "That event could not be saved.");
+    } finally {
+      setSavingEvent(false);
+    }
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
@@ -2902,6 +2960,40 @@ function ContentCalendar({
         Dates stay connected to the real Journal and studio records. Moving a
         story date moves its regular Pinterest follow-ups automatically.
       </Text>
+      {person !== "Mom" ? (
+        <View style={styles.calendarPlanner}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => (eventEditorOpen ? setEventEditorOpen(false) : editEvent())}
+            style={styles.calendarPlannerButton}
+          >
+            <Text style={styles.calendarPlannerButtonText}>
+              {eventEditorOpen ? "Close event planner" : "+ Plan an event"}
+            </Text>
+          </Pressable>
+          {eventEditorOpen ? (
+            <View style={styles.calendarPlannerFields}>
+              <Text style={styles.controlLabel}>Event name</Text>
+              <TextInput value={eventTitle} onChangeText={setEventTitle} placeholder="Market, pop-up, trail day…" placeholderTextColor="#8b8075" style={styles.input} />
+              <Text style={styles.controlLabel}>Date</Text>
+              <TextInput value={eventDate} onChangeText={setEventDate} placeholder="YYYY-MM-DD" placeholderTextColor="#8b8075" style={styles.input} keyboardType="numbers-and-punctuation" />
+              <Text style={styles.controlLabel}>Location</Text>
+              <TextInput value={eventLocation} onChangeText={setEventLocation} placeholder="Optional location" placeholderTextColor="#8b8075" style={styles.input} />
+              <Text style={styles.controlLabel}>Planning notes</Text>
+              <TextInput value={eventNotes} onChangeText={setEventNotes} placeholder="What to bring, prepare, or remember" placeholderTextColor="#8b8075" style={[styles.input, styles.notesInput]} multiline />
+              <View style={styles.choiceRow}>
+                {(["Planned", "Confirmed", "Done", "Canceled"] as SharedCalendarEvent["status"][]).map((status) => (
+                  <Choice key={status} label={status} value={status} current={eventStatus} onPress={setEventStatus} />
+                ))}
+              </View>
+              {eventMessage ? <Text style={eventMessage.startsWith("Saved") ? styles.successText : styles.error}>{eventMessage}</Text> : null}
+              <Pressable disabled={savingEvent} onPress={persistEvent} style={[styles.primary, savingEvent && styles.primaryDisabled]}>
+                <Text style={styles.primaryText}>{savingEvent ? "Saving…" : eventId ? "Update shared event" : "Save shared event"}</Text>
+              </Pressable>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
       {loading ? (
         <View style={styles.calendarLoading}>
           <ActivityIndicator color={colors.terracotta} />
@@ -2917,7 +3009,30 @@ function ContentCalendar({
           <View key={date} style={styles.calendarDay}>
             <Text style={styles.calendarDate}>{calendarHeading(date)}</Text>
             {dateItems.map((item) => (
-              <View key={item.id} style={styles.calendarItem}>
+              <Pressable
+                key={item.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${item.title} in ${item.platform}`}
+                onPress={() => {
+                  if (item.platform === "Event") {
+                    const event = events.find((entry) => entry.id === item.sourceId);
+                    if (person === "Mom") {
+                      Alert.alert(
+                        event?.title || "Shared event",
+                        [formatAdventureDate(event?.event_date || ""), event?.location, event?.notes]
+                          .filter(Boolean)
+                          .join("\n\n"),
+                      );
+                    } else editEvent(event);
+                  }
+                  else if (item.platform === "Instagram")
+                    onOpenInstagramPost(item.sourceId);
+                  else if (item.platform === "Pinterest")
+                    onOpenPinterestStory(item.sourceId);
+                  else onOpenJournalStory(item.sourceId);
+                }}
+                style={styles.calendarItem}
+              >
                 <View
                   style={[
                     styles.calendarMarker,
@@ -2925,6 +3040,8 @@ function ContentCalendar({
                       ? styles.calendarMarkerInstagram
                       : item.platform === "Pinterest"
                         ? styles.calendarMarkerPinterest
+                        : item.platform === "Event"
+                          ? styles.calendarMarkerEvent
                         : styles.calendarMarkerJournal,
                   ]}
                 />
@@ -2936,7 +3053,8 @@ function ContentCalendar({
                   <Text style={styles.calendarTitle}>{item.title}</Text>
                   <Text style={styles.calendarDetail}>{item.detail}</Text>
                 </View>
-              </View>
+                <Text style={styles.journalArrow}>›</Text>
+              </Pressable>
             ))}
           </View>
         ))
@@ -2975,6 +3093,8 @@ function Today({
   onNewAdventure,
   onOpenPreviews,
   onOpenCalendar,
+  onOpenInstagramWorkspace,
+  onOpenJournalWorkspace,
   onOpenInstagramPost,
   onOpenJournalStory,
   onOpenAdventure,
@@ -2987,6 +3107,8 @@ function Today({
   onNewAdventure: () => void;
   onOpenPreviews: () => void;
   onOpenCalendar: () => void;
+  onOpenInstagramWorkspace: () => void;
+  onOpenJournalWorkspace: () => void;
   onOpenInstagramPost: (postId: string) => void;
   onOpenJournalStory: (slug: string) => void;
   onOpenAdventure: (adventureId: string) => void;
@@ -3152,18 +3274,22 @@ function Today({
                   : "Needs Katie"}
           </Text>
         </Pressable>
-        <View style={styles.readinessCard}>
-          <Text style={styles.readinessNumber}>
-            {initialSchedule.socialDay.slice(0, 3)}
-          </Text>
-          <Text style={styles.readinessLabel}>Social target</Text>
-        </View>
-        <View style={styles.readinessCard}>
-          <Text style={styles.readinessNumber}>
-            {initialSchedule.journalDay.slice(0, 3)}
-          </Text>
-          <Text style={styles.readinessLabel}>Journal target</Text>
-        </View>
+        {person !== "Mom" ? (
+          <>
+            <Pressable onPress={onOpenInstagramWorkspace} style={styles.readinessCard}>
+              <Text style={styles.readinessNumber}>
+                {initialSchedule.socialDay.slice(0, 3)}
+              </Text>
+              <Text style={styles.readinessLabel}>Social target</Text>
+            </Pressable>
+            <Pressable onPress={onOpenJournalWorkspace} style={styles.readinessCard}>
+              <Text style={styles.readinessNumber}>
+                {initialSchedule.journalDay.slice(0, 3)}
+              </Text>
+              <Text style={styles.readinessLabel}>Journal target</Text>
+            </Pressable>
+          </>
+        ) : null}
       </View>
       <View style={styles.listHeading}>
         <Text style={styles.listTitle}>
@@ -3373,11 +3499,7 @@ function SharedPreviews({
             creator: "Katie" as Person,
             sharedWith: ["Trinitie", "Mom"] as Person[],
             version: 1,
-            updatedAt: new Date(story.date).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            }),
+            updatedAt: formatAdventureDate(story.date),
             imageUrl: story.image
               ? story.image.startsWith("http")
                 ? story.image
@@ -3766,7 +3888,12 @@ function InstagramPostEditor({
   const today = new Date().toLocaleDateString("en-US", { weekday: "long" }),
     defaultTheme =
       rhythm.find((item) => item.day === today)?.theme || "Adventures";
-  const draftKey = post?.id || "new-post";
+  const draftKey =
+    post?.id ||
+    `new-${post?.targetDate || localDateKey()}-${exportStem(
+      post?.title || "instagram-post",
+      "instagram-post",
+    )}`;
   const [title, setTitle] = useState(post?.title || ""),
     [caption, setCaption] = useState(post?.caption || ""),
     [mediaUrls, setMediaUrls] = useState(post?.mediaUrls || []),
@@ -4803,7 +4930,15 @@ function InstagramStudio({
           >
             <Text style={styles.templateButtonText}>Add my favorites</Text>
           </Pressable>
-          <Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Skip favorite templates for now"
+            onPress={() =>
+              setImportMessage(
+                "No problem. You can add favorite templates whenever you’re ready.",
+              )
+            }
+          >
             <Text style={styles.laterText}>I’ll do this later</Text>
           </Pressable>
           {importMessage ? (
@@ -7342,6 +7477,7 @@ export default function App() {
     [initialJournalStorySlug, setInitialJournalStorySlug] = useState<string>(),
     [initialJournalEditorTab, setInitialJournalEditorTab] = useState<JournalTab>(),
     [initialJournalAdventureId, setInitialJournalAdventureId] = useState<string>(),
+    [initialPinterestStorySlug, setInitialPinterestStorySlug] = useState<string>(),
     [pinterestBacklogCount, setPinterestBacklogCount] = useState<number | null>(null),
     [keyboardHeight, setKeyboardHeight] = useState(0);
   useEffect(() => {
@@ -7481,6 +7617,16 @@ export default function App() {
     setAdaptation(undefined);
     setTab("Journal");
   }
+  function openPinterestStory(slug: string) {
+    setInitialPinterestStorySlug(slug);
+    setTeamOpen(false);
+    setCreatingAdventure(false);
+    setEditingAdventure(undefined);
+    setViewingPreviews(false);
+    setViewingCalendar(false);
+    setAdaptation(undefined);
+    setTab("Pinterest");
+  }
   async function startJournalFromAdventure(seed: ContentSeed) {
     const adventure = adventures.find((item) => item.id === seed.id);
     const publishDate = dateKeyFrom(adventure?.captured_at || adventure?.created_at || "") || localDateKey();
@@ -7531,6 +7677,9 @@ export default function App() {
       token={token}
       person={person}
       onClose={() => setViewingCalendar(false)}
+      onOpenInstagramPost={openInstagramPost}
+      onOpenJournalStory={openJournalStory}
+      onOpenPinterestStory={openPinterestStory}
     />
   ) : creatingAdventure || editingAdventure ? (
     <NewAdventure
@@ -7562,6 +7711,8 @@ export default function App() {
       }}
       onOpenPreviews={() => setViewingPreviews(true)}
       onOpenCalendar={() => setViewingCalendar(true)}
+      onOpenInstagramWorkspace={() => setTab("Studio")}
+      onOpenJournalWorkspace={() => setTab("Journal")}
       onOpenInstagramPost={openInstagramPost}
       onOpenJournalStory={openJournalStory}
       onStartJournal={startJournalFromAdventure}
@@ -7630,9 +7781,13 @@ export default function App() {
     <Pinterest
       token={token}
       initialStorySlug={
-        adaptation?.platform === "Pinterest" ? adaptation.slug : undefined
+        initialPinterestStorySlug ||
+        (adaptation?.platform === "Pinterest" ? adaptation.slug : undefined)
       }
-      onInitialStoryOpened={() => setAdaptation(undefined)}
+      onInitialStoryOpened={() => {
+        setInitialPinterestStorySlug(undefined);
+        setAdaptation(undefined);
+      }}
       onCampaignSaved={() => refreshPinterestBacklog().catch(() => {})}
     />
   );
@@ -8461,6 +8616,22 @@ const styles = StyleSheet.create({
   calendarMarkerJournal: { backgroundColor: colors.terracotta },
   calendarMarkerInstagram: { backgroundColor: colors.sageDeep },
   calendarMarkerPinterest: { backgroundColor: colors.barkSoft },
+  calendarMarkerEvent: { backgroundColor: colors.terracottaDeep },
+  calendarPlanner: {
+    marginTop: 18,
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: colors.sand,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+  },
+  calendarPlannerButton: { paddingVertical: 3 },
+  calendarPlannerButtonText: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: colors.terracottaDeep,
+  },
+  calendarPlannerFields: { marginTop: 15, gap: 9 },
   calendarItemTop: {
     flexDirection: "row",
     alignItems: "center",
