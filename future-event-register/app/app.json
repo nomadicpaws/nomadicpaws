@@ -32,7 +32,16 @@
       ]
     ],
     "extra": {
-      "apiUrl": "https://nomadicpaws.co"
+      "apiUrl": "https://nomadicpaws.co",
+      "eas": {
+        "projectId": "a8aae84b-87e1-4f53-a9bb-dbad3b1b9c10"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/a8aae84b-87e1-4f53-a9bb-dbad3b1b9c10"
     }
   }
 }
