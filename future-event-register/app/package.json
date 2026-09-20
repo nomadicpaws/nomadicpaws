@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "expo": "^57.0.0",
+    "@stripe/stripe-terminal-react-native": "file:../stripe-terminal-react-native",
+    "expo": "57.0.15",
     "expo-crypto": "~57.0.2",
     "expo-secure-store": "~57.0.2",
     "expo-status-bar": "~3.0.0",
@@ -18,7 +19,7 @@
     "react-native": "0.86.0"
   },
   "devDependencies": {
-    "@types/react": "^19.2.0",
-    "typescript": "^5.9.0"
+    "@types/react": "19.2.18",
+    "typescript": "5.9.3"
   }
 }

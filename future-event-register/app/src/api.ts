@@ -19,6 +19,14 @@ export type CalendarEvent = {
   created_by: 'Katie' | 'Trinitie'
 }
 
+export type EventSale = {
+  saleId: string
+  clientSecret: string
+  subtotalCents: number
+  taxCents: number
+  totalCents: number
+}
+
 async function request<T>(path: string, token = '', options: RequestInit = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -43,6 +51,22 @@ export async function createSellerSession(accessCode: string) {
 
 export async function loadProducts(token: string) {
   return request<{ products: EventProduct[]; mode: 'test' }>('/api/event/products', token)
+}
+
+export async function createTerminalToken(token: string) {
+  const data = await request<{ secret: string }>('/api/event/stripe/connection-token', token, { method: 'POST' })
+  return data.secret
+}
+
+export async function createSale(token: string, items: Array<{ sku: string; quantity: number }>, requestId: string) {
+  return request<EventSale>('/api/event/sales', token, {
+    method: 'POST',
+    body: JSON.stringify({ items, requestId }),
+  })
+}
+
+export async function loadSaleStatus(token: string, saleId: string) {
+  return request<{ sale: { status: string } }>(`/api/event/sales/status?id=${encodeURIComponent(saleId)}`, token)
 }
 
 export async function loadCalendar(token: string) {

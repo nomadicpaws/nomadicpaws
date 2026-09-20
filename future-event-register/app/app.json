@@ -16,7 +16,21 @@
     "android": {
       "package": "co.nomadicpaws.register"
     },
-    "plugins": ["expo-secure-store"],
+    "plugins": [
+      "expo-secure-store",
+      [
+        "@stripe/stripe-terminal-react-native",
+        {
+          "appDelegate": true,
+          "tapToPayCheck": false,
+          "bluetoothBackgroundMode": false,
+          "locationWhenInUsePermission": "Allow Nomadic Paws Events to find a nearby Stripe card reader while the register is open.",
+          "bluetoothPeripheralPermission": "Allow Nomadic Paws Events to connect to the Stripe card reader.",
+          "bluetoothAlwaysUsagePermission": "Allow Nomadic Paws Events to connect to the Stripe card reader during an event sale.",
+          "localNetworkUsagePermission": "Allow Nomadic Paws Events to communicate with the Stripe card reader on the event network."
+        }
+      ]
+    ],
     "extra": {
       "apiUrl": "https://nomadicpaws.co"
     }
