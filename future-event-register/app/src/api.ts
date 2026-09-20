@@ -27,6 +27,16 @@ export type EventSale = {
   totalCents: number
 }
 
+export type EventStaff = {
+  id: string
+  display_name: string
+  role: 'manager' | 'helper'
+  active: boolean
+  last_signed_in_at?: string | null
+}
+
+export type SignedInStaff = { id: string; name: string; permission: 'owner' | 'manager' | 'helper' }
+
 async function request<T>(path: string, token = '', options: RequestInit = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -43,9 +53,25 @@ async function request<T>(path: string, token = '', options: RequestInit = {}) {
 }
 
 export async function createSellerSession(accessCode: string) {
-  return request<{ token: string; expiresInSeconds: number; mode: 'test' }>('/api/event/auth/session', '', {
+  return request<{ token: string; expiresInSeconds: number; mode: 'test'; staff: SignedInStaff }>('/api/event/auth/session', '', {
     method: 'POST',
     body: JSON.stringify({ accessCode }),
+  })
+}
+
+export async function loadEventStaff(token: string) {
+  return request<{ staff: EventStaff[] }>('/api/event/staff', token)
+}
+
+export async function createEventStaff(token: string, name: string, role: EventStaff['role']) {
+  return request<{ staff: EventStaff; accessCode: string }>('/api/event/staff', token, {
+    method: 'POST', body: JSON.stringify({ action: 'create', name, role }),
+  })
+}
+
+export async function setEventStaffActive(token: string, id: string, active: boolean) {
+  return request<{ staff: EventStaff }>('/api/event/staff', token, {
+    method: 'POST', body: JSON.stringify({ action: 'set-active', id, active }),
   })
 }
 

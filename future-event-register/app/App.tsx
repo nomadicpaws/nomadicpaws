@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -20,14 +21,19 @@ import { Reader, StripeTerminalProvider, useStripeTerminal } from '@stripe/strip
 import {
   API_URL,
   CalendarEvent,
+  createEventStaff,
   createSale,
   createSellerSession,
   createTerminalToken,
   EventProduct,
+  EventStaff,
   loadCalendar,
+  loadEventStaff,
   loadProducts,
   loadSaleStatus,
   saveCalendar,
+  setEventStaffActive,
+  SignedInStaff,
 } from './src/api'
 
 const SESSION_KEY = 'nomadic-paws-event-session'
@@ -37,8 +43,8 @@ const colors = {
   terracotta: '#c1734b', terracottaDeep: '#a85c39', white: '#ffffff', red: '#a2473d',
 }
 
-type StoredSession = { token: string; expiresAt: number }
-type Tab = 'Calendar' | 'Register'
+type StoredSession = { token: string; expiresAt: number; staff: SignedInStaff }
+type Tab = 'Calendar' | 'Register' | 'Staff'
 
 function dateKey(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -65,7 +71,7 @@ function Login({ onSignedIn }: { onSignedIn: (session: StoredSession) => void })
     setError('')
     try {
       const data = await createSellerSession(code.trim())
-      const session = { token: data.token, expiresAt: Date.now() + data.expiresInSeconds * 1000 }
+      const session = { token: data.token, expiresAt: Date.now() + data.expiresInSeconds * 1000, staff: data.staff }
       await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session))
       onSignedIn(session)
     } catch (reason) {
@@ -79,7 +85,7 @@ function Login({ onSignedIn }: { onSignedIn: (session: StoredSession) => void })
       <SafeAreaView style={styles.loginPage}>
         <Text style={styles.eyebrow}>NOMADIC PAWS EVENTS</Text>
         <Text style={styles.heroTitle}>Ready when the table is.</Text>
-        <Text style={styles.copy}>Katie-only event planning and protected test checkout. No live card can be charged in this version.</Text>
+        <Text style={styles.copy}>Use your own private event code. The app remembers you for the shift, and no live card can be charged in this version.</Text>
         <View style={styles.loginCard}>
           <Text style={styles.label}>Seller access code</Text>
           <TextInput value={code} onChangeText={setCode} secureTextEntry autoCapitalize="none" returnKeyType="go" onSubmitEditing={signIn} placeholder="Enter the private code" placeholderTextColor="#8b8075" style={styles.input} />
@@ -280,6 +286,61 @@ function Register({ token }: { token: string }) {
   )
 }
 
+function StaffAccess({ token }: { token: string }) {
+  const [staff, setStaff] = useState<EventStaff[]>([])
+  const [name, setName] = useState('')
+  const [role, setRole] = useState<EventStaff['role']>('helper')
+  const [newCode, setNewCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  async function refresh() {
+    setBusy(true); setMessage('')
+    try { setStaff((await loadEventStaff(token)).staff) }
+    catch (reason) { setMessage(reason instanceof Error ? reason.message : 'Staff access could not load.') }
+    finally { setBusy(false) }
+  }
+  useEffect(() => { refresh().catch(() => {}) }, [token])
+  async function add() {
+    if (!name.trim()) { setMessage('Add the helper’s name first.'); return }
+    setBusy(true); setMessage(''); setNewCode('')
+    try {
+      const result = await createEventStaff(token, name, role)
+      setStaff((current) => [result.staff, ...current])
+      setNewCode(result.accessCode)
+      setName('')
+      Alert.alert('Private access code created', `${result.staff.display_name}: ${result.accessCode}\n\nThis is shown only now. Send it privately.`)
+    } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'That helper could not be added.') }
+    finally { setBusy(false) }
+  }
+  async function toggle(item: EventStaff) {
+    setBusy(true); setMessage('')
+    try {
+      const result = await setEventStaffActive(token, item.id, !item.active)
+      setStaff((current) => current.map((entry) => entry.id === item.id ? result.staff : entry))
+    } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'That access could not be changed.') }
+    finally { setBusy(false) }
+  }
+  return (
+    <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+      <Text style={styles.eyebrow}>EVENT HELP</Text>
+      <Text style={styles.pageTitle}>Everyone gets her own key.</Text>
+      <Text style={styles.copy}>Create one private code for CatNana or each hired helper. Pause access after an event without disrupting anyone else.</Text>
+      <View style={styles.formCard}>
+        <Text style={styles.label}>Name</Text>
+        <TextInput value={name} onChangeText={setName} placeholder="CatNana or helper name" placeholderTextColor="#8b8075" style={styles.input} />
+        <Text style={styles.label}>Access level</Text>
+        <View style={styles.choices}>{(['helper', 'manager'] as const).map((item) => <Pressable key={item} onPress={() => setRole(item)} style={[styles.choice, role === item && styles.choiceActive]}><Text style={[styles.choiceText, role === item && styles.choiceTextActive]}>{item === 'manager' ? 'Manager' : 'Event helper'}</Text></Pressable>)}</View>
+        <Text style={styles.cardCopy}>{role === 'manager' ? 'Managers can run the register and calendar.' : 'Helpers can run the register and use the calendar. Only Katie manages staff.'}</Text>
+        <Pressable disabled={busy} onPress={add} style={[styles.primary, busy && styles.disabled]}><Text style={styles.primaryText}>{busy ? 'Saving…' : 'Create private access code'}</Text></Pressable>
+        {newCode ? <View style={styles.codeCard}><Text style={styles.eyebrow}>SHOW ONCE</Text><Text selectable style={styles.codeText}>{newCode}</Text><Text style={styles.cardCopy}>Send this privately. The app stores only a protected hash, so the code cannot be looked up later.</Text></View> : null}
+        {message ? <Text style={styles.error}>{message}</Text> : null}
+      </View>
+      <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>People with access</Text><Pressable onPress={refresh}><Text style={styles.link}>Refresh</Text></Pressable></View>
+      {staff.map((item) => <View key={item.id} style={styles.eventCard}><View style={styles.grow}><Text style={styles.cardTitle}>{item.display_name}</Text><Text style={styles.meta}>{item.role === 'manager' ? 'Manager' : 'Event helper'} · {item.active ? 'Active' : 'Paused'}</Text>{item.last_signed_in_at ? <Text style={styles.cardCopy}>Last used {new Date(item.last_signed_in_at).toLocaleDateString()}</Text> : null}</View><Pressable disabled={busy} onPress={() => toggle(item)} style={styles.staffToggle}><Text style={styles.link}>{item.active ? 'Pause' : 'Restore'}</Text></Pressable></View>)}
+    </ScrollView>
+  )
+}
+
 export default function App() {
   const [session, setSession] = useState<StoredSession>()
   const [restoring, setRestoring] = useState(true)
@@ -288,7 +349,7 @@ export default function App() {
     SecureStore.getItemAsync(SESSION_KEY).then((raw) => {
       if (!raw) return
       const saved = JSON.parse(raw) as StoredSession
-      if (saved.expiresAt > Date.now()) setSession(saved)
+      if (saved.expiresAt > Date.now() && saved.staff) setSession(saved)
       else SecureStore.deleteItemAsync(SESSION_KEY).catch(() => {})
     }).catch(() => {}).finally(() => setRestoring(false))
   }, [])
@@ -298,9 +359,9 @@ export default function App() {
     <SafeAreaView style={styles.fill}>
       <StatusBar barStyle="dark-content" />
       <ExpoStatusBar style="dark" />
-      <View style={styles.header}><View style={styles.logoMark}><Text style={styles.logoText}>NP</Text></View><View><Text style={styles.headerTitle}>Nomadic Paws</Text><Text style={styles.headerSubtitle}>Events & Mobile Store</Text></View><Pressable onPress={async () => { await SecureStore.deleteItemAsync(SESSION_KEY); setSession(undefined) }} style={styles.signOut}><Text style={styles.signOutText}>Lock</Text></Pressable></View>
-      <View style={styles.body}>{tab === 'Calendar' ? <Calendar token={session.token} /> : <StripeTerminalProvider tokenProvider={() => createTerminalToken(session.token)}><Register token={session.token} /></StripeTerminalProvider>}</View>
-      <View style={styles.tabs}>{(['Calendar', 'Register'] as Tab[]).map((item) => <Pressable key={item} onPress={() => setTab(item)} style={styles.tab}><Text style={[styles.tabText, tab === item && styles.tabTextActive]}>{item}</Text></Pressable>)}</View>
+      <View style={styles.header}><View style={styles.logoMark}><Text style={styles.logoText}>NP</Text></View><View><Text style={styles.headerTitle}>Nomadic Paws</Text><Text style={styles.headerSubtitle}>{session.staff.name} · Events & Mobile Store</Text></View><Pressable onPress={async () => { await SecureStore.deleteItemAsync(SESSION_KEY); setSession(undefined) }} style={styles.signOut}><Text style={styles.signOutText}>Lock</Text></Pressable></View>
+      <View style={styles.body}>{tab === 'Calendar' ? <Calendar token={session.token} /> : tab === 'Staff' ? <StaffAccess token={session.token} /> : <StripeTerminalProvider tokenProvider={() => createTerminalToken(session.token)}><Register token={session.token} /></StripeTerminalProvider>}</View>
+      <View style={styles.tabs}>{(['Calendar', 'Register', ...(session.staff.permission === 'owner' ? ['Staff' as const] : [])] as Tab[]).map((item) => <Pressable key={item} onPress={() => setTab(item)} style={styles.tab}><Text style={[styles.tabText, tab === item && styles.tabTextActive]}>{item}</Text></Pressable>)}</View>
     </SafeAreaView>
   )
 }
@@ -316,5 +377,6 @@ const styles = StyleSheet.create({
   eventCard: { marginBottom: 10, padding: 15, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, eventDate: { width: 44, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand }, eventDateText: { fontSize: 20, fontWeight: '900', color: colors.terracottaDeep }, cardTitle: { flexShrink: 1, fontSize: 16, fontWeight: '900', color: colors.bark }, meta: { marginTop: 4, fontSize: 12, color: colors.sageDeep, fontWeight: '700' }, cardCopy: { marginTop: 5, fontSize: 13, lineHeight: 18, color: colors.barkSoft }, pill: { marginLeft: 'auto', fontSize: 10, fontWeight: '900', color: colors.sageDeep }, arrow: { fontSize: 26, color: colors.terracottaDeep }, empty: { padding: 18, borderRadius: 20, backgroundColor: colors.sand },
   readerCard: { marginTop: 20, padding: 18, borderRadius: 22, backgroundColor: colors.sand }, testPill: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, overflow: 'hidden', backgroundColor: colors.sageDeep, color: colors.white, fontSize: 10, fontWeight: '900' }, productCard: { marginBottom: 10, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, productImage: { width: 58, height: 58, borderRadius: 14, backgroundColor: colors.sand }, quantity: { flexDirection: 'row', alignItems: 'center', gap: 7 }, quantityButton: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand }, quantityText: { fontSize: 18, fontWeight: '900', color: colors.bark }, quantityValue: { minWidth: 18, textAlign: 'center', fontWeight: '900', color: colors.bark }, cartCard: { marginTop: 20, padding: 18, borderRadius: 22, backgroundColor: colors.bark }, cartLabel: { marginTop: 12, flex: 1, color: colors.sand }, cartTotal: { marginTop: 12, fontSize: 22, fontWeight: '900', color: colors.white },
   readerChoice: { marginTop: 10, padding: 13, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.white },
+  codeCard: { marginTop: 16, padding: 16, borderRadius: 18, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, codeText: { marginTop: 8, fontSize: 28, letterSpacing: 4, fontWeight: '900', color: colors.bark }, staffToggle: { paddingHorizontal: 12, paddingVertical: 10 },
   tabs: { minHeight: 68, flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.sandDeep, backgroundColor: colors.white }, tab: { flex: 1, alignItems: 'center', justifyContent: 'center' }, tabText: { fontWeight: '900', color: colors.barkSoft }, tabTextActive: { color: colors.terracottaDeep },
 })

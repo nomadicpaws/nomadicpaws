@@ -5,6 +5,8 @@ Dedicated Katie-only companion for event planning and mobile sales.
 ## Current first slice
 
 - Uses the existing protected seller access session.
+- Gives CatNana and hired helpers individual private codes that Katie can create, pause, or restore.
+- Shows staff management only to Katie; helper sessions cannot create or manage other accounts.
 - Remembers the session in iOS/Android secure storage for its eight-hour lifetime.
 - Reads and edits the same shared event calendar as Nomadic Paws Studio.
 - Loads test-only product inventory and supports a quantity/cart rehearsal.

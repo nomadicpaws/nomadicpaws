@@ -31,6 +31,14 @@ export async function requireEventOperator(request) {
   return { role: "katie", user };
 }
 
+export async function requireEventOwner(request) {
+  const secret = process.env.EVENT_REGISTER_SESSION_SECRET || "";
+  const seller = verifySellerToken(bearerToken(request.headers), secret);
+  if (seller?.permission === "owner") return { role: "owner", claims: seller };
+  const user = await requireAppUser(request, ["katie"]);
+  return { role: "katie", user };
+}
+
 export function requireTestMode() {
   if (process.env.EVENT_REGISTER_ENV !== "test") {
     throw Object.assign(new Error("The event register is locked until EVENT_REGISTER_ENV=test is configured."), { status: 503 });

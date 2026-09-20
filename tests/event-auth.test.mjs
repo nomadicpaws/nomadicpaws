@@ -5,8 +5,11 @@ import { authRateLimitKey, createSellerToken, secureEqual, verifySellerToken } f
 const secret = "a-secure-test-secret-that-is-long-enough";
 
 test("seller tokens expire and reject tampering", () => {
-  const token = createSellerToken(secret, { now: 1_000_000, ttlSeconds: 60 });
-  assert.equal(verifySellerToken(token, secret, 1_030_000)?.role, "seller");
+  const token = createSellerToken(secret, { now: 1_000_000, ttlSeconds: 60, staffId: 'catnana', name: 'CatNana', permission: 'helper' });
+  const claims = verifySellerToken(token, secret, 1_030_000);
+  assert.equal(claims?.role, "seller");
+  assert.equal(claims?.name, "CatNana");
+  assert.equal(claims?.permission, "helper");
   assert.equal(verifySellerToken(token, secret, 1_061_000), null);
   assert.equal(verifySellerToken(`${token}x`, secret, 1_030_000), null);
 });

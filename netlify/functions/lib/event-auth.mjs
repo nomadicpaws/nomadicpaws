@@ -14,9 +14,9 @@ export function secureEqual(left, right) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export function createSellerToken(secret, { now = Date.now(), ttlSeconds = 8 * 60 * 60 } = {}) {
+export function createSellerToken(secret, { now = Date.now(), ttlSeconds = 8 * 60 * 60, staffId = 'owner', name = 'Katie', permission = 'owner' } = {}) {
   if (!secret || secret.length < 32) throw new Error("EVENT_REGISTER_SESSION_SECRET must be at least 32 characters.");
-  const payload = encode(JSON.stringify({ role: "seller", exp: Math.floor(now / 1000) + ttlSeconds }));
+  const payload = encode(JSON.stringify({ role: "seller", staffId, name, permission, exp: Math.floor(now / 1000) + ttlSeconds }));
   return `${payload}.${sign(payload, secret)}`;
 }
 
