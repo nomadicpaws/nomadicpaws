@@ -2,12 +2,25 @@ import type { Config } from '@netlify/functions'
 import { requireAppUser } from './lib/app-auth.mjs'
 import { listCalendarEvents, saveCalendarEvent } from './lib/calendar-db.mjs'
 import { validCalendarEvent } from './lib/calendar-settings.mjs'
+import { bearerToken, verifySellerToken } from './lib/event-auth.mjs'
 
 const HEADERS = { 'Cache-Control': 'private, no-store, max-age=0', 'X-Content-Type-Options': 'nosniff' }
 
+async function authorized(request: Request) {
+  try {
+    return await requireAppUser(request, request.method === 'GET' ? ['katie', 'trinitie', 'mom'] : ['katie', 'trinitie'])
+  } catch (error) {
+    const secret = process.env.EVENT_REGISTER_SESSION_SECRET || ''
+    if (secret.length >= 32 && verifySellerToken(bearerToken(request.headers), secret)) {
+      return { role: 'katie' }
+    }
+    throw error
+  }
+}
+
 export default async (request: Request) => {
   try {
-    const user = await requireAppUser(request, request.method === 'GET' ? ['katie', 'trinitie', 'mom'] : ['katie', 'trinitie'])
+    const user = await authorized(request)
     if (request.method === 'GET') return Response.json({ events: await listCalendarEvents() }, { headers: HEADERS })
     if (request.method !== 'POST') return Response.json({ error: 'Method not allowed.' }, { status: 405, headers: HEADERS })
     const input = await request.json().catch(() => ({})) as Record<string, unknown>

@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Nomadic Paws Events",
+    "slug": "nomadic-paws-events",
+    "owner": "nomadic-paws",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "co.nomadicpaws.register",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "co.nomadicpaws.register"
+    },
+    "plugins": ["expo-secure-store"],
+    "extra": {
+      "apiUrl": "https://nomadicpaws.co"
+    }
+  }
+}

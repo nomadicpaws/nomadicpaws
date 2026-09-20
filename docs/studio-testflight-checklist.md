@@ -21,11 +21,13 @@ Use this checklist on one consolidated build. A tester only needs to complete he
 - [ ] Open a video from Apple Photos and from the shared Media Library; preview an animated overlay and export once.
 - [ ] Force-close during an unsynchronized edit, reopen, and confirm the local safety copy recovers.
 - [ ] Tap Save Journal backup, choose Google Drive, and confirm the editable Markdown file opens from the Nomadic Paws Journal Backups folder.
+- [ ] Open Calendar, create a shared event with a date and notes, close it, then reopen its card and edit it.
 
 ## Trinitie
 
 - [ ] Sign in, close the app, reopen it, and confirm the session is remembered.
 - [ ] Confirm Today reflects the correct weekday theme.
+- [ ] Change an Instagram draft’s target date and confirm its daily theme changes to the selected weekday automatically.
 - [ ] Open an Adventure photo from the shared Media Library.
 - [ ] Confirm the one-time welcome joke restores the original immediately and never damages it.
 - [ ] Draft an Instagram post with media, caption, exactly five relevant hashtags, target day, and theme.
@@ -36,6 +38,7 @@ Use this checklist on one consolidated build. A tester only needs to complete he
 - [ ] Add alt text, mark the handoff Posted, optionally paste its Instagram link, and confirm the posted time is retained.
 - [ ] Mark one posted item Available for Pinterest later and confirm it remains searchable in the Instagram archive.
 - [ ] Open a shared video project, edit an overlay, save it, and confirm Katie sees the same project.
+- [ ] Open Katie’s shared event from Calendar, update one planning detail, and confirm Katie sees the change.
 
 ## CatNana
 
@@ -50,6 +53,7 @@ Use this checklist on one consolidated build. A tester only needs to complete he
 - [ ] After Katie resends revisions, confirm only changed passages appear.
 - [ ] Mark one Resolved and one Still needs work, then confirm the review returns to Katie.
 - [ ] Open a Trinitie-shared Instagram preview and confirm it is read-only and easy to understand.
+- [ ] Open a shared event from Calendar and confirm its details are readable but no editing controls appear.
 
 ## Shared failure checks
 
@@ -58,3 +62,4 @@ Use this checklist on one consolidated build. A tester only needs to complete he
 - [ ] Test with the keyboard open on the smallest iPhone available; no focused field or primary action is hidden.
 - [ ] Test with larger text enabled; titles and controls do not overlap.
 - [ ] Confirm Register never appears in Studio navigation and Studio never requests Stripe Bluetooth or location access.
+- [ ] Tap representative cards on Today, Calendar, Studio, Journal, and Media and confirm every card that looks interactive opens the correct real record.

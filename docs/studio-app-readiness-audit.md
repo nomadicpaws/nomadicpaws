@@ -1,6 +1,6 @@
 # Nomadic Paws Studio readiness audit
 
-Updated September 2, 2026 from the original project overview and the current app source.
+Updated September 20, 2026 from the original project overview, current app source, and three-person TestFlight checklist.
 
 ## What is connected and functional
 
@@ -15,8 +15,11 @@ Updated September 2, 2026 from the original project overview and the current app
 - Optional Instagram-preview sharing from Trinitie to CatNana.
 - Pinterest four-image campaigns, 2:3 treatment previews, logo controls, RSS-first timing, +7/+14/+21 CSV timing, and retroactive campaigns.
 - Shared Video Studio projects, iPhone Photos and Media Library video selection, editable overlays, fonts, colors, timing, animated preview, and native rendering/export.
-- Shared content calendar and shared preview surfaces.
-- Netlify database migrations and production functions. Deployment `75c446a` is published with migrations applied.
+- Shared content calendar and shared preview surfaces. Katie and Trinitie can plan shared events; CatNana has read-only event details. The future Event Register can consume the same calendar records.
+- Calendar, Today, and Studio cards open their real editable records instead of acting like static summaries.
+- Instagram target-date changes automatically select the configured theme for that weekday.
+- Netlify database migrations and production functions are published from commit `e4ab0f0`.
+- Expo production update `683ef128-fe66-4326-94e8-0dacc2973ee9` is published for iOS and Android without a new native build.
 
 ## Complete in code, but requiring one real-phone verification pass
 
@@ -28,6 +31,7 @@ Updated September 2, 2026 from the original project overview and the current app
 - Offline local draft recovery after force-closing and reopening the app.
 - Conflict messaging when the same Journal draft is edited from two devices.
 - Long titles, larger accessibility text, and the smallest supported iPhone viewport.
+- Creating and editing one shared event from Katie’s phone, reopening it from Trinitie’s calendar, and confirming CatNana sees read-only details.
 
 ## Highest-value remaining Studio work
 
@@ -54,7 +58,7 @@ Updated September 2, 2026 from the original project overview and the current app
 ## Deliberately separate or deferred
 
 - The Event Register is no longer part of Studio navigation or Studio permissions. Its implementation and backend map are preserved for a dedicated seller app under `future-event-register/` and the existing `event-register/` web app.
-- Event planning, inventory, Cheeto Event Kit, feeding modes, and reconciliation belong to the later events/business app layer.
+- Event sales, inventory, Cheeto Event Kit, feeding modes, and reconciliation belong to the later events/business app layer. Basic planning events already live in Studio’s shared calendar so the later app can reuse them.
 - Automatic posting is not required for the first Studio release. Instagram, TikTok, and YouTube use native handoff; Pinterest retains RSS and CSV.
 - CEO Lock remains a future playful desktop feature.
 
@@ -68,4 +72,3 @@ No TestFlight build should be started for one isolated visual fix. Work is group
 4. **Release candidate build:** App Store metadata and final native configuration only after the correction pass is clean.
 
 Expo usage should be checked immediately before each planned build because credits and billing periods are account state, not a reliable number to hard-code in this document.
-
