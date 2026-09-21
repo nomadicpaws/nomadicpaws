@@ -26,10 +26,12 @@ import {
   createSellerSession,
   createTerminalToken,
   EventProduct,
+  EventSaleHistory,
   EventStaff,
   loadCalendar,
   loadEventStaff,
   loadProducts,
+  loadSaleHistory,
   loadSaleStatus,
   saveCalendar,
   setEventStaffActive,
@@ -60,6 +62,18 @@ function displayDate(value: string) {
 
 function money(cents: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100)
+}
+
+function paymentLabel(status: EventSaleHistory['status']) {
+  if (status === 'paid') return { title: 'Payment successful', detail: 'Paid and recorded', tone: 'success' as const }
+  if (status === 'payment_pending') return { title: 'Payment processing', detail: 'Waiting for Stripe confirmation', tone: 'pending' as const }
+  if (status === 'refunded') return { title: 'Payment refunded', detail: 'Refund recorded', tone: 'pending' as const }
+  if (status === 'cancelled') return { title: 'Payment canceled', detail: 'No completed payment', tone: 'error' as const }
+  return { title: 'Payment unsuccessful', detail: 'Not charged—safe to retry', tone: 'error' as const }
+}
+
+function paymentDate(value: string) {
+  return new Date(value).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 }
 
 function Login({ onSignedIn }: { onSignedIn: (session: StoredSession) => void }) {
@@ -189,6 +203,8 @@ function Register({ token }: { token: string }) {
   const [loading, setLoading] = useState(true)
   const [readerBusy, setReaderBusy] = useState(false)
   const [checkoutBusy, setCheckoutBusy] = useState(false)
+  const [sales, setSales] = useState<EventSaleHistory[]>([])
+  const [lastResult, setLastResult] = useState<{ status: 'success' | 'pending' | 'error'; title: string; detail: string }>()
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const {
@@ -207,8 +223,14 @@ function Register({ token }: { token: string }) {
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Test inventory could not load.') }
     finally { setLoading(false) }
   }
+  async function refreshSales(silent = false) {
+    if (!silent) setError('')
+    try { setSales((await loadSaleHistory(token)).sales) }
+    catch (reason) { if (!silent) setError(reason instanceof Error ? reason.message : 'Payment history could not load.') }
+  }
   useEffect(() => {
     refresh().catch(() => {})
+    refreshSales(true).catch(() => {})
     initialize().then((result) => {
       if (result.error) setError(result.error.message)
       else setMessage('Stripe Terminal is ready for a simulated reader.')
@@ -270,7 +292,7 @@ function Register({ token }: { token: string }) {
   }
   async function checkout() {
     if (!connectedReader || !cartItems.length) return
-    setCheckoutBusy(true); setError(''); setMessage('Creating a protected Stripe test sale…')
+    setCheckoutBusy(true); setError(''); setLastResult(undefined); setMessage('Creating a protected Stripe test sale…')
     try {
       const sale = await createSale(token, cartItems, Crypto.randomUUID())
       await setReaderDisplay({ currency: 'usd', tax: sale.taxCents, total: sale.totalCents, lineItems: cartItems.map((item) => { const product = products.find((entry) => entry.sku === item.sku)!; return { displayName: product.name, quantity: item.quantity, amount: product.unitPriceCents * item.quantity } }) }).catch(() => ({ error: undefined }))
@@ -281,9 +303,17 @@ function Register({ token }: { token: string }) {
       if (processed.error) throw processed.error
       setMessage('Test payment approved. Synchronizing inventory…')
       const paid = await waitForPaid(sale.saleId)
-      setCart({}); await refresh()
-      setMessage(paid ? `Test sale complete · ${money(sale.totalCents)}.` : 'Stripe approved the test payment; inventory is finishing in the background.')
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'The test sale could not finish.') }
+      setCart({}); await Promise.all([refresh(), refreshSales(true)])
+      setMessage('')
+      setLastResult(paid
+        ? { status: 'success', title: 'Payment successful', detail: `${money(sale.totalCents)} paid and recorded. Inventory has been updated.` }
+        : { status: 'pending', title: 'Payment approved', detail: `${money(sale.totalCents)} was approved by Stripe. Inventory confirmation is still syncing.` })
+    } catch (reason) {
+      const detail = reason instanceof Error ? reason.message : 'The test sale could not finish.'
+      setError(detail)
+      setLastResult({ status: 'error', title: 'Payment unsuccessful', detail: `${detail} Check the card or connection, then try again.` })
+      await refreshSales(true).catch(() => {})
+    }
     finally { setCheckoutBusy(false) }
   }
   return (
@@ -292,6 +322,7 @@ function Register({ token }: { token: string }) {
       <Text style={styles.copy}>Real product setup and protected test inventory. Live charges stay impossible until the final launch review.</Text>
       <View style={styles.readerCard}><Text style={styles.cardTitle}>Stripe reader</Text><Text style={styles.cardCopy}>{connectedReader ? 'Connected to Stripe’s simulated reader. No live card can be charged.' : 'Connect the simulated reader for an end-to-end protected test sale.'}</Text>{!connectedReader ? <><Pressable disabled={readerBusy} onPress={findReader} style={[styles.secondary, readerBusy && styles.disabled]}><Text style={styles.secondaryText}>{readerBusy ? 'Preparing…' : 'Find simulated reader'}</Text></Pressable>{readers.map((reader) => <Pressable key={reader.id || reader.serialNumber} onPress={() => connect(reader)} style={styles.readerChoice}><Text style={styles.cardTitle}>Stripe simulated reader</Text><Text style={styles.link}>Connect ›</Text></Pressable>)}</> : <Pressable onPress={() => disconnectReader()} style={styles.secondary}><Text style={styles.secondaryText}>Disconnect reader</Text></Pressable>}</View>
       {message ? <Text style={styles.success}>{message}</Text> : null}
+      {lastResult ? <View style={[styles.paymentResult, lastResult.status === 'success' ? styles.paymentResultSuccess : lastResult.status === 'pending' ? styles.paymentResultPending : styles.paymentResultError]}><Text style={styles.paymentResultIcon}>{lastResult.status === 'success' ? '✓' : lastResult.status === 'pending' ? '…' : '!'}</Text><View style={styles.grow}><Text style={styles.cardTitle}>{lastResult.title}</Text><Text style={styles.cardCopy}>{lastResult.detail}</Text></View></View> : null}
       <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>Products</Text><Pressable onPress={refresh}><Text style={styles.link}>Refresh stock</Text></Pressable></View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {loading ? <ActivityIndicator color={colors.terracotta} /> : products.map((product) => {
@@ -299,6 +330,13 @@ function Register({ token }: { token: string }) {
         return <View key={product.sku} style={styles.productCard}><Image source={{ uri: `${API_URL}${product.image}` }} style={styles.productImage} /><View style={styles.grow}><Text style={styles.cardTitle}>{product.name}</Text><Text style={styles.meta}>{money(product.unitPriceCents)} · {product.stock} available</Text></View><View style={styles.quantity}><Pressable onPress={() => change(product, -1)} style={styles.quantityButton}><Text style={styles.quantityText}>−</Text></Pressable><Text style={styles.quantityValue}>{quantity}</Text><Pressable onPress={() => change(product, 1)} style={styles.quantityButton}><Text style={styles.quantityText}>＋</Text></Pressable></View></View>
       })}
       <View style={styles.cartCard}><Text style={styles.eyebrow}>CURRENT TEST SALE</Text><View style={styles.row}><Text style={styles.cartLabel}>Subtotal before server tax</Text><Text style={styles.cartTotal}>{money(subtotal)}</Text></View><Pressable disabled={checkoutBusy || !connectedReader || !cartItems.length} onPress={checkout} style={[styles.primary, (checkoutBusy || !connectedReader || !cartItems.length) && styles.disabled]}><Text style={styles.primaryText}>{checkoutBusy ? 'Completing test sale…' : 'Take test payment'}</Text></Pressable></View>
+      <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>Recent payments</Text><Pressable onPress={() => refreshSales()}><Text style={styles.link}>Refresh</Text></Pressable></View>
+      <Text style={styles.historyHelp}>Test receipts are saved here for Katie and event helpers. Full card numbers are never stored.</Text>
+      {sales.length ? sales.map((sale) => {
+        const state = paymentLabel(sale.status)
+        const itemCount = sale.items.reduce((sum, item) => sum + item.quantity, 0)
+        return <View key={sale.id} style={styles.paymentCard}><View style={[styles.paymentStatusDot, state.tone === 'success' ? styles.dotSuccess : state.tone === 'pending' ? styles.dotPending : styles.dotError]} /><View style={styles.grow}><View style={styles.row}><Text style={styles.cardTitle}>{state.title}</Text><Text style={styles.paymentAmount}>{money(sale.total_cents)}</Text></View><Text style={styles.meta}>{paymentDate(sale.created_at)} · {itemCount} item{itemCount === 1 ? '' : 's'} · {sale.mode === 'test' ? 'Test' : 'Live'}</Text><Text style={styles.cardCopy}>{state.detail}</Text><Text numberOfLines={2} style={styles.receiptItems}>{sale.items.map((item) => `${item.quantity}× ${item.name}`).join(' · ')}</Text></View></View>
+      }) : <View style={styles.empty}><Text style={styles.cardTitle}>No payments yet.</Text><Text style={styles.cardCopy}>Completed and attempted sales will appear here.</Text></View>}
     </ScrollView>
   )
 }
@@ -403,6 +441,8 @@ const styles = StyleSheet.create({
   eventCard: { marginBottom: 10, padding: 15, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, eventDate: { width: 44, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand }, eventDateText: { fontSize: 20, fontWeight: '900', color: colors.terracottaDeep }, cardTitle: { flexShrink: 1, fontSize: 16, fontWeight: '900', color: colors.bark }, meta: { marginTop: 4, fontSize: 12, color: colors.sageDeep, fontWeight: '700' }, cardCopy: { marginTop: 5, fontSize: 13, lineHeight: 18, color: colors.barkSoft }, pill: { marginLeft: 'auto', fontSize: 10, fontWeight: '900', color: colors.sageDeep }, arrow: { fontSize: 26, color: colors.terracottaDeep }, empty: { padding: 18, borderRadius: 20, backgroundColor: colors.sand },
   readerCard: { marginTop: 20, padding: 18, borderRadius: 22, backgroundColor: colors.sand }, testPill: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, overflow: 'hidden', backgroundColor: colors.sageDeep, color: colors.white, fontSize: 10, fontWeight: '900' }, productCard: { marginBottom: 10, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, productImage: { width: 58, height: 58, borderRadius: 14, backgroundColor: colors.sand }, quantity: { flexDirection: 'row', alignItems: 'center', gap: 7 }, quantityButton: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand }, quantityText: { fontSize: 18, fontWeight: '900', color: colors.bark }, quantityValue: { minWidth: 18, textAlign: 'center', fontWeight: '900', color: colors.bark }, cartCard: { marginTop: 20, padding: 18, borderRadius: 22, backgroundColor: colors.bark }, cartLabel: { marginTop: 12, flex: 1, color: colors.sand }, cartTotal: { marginTop: 12, fontSize: 22, fontWeight: '900', color: colors.white },
   readerChoice: { marginTop: 10, padding: 13, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.white },
+  paymentResult: { marginTop: 14, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, borderWidth: 1 }, paymentResultSuccess: { backgroundColor: '#eef3e9', borderColor: colors.sage }, paymentResultPending: { backgroundColor: colors.sand, borderColor: colors.sandDeep }, paymentResultError: { backgroundColor: '#faeeeb', borderColor: '#d9a49c' }, paymentResultIcon: { width: 32, height: 32, borderRadius: 16, overflow: 'hidden', textAlign: 'center', textAlignVertical: 'center', backgroundColor: colors.white, color: colors.bark, fontSize: 19, fontWeight: '900' },
+  historyHelp: { marginTop: -4, marginBottom: 12, color: colors.barkSoft, fontSize: 13, lineHeight: 18 }, paymentCard: { marginBottom: 10, padding: 15, flexDirection: 'row', alignItems: 'flex-start', gap: 12, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, paymentStatusDot: { width: 11, height: 11, marginTop: 5, borderRadius: 6 }, dotSuccess: { backgroundColor: colors.sageDeep }, dotPending: { backgroundColor: '#c69b46' }, dotError: { backgroundColor: colors.red }, paymentAmount: { marginLeft: 'auto', fontWeight: '900', color: colors.bark }, receiptItems: { marginTop: 7, color: colors.barkSoft, fontSize: 12, fontWeight: '700' },
   codeCard: { marginTop: 16, padding: 16, borderRadius: 18, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, codeText: { marginTop: 8, fontSize: 28, letterSpacing: 4, fontWeight: '900', color: colors.bark }, staffToggle: { paddingHorizontal: 12, paddingVertical: 10 },
   tabs: { minHeight: 68, flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.sandDeep, backgroundColor: colors.white }, tab: { flex: 1, alignItems: 'center', justifyContent: 'center' }, tabText: { fontWeight: '900', color: colors.barkSoft }, tabTextActive: { color: colors.terracottaDeep },
 })

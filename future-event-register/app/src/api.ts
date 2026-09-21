@@ -27,6 +27,20 @@ export type EventSale = {
   totalCents: number
 }
 
+export type EventSaleHistory = {
+  id: string
+  status: 'payment_pending' | 'paid' | 'payment_failed' | 'refunded' | 'cancelled'
+  mode: 'test' | 'live'
+  currency: string
+  subtotal_cents: number
+  tax_cents: number
+  total_cents: number
+  stripe_payment_intent_id?: string | null
+  created_at: string
+  updated_at: string
+  items: Array<{ sku: string; name: string; quantity: number; unitPriceCents: number }>
+}
+
 export type EventStaff = {
   id: string
   display_name: string
@@ -93,6 +107,10 @@ export async function createSale(token: string, items: Array<{ sku: string; quan
 
 export async function loadSaleStatus(token: string, saleId: string) {
   return request<{ sale: { status: string } }>(`/api/event/sales/status?id=${encodeURIComponent(saleId)}`, token)
+}
+
+export async function loadSaleHistory(token: string, limit = 25) {
+  return request<{ sales: EventSaleHistory[]; mode: 'test' | 'live' }>(`/api/event/sales/history?limit=${limit}`, token)
 }
 
 export async function loadCalendar(token: string) {

@@ -71,6 +71,31 @@ export async function getSale(saleId) {
   return result.rows[0] || null;
 }
 
+export async function listSales(limit = 25) {
+  const result = await db().pool.query(
+    `SELECT s.id, s.status, s.mode, s.currency, s.subtotal_cents, s.tax_cents,
+            s.total_cents, s.stripe_payment_intent_id, s.created_at, s.updated_at,
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'sku', i.sku,
+                  'name', i.name,
+                  'quantity', i.quantity,
+                  'unitPriceCents', i.unit_price_cents
+                ) ORDER BY i.name
+              ) FILTER (WHERE i.sale_id IS NOT NULL),
+              '[]'::json
+            ) AS items
+       FROM event_sales s
+       LEFT JOIN event_sale_items i ON i.sale_id = s.id
+      GROUP BY s.id
+      ORDER BY s.created_at DESC
+      LIMIT $1`,
+    [Math.max(1, Math.min(Number(limit) || 25, 100))],
+  );
+  return result.rows;
+}
+
 export async function recordSuccessfulPayment(event, rawBody, effects) {
   const client = await db().pool.connect();
   try {
