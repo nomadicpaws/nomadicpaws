@@ -1,6 +1,6 @@
 import type { Config } from '@netlify/functions'
 import { requireAppUser } from './lib/app-auth.mjs'
-import { listCalendarEvents, saveCalendarEvent } from './lib/calendar-db.mjs'
+import { deleteEventChecklistItem, listCalendarEvents, saveCalendarEvent, saveEventChecklistItem } from './lib/calendar-db.mjs'
 import { validCalendarEvent } from './lib/calendar-settings.mjs'
 import { bearerToken, verifySellerToken } from './lib/event-auth.mjs'
 
@@ -24,6 +24,19 @@ export default async (request: Request) => {
     if (request.method === 'GET') return Response.json({ events: await listCalendarEvents() }, { headers: HEADERS })
     if (request.method !== 'POST') return Response.json({ error: 'Method not allowed.' }, { status: 405, headers: HEADERS })
     const input = await request.json().catch(() => ({})) as Record<string, unknown>
+    if (input.action === 'save-checklist-item') {
+      if (!/^[0-9a-f-]{36}$/i.test(String(input.eventId || '')) || (input.id && !/^[0-9a-f-]{36}$/i.test(String(input.id))) || typeof input.label !== 'string' || !input.label.trim() || input.label.trim().length > 240) {
+        return Response.json({ error: 'Add a short checklist item to a valid event.' }, { status: 400, headers: HEADERS })
+      }
+      return Response.json({ item: await saveEventChecklistItem(input) }, { headers: HEADERS })
+    }
+    if (input.action === 'delete-checklist-item') {
+      if (!/^[0-9a-f-]{36}$/i.test(String(input.eventId || '')) || !/^[0-9a-f-]{36}$/i.test(String(input.id || ''))) {
+        return Response.json({ error: 'Choose a valid checklist item.' }, { status: 400, headers: HEADERS })
+      }
+      await deleteEventChecklistItem(input.id, input.eventId)
+      return Response.json({ deleted: true }, { headers: HEADERS })
+    }
     if (input.action !== 'save-event' || !validCalendarEvent(input)) {
       return Response.json({ error: 'Give this event a title, date, and valid planning status.' }, { status: 400, headers: HEADERS })
     }

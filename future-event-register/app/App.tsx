@@ -26,6 +26,7 @@ import {
   createSale,
   createSellerSession,
   createTerminalToken,
+  deleteChecklistItem,
   EventProduct,
   EventSaleHistory,
   EventStaff,
@@ -35,6 +36,7 @@ import {
   loadSaleHistory,
   loadSaleStatus,
   saveCalendar,
+  saveChecklistItem,
   setEventStaffActive,
   SignedInStaff,
 } from './src/api'
@@ -130,6 +132,8 @@ function Calendar({ token }: { token: string }) {
   const [status, setStatus] = useState<CalendarEvent['status']>('Planned')
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
+  const [checklist, setChecklist] = useState<CalendarEvent['checklist']>([])
+  const [newChecklistItem, setNewChecklistItem] = useState('')
 
   async function refresh() {
     setLoading(true)
@@ -146,6 +150,8 @@ function Calendar({ token }: { token: string }) {
     setLocation(event?.location || '')
     setNotes(event?.notes || '')
     setStatus(event?.status || 'Planned')
+    setChecklist(event?.checklist || [])
+    setNewChecklistItem('')
     setMessage('')
     setOpen(true)
   }
@@ -162,6 +168,29 @@ function Calendar({ token }: { token: string }) {
       setMessage('Saved to the same calendar used by Studio.')
     } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'That event could not be saved.') }
     finally { setSaving(false) }
+  }
+  async function addChecklistItem() {
+    if (!editing?.id || !newChecklistItem.trim()) return
+    setSaving(true)
+    try {
+      const item = await saveChecklistItem(token, editing.id, { label: newChecklistItem, completed: false })
+      setChecklist((current) => [...current, item])
+      setEvents((current) => current.map((event) => event.id === editing.id ? { ...event, checklist: [...(event.checklist || []), item] } : event))
+      setNewChecklistItem('')
+    } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'That checklist item could not be saved.') }
+    finally { setSaving(false) }
+  }
+  async function toggleChecklistItem(item: CalendarEvent['checklist'][number]) {
+    if (!editing?.id) return
+    const updated = await saveChecklistItem(token, editing.id, { ...item, completed: !item.completed })
+    setChecklist((current) => current.map((entry) => entry.id === item.id ? updated : entry))
+    setEvents((current) => current.map((event) => event.id === editing.id ? { ...event, checklist: (event.checklist || []).map((entry) => entry.id === item.id ? updated : entry) } : event))
+  }
+  async function removeChecklistItem(item: CalendarEvent['checklist'][number]) {
+    if (!editing?.id) return
+    await deleteChecklistItem(token, editing.id, item.id)
+    setChecklist((current) => current.filter((entry) => entry.id !== item.id))
+    setEvents((current) => current.map((event) => event.id === editing.id ? { ...event, checklist: (event.checklist || []).filter((entry) => entry.id !== item.id) } : event))
   }
   return (
     <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
@@ -182,13 +211,14 @@ function Calendar({ token }: { token: string }) {
           <View style={styles.choices}>{(['Planned', 'Confirmed', 'Done', 'Canceled'] as const).map((item) => <Pressable key={item} onPress={() => setStatus(item)} style={[styles.choice, status === item && styles.choiceActive]}><Text style={[styles.choiceText, status === item && styles.choiceTextActive]}>{item}</Text></Pressable>)}</View>
           {message ? <Text style={message.startsWith('Saved') ? styles.success : styles.error}>{message}</Text> : null}
           <Pressable disabled={saving} onPress={save} style={[styles.primary, saving && styles.disabled]}><Text style={styles.primaryText}>{saving ? 'Saving…' : editing ? 'Update shared event' : 'Save shared event'}</Text></Pressable>
+          {editing?.id ? <View style={styles.checklistSection}><Text style={styles.cardTitle}>Event checklist</Text><Text style={styles.cardCopy}>Shared with Katie, CatNana, and event helpers.</Text>{checklist.map((item) => <View key={item.id} style={styles.checklistRow}><Pressable onPress={() => toggleChecklistItem(item)} style={[styles.checkBox, item.completed && styles.checkBoxDone]}><Text style={styles.checkMark}>{item.completed ? '✓' : ''}</Text></Pressable><Text style={[styles.checklistLabel, item.completed && styles.checklistLabelDone]}>{item.label}</Text><Pressable onPress={() => removeChecklistItem(item)}><Text style={styles.removeText}>Remove</Text></Pressable></View>)}<View style={styles.checklistAdd}><TextInput value={newChecklistItem} onChangeText={setNewChecklistItem} onSubmitEditing={addChecklistItem} placeholder="Tablecloth, reader, cash box…" placeholderTextColor="#8b8075" style={[styles.input, styles.grow]} /><Pressable disabled={saving || !newChecklistItem.trim()} onPress={addChecklistItem} style={[styles.addButton, (saving || !newChecklistItem.trim()) && styles.disabled]}><Text style={styles.primaryText}>Add</Text></Pressable></View></View> : <Text style={styles.cardCopy}>Save the event first, then its shared checklist will appear here.</Text>}
         </View>
       ) : null}
       <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>Upcoming</Text><Pressable onPress={refresh}><Text style={styles.link}>Refresh</Text></Pressable></View>
       {loading ? <ActivityIndicator color={colors.terracotta} /> : events.length ? events.map((event) => (
         <Pressable key={event.id} onPress={() => edit(event)} style={styles.eventCard}>
           <View style={styles.eventDate}><Text style={styles.eventDateText}>{event.event_date.match(/-(\d{2})$/)?.[1]}</Text></View>
-          <View style={styles.grow}><View style={styles.row}><Text style={styles.cardTitle}>{event.title}</Text><Text style={styles.pill}>{event.status}</Text></View><Text style={styles.meta}>{displayDate(event.event_date)}{event.location ? ` · ${event.location}` : ''}</Text>{event.notes ? <Text numberOfLines={2} style={styles.cardCopy}>{event.notes}</Text> : null}</View>
+          <View style={styles.grow}><View style={styles.row}><Text style={styles.cardTitle}>{event.title}</Text><Text style={styles.pill}>{event.status}</Text></View><Text style={styles.meta}>{displayDate(event.event_date)}{event.location ? ` · ${event.location}` : ''}</Text>{event.notes ? <Text numberOfLines={2} style={styles.cardCopy}>{event.notes}</Text> : null}{event.checklist?.length ? <Text style={styles.cardCopy}>{event.checklist.filter((item) => item.completed).length}/{event.checklist.length} checklist items finished</Text> : null}</View>
           <Text style={styles.arrow}>›</Text>
         </Pressable>
       )) : <View style={styles.empty}><Text style={styles.cardTitle}>The trail ahead is open.</Text><Text style={styles.cardCopy}>Plan the first market or pop-up when you are ready.</Text></View>}
@@ -449,6 +479,7 @@ const styles = StyleSheet.create({
   primary: { marginTop: 16, minHeight: 54, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.terracotta }, primaryText: { fontSize: 16, fontWeight: '900', color: colors.white }, disabled: { opacity: 0.45 }, secondary: { marginTop: 18, minHeight: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.sandDeep, backgroundColor: colors.white }, secondaryText: { fontWeight: '900', color: colors.terracottaDeep }, error: { marginTop: 12, color: colors.red, fontWeight: '700' }, success: { marginTop: 12, color: colors.sageDeep, fontWeight: '800' },
   header: { minHeight: 84, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.sandDeep, backgroundColor: colors.white }, logoMark: { width: 44, height: 44, marginRight: 12, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand }, logoText: { fontWeight: '900', color: colors.sageDeep }, headerTitle: { fontSize: 20, fontWeight: '900', color: colors.bark }, headerSubtitle: { fontSize: 13, color: colors.barkSoft }, signOut: { marginLeft: 'auto', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: colors.sandDeep }, signOutText: { fontWeight: '900', color: colors.terracottaDeep },
   formCard: { marginTop: 14, padding: 17, borderRadius: 22, backgroundColor: colors.sand, borderWidth: 1, borderColor: colors.sandDeep }, choices: { marginTop: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, choice: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: colors.sandDeep, backgroundColor: colors.white }, choiceActive: { backgroundColor: colors.bark }, choiceText: { fontWeight: '800', color: colors.barkSoft }, choiceTextActive: { color: colors.white }, sectionHeading: { marginTop: 26, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, sectionTitle: { fontSize: 22, fontWeight: '900', color: colors.bark }, link: { fontWeight: '900', color: colors.terracottaDeep },
+  checklistSection: { marginTop: 22, paddingTop: 18, borderTopWidth: 1, borderTopColor: colors.sandDeep }, checklistRow: { minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: 1, borderBottomColor: colors.sandDeep }, checkBox: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.sageDeep, backgroundColor: colors.white }, checkBoxDone: { backgroundColor: colors.sageDeep }, checkMark: { color: colors.white, fontWeight: '900' }, checklistLabel: { flex: 1, color: colors.bark, fontWeight: '700' }, checklistLabelDone: { color: colors.barkSoft, textDecorationLine: 'line-through' }, removeText: { color: colors.terracottaDeep, fontSize: 12, fontWeight: '800' }, checklistAdd: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }, addButton: { minHeight: 52, paddingHorizontal: 18, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.terracotta },
   eventCard: { marginBottom: 10, padding: 15, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, eventDate: { width: 44, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand }, eventDateText: { fontSize: 20, fontWeight: '900', color: colors.terracottaDeep }, cardTitle: { flexShrink: 1, fontSize: 16, fontWeight: '900', color: colors.bark }, meta: { marginTop: 4, fontSize: 12, color: colors.sageDeep, fontWeight: '700' }, cardCopy: { marginTop: 5, fontSize: 13, lineHeight: 18, color: colors.barkSoft }, pill: { marginLeft: 'auto', fontSize: 10, fontWeight: '900', color: colors.sageDeep }, arrow: { fontSize: 26, color: colors.terracottaDeep }, empty: { padding: 18, borderRadius: 20, backgroundColor: colors.sand },
   readerCard: { marginTop: 20, padding: 18, borderRadius: 22, backgroundColor: colors.sand }, testPill: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, overflow: 'hidden', backgroundColor: colors.sageDeep, color: colors.white, fontSize: 10, fontWeight: '900' }, productCard: { marginBottom: 10, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, productImage: { width: 58, height: 58, borderRadius: 14, backgroundColor: colors.sand }, quantity: { flexDirection: 'row', alignItems: 'center', gap: 7 }, quantityButton: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand }, quantityText: { fontSize: 18, fontWeight: '900', color: colors.bark }, quantityValue: { minWidth: 18, textAlign: 'center', fontWeight: '900', color: colors.bark }, cartCard: { marginTop: 20, padding: 18, borderRadius: 22, backgroundColor: colors.bark }, cartLabel: { marginTop: 12, flex: 1, color: colors.sand }, cartTotal: { marginTop: 12, fontSize: 22, fontWeight: '900', color: colors.white },
   readerChoice: { marginTop: 10, padding: 13, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.white },

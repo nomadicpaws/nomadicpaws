@@ -2960,7 +2960,7 @@ function ContentCalendar({
         Dates stay connected to the real Journal and studio records. Moving a
         story date moves its regular Pinterest follow-ups automatically.
       </Text>
-      {person !== "Mom" ? (
+      {false ? (
         <View style={styles.calendarPlanner}>
           <Pressable
             accessibilityRole="button"
@@ -3016,14 +3016,12 @@ function ContentCalendar({
                 onPress={() => {
                   if (item.platform === "Event") {
                     const event = events.find((entry) => entry.id === item.sourceId);
-                    if (person === "Mom") {
-                      Alert.alert(
-                        event?.title || "Shared event",
-                        [formatAdventureDate(event?.event_date || ""), event?.location, event?.notes]
-                          .filter(Boolean)
-                          .join("\n\n"),
-                      );
-                    } else editEvent(event);
+                    Alert.alert(
+                      event?.title || "Shared event",
+                      [formatAdventureDate(event?.event_date || ""), event?.location, event?.notes, "Planning and checklists are managed in Nomadic Paws Events."]
+                        .filter(Boolean)
+                        .join("\n\n"),
+                    );
                   }
                   else if (item.platform === "Instagram")
                     onOpenInstagramPost(item.sourceId);

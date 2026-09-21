@@ -17,6 +17,20 @@ export type CalendarEvent = {
   notes: string
   status: 'Planned' | 'Confirmed' | 'Done' | 'Canceled'
   created_by: 'Katie' | 'Trinitie'
+  checklist: Array<{ id: string; label: string; completed: boolean }>
+}
+
+export async function saveChecklistItem(token: string, eventId: string, input: { id?: string; label: string; completed: boolean }) {
+  const data = await request<{ item: { id: string; event_id: string; label: string; completed: boolean } }>('/api/app/calendar', token, {
+    method: 'POST', body: JSON.stringify({ action: 'save-checklist-item', eventId, ...input }),
+  })
+  return data.item
+}
+
+export async function deleteChecklistItem(token: string, eventId: string, id: string) {
+  return request<{ deleted: true }>('/api/app/calendar', token, {
+    method: 'POST', body: JSON.stringify({ action: 'delete-checklist-item', eventId, id }),
+  })
 }
 
 export type EventSale = {
