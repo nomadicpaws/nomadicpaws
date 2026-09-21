@@ -4,6 +4,7 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   SafeAreaView,
@@ -63,6 +64,31 @@ function displayDate(value: string) {
   return new Date(`${key}T12:00:00`).toLocaleDateString('en-US', {
     weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
   })
+}
+
+type PlanningStage = 'two-weeks' | 'day-before' | 'event-day' | 'after-event'
+
+const planningStages: Array<{ key: PlanningStage; title: string; symbol: string; offset: number }> = [
+  { key: 'two-weeks', title: 'Two weeks before', symbol: '◇', offset: -14 },
+  { key: 'day-before', title: 'Day before', symbol: '▣', offset: -1 },
+  { key: 'event-day', title: 'Event day', symbol: '●', offset: 0 },
+  { key: 'after-event', title: 'After the event', symbol: '✓', offset: 1 },
+]
+
+function shiftedDateKey(value: string, offset: number) {
+  const key = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0]
+  if (!key) return ''
+  const date = new Date(`${key}T12:00:00`)
+  date.setDate(date.getDate() + offset)
+  return dateKey(date)
+}
+
+function checklistStage(label: string): PlanningStage {
+  const value = label.toLowerCase()
+  if (value.includes('after the event') || value.includes('restock or damaged')) return 'after-event'
+  if (value.includes('venue') || value.includes('reservation') || value.includes('assign setup') || value.includes('checkout, prices')) return 'two-weeks'
+  if (value.includes('event-day') || value.includes('starting quantity') || value.includes('water and personal')) return 'event-day'
+  return 'day-before'
 }
 
 function money(cents: number) {
@@ -200,6 +226,45 @@ function Calendar({ token }: { token: string }) {
     }
     edit(undefined, value)
   }
+  function planningEventsOn(value: string) {
+    return events.flatMap((event) =>
+      planningStages
+        .filter((stage) => stage.offset !== 0 && shiftedDateKey(event.event_date, stage.offset) === value)
+        .map((stage) => ({ event, stage })),
+    )
+  }
+  function chooseCalendarCell(value: string, dayEvents: CalendarEvent[]) {
+    if (open || dayEvents.length) {
+      chooseCalendarDate(value, dayEvents)
+      return
+    }
+    const reminders = planningEventsOn(value)
+    if (!reminders.length) {
+      chooseCalendarDate(value, dayEvents)
+      return
+    }
+    Alert.alert(
+      'Event planning day',
+      reminders.map(({ event, stage }) => `${stage.symbol} ${stage.title}: ${event.title}`).join('\n'),
+      [
+        ...reminders.slice(0, 2).map(({ event }) => ({ text: `Open ${event.title}`, onPress: () => edit(event) })),
+        { text: 'Add an event here', onPress: () => edit(undefined, value) },
+        { text: 'Cancel', style: 'cancel' as const },
+      ],
+    )
+  }
+  async function searchLocation() {
+    const query = location.trim()
+    if (!query) {
+      setMessage('Enter a venue or address first, then tap Search location.')
+      return
+    }
+    try {
+      await Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`)
+    } catch {
+      setMessage('Maps could not open. Check the address and try again.')
+    }
+  }
   async function save() {
     if (!title.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
       setMessage('Add an event name and a date like 2026-10-03.')
@@ -244,7 +309,7 @@ function Calendar({ token }: { token: string }) {
       <Text style={styles.eyebrow}>SHARED EVENT CALENDAR</Text>
       <Text style={styles.pageTitle}>Plan once. See it everywhere.</Text>
       <Text style={styles.copy}>Events saved here appear on the same calendar used by the Creative Studio.</Text>
-      {(() => { const month = monthCells(monthOffset); return <View style={styles.monthCard}><View style={styles.monthHeader}><Pressable onPress={() => setMonthOffset((value) => value - 1)}><Text style={styles.monthArrow}>‹</Text></Pressable><Text style={styles.monthTitle}>{month.label}</Text><Pressable onPress={() => setMonthOffset((value) => value + 1)}><Text style={styles.monthArrow}>›</Text></Pressable></View><View style={styles.weekRow}>{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => <Text key={`${day}-${index}`} style={styles.weekDay}>{day}</Text>)}</View><View style={styles.monthGrid}>{month.cells.map((cell) => { const dayEvents = cell.day ? events.filter((event) => event.event_date.match(/^\d{4}-\d{2}-\d{2}/)?.[0] === cell.key) : []; const selected = open && cell.key === eventDate; return cell.day ? <Pressable accessibilityRole="button" accessibilityLabel={`${open ? 'Select' : dayEvents.length ? 'Open events on' : 'Add event on'} ${cell.key}`} key={cell.key} onPress={() => chooseCalendarDate(cell.key, dayEvents)} style={({ pressed }) => [styles.dayCell, selected && styles.dayCellSelected, pressed && styles.dayCellPressed]}><Text style={[styles.dayNumber, selected && styles.dayNumberSelected]}>{cell.day}</Text><Text numberOfLines={1} style={[styles.dayMarks, selected && styles.dayNumberSelected]}>{dayEvents.some((event) => event.cheeto_attending) ? '🐱' : dayEvents.length ? '•' : '+'}</Text></Pressable> : <View key={cell.key} style={styles.dayCell} /> })}</View><Text style={styles.calendarLegend}>{open ? 'Tap a date to change this event’s date' : 'Tap a date to add or edit events'} · 🐱 Cheeto attending · • Event</Text></View> })()}
+      {(() => { const month = monthCells(monthOffset); return <View style={styles.monthCard}><View style={styles.monthHeader}><Pressable onPress={() => setMonthOffset((value) => value - 1)}><Text style={styles.monthArrow}>‹</Text></Pressable><Text style={styles.monthTitle}>{month.label}</Text><Pressable onPress={() => setMonthOffset((value) => value + 1)}><Text style={styles.monthArrow}>›</Text></Pressable></View><View style={styles.weekRow}>{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => <Text key={`${day}-${index}`} style={styles.weekDay}>{day}</Text>)}</View><View style={styles.monthGrid}>{month.cells.map((cell) => { const dayEvents = cell.day ? events.filter((event) => event.event_date.match(/^\d{4}-\d{2}-\d{2}/)?.[0] === cell.key) : []; const reminders = cell.day ? planningEventsOn(cell.key) : []; const selected = open && cell.key === eventDate; const marks = dayEvents.some((event) => event.cheeto_attending) ? '🐱' : dayEvents.length ? '•' : reminders.length ? [...new Set(reminders.map(({ stage }) => stage.symbol))].join('') : '+'; return cell.day ? <Pressable accessibilityRole="button" accessibilityLabel={`${open ? 'Select' : dayEvents.length ? 'Open events on' : reminders.length ? 'Open planning for' : 'Add event on'} ${cell.key}`} key={cell.key} onPress={() => chooseCalendarCell(cell.key, dayEvents)} style={({ pressed }) => [styles.dayCell, selected && styles.dayCellSelected, pressed && styles.dayCellPressed]}><Text style={[styles.dayNumber, selected && styles.dayNumberSelected]}>{cell.day}</Text><Text numberOfLines={1} style={[styles.dayMarks, selected && styles.dayNumberSelected]}>{marks}</Text></Pressable> : <View key={cell.key} style={styles.dayCell} /> })}</View><Text style={styles.calendarLegend}>{open ? 'Tap a date to change this event’s date' : 'Tap a date to add or edit events'} · 🐱 Cheeto · • Event · ◇ 2 weeks · ▣ Day before · ✓ Follow-up</Text></View> })()}
       <Pressable onPress={() => open ? setOpen(false) : edit()} style={styles.secondary}><Text style={styles.secondaryText}>{open ? 'Close planner' : '+ Plan an event'}</Text></Pressable>
       {open ? (
         <View style={styles.formCard}>
@@ -253,14 +318,45 @@ function Calendar({ token }: { token: string }) {
           <Text style={styles.label}>Date</Text>
           <TextInput value={eventDate} onChangeText={setEventDate} placeholder="YYYY-MM-DD" placeholderTextColor="#8b8075" keyboardType="numbers-and-punctuation" style={styles.input} />
           <Text style={styles.label}>Location</Text>
-          <TextInput value={location} onChangeText={setLocation} placeholder="Optional location" placeholderTextColor="#8b8075" style={styles.input} />
-          <Text style={styles.label}>Planning notes</Text>
-          <TextInput value={notes} onChangeText={setNotes} placeholder="What to bring or remember" placeholderTextColor="#8b8075" multiline style={[styles.input, styles.notes]} />
+          <TextInput value={location} onChangeText={setLocation} placeholder="Venue name or street address" placeholderTextColor="#8b8075" style={styles.input} />
+          <Pressable onPress={searchLocation} style={styles.locationButton}><Text style={styles.locationButtonText}>Search location in Maps ↗</Text></Pressable>
+          <Text style={styles.label}>Who to meet · event contact</Text>
+          <TextInput value={notes} onChangeText={setNotes} placeholder="Contact name, phone number, booth instructions, or arrival details" placeholderTextColor="#8b8075" multiline style={[styles.input, styles.notes]} />
           <View style={styles.choices}>{(['Planned', 'Confirmed', 'Done', 'Canceled'] as const).map((item) => <Pressable key={item} onPress={() => setStatus(item)} style={[styles.choice, status === item && styles.choiceActive]}><Text style={[styles.choiceText, status === item && styles.choiceTextActive]}>{item}</Text></Pressable>)}</View>
           <Pressable onPress={() => setCheetoAttending((value) => !value)} style={styles.cheetoToggle}><View style={[styles.checkBox, cheetoAttending && styles.checkBoxDone]}><Text style={styles.checkMark}>{cheetoAttending ? '✓' : ''}</Text></View><View style={styles.grow}><Text style={styles.cardTitle}>Cheeto is attending 🐱</Text><Text style={styles.cardCopy}>{cheetoAttending ? 'His event checklist will be included.' : 'His checklist stays out of this event.'}</Text></View></Pressable>
           {message ? <Text style={message.startsWith('Saved') ? styles.success : styles.error}>{message}</Text> : null}
           <Pressable disabled={saving} onPress={save} style={[styles.primary, saving && styles.disabled]}><Text style={styles.primaryText}>{saving ? 'Saving…' : editing ? 'Update shared event' : 'Save shared event'}</Text></Pressable>
-          {editing?.id ? <View style={styles.checklistSection}><Text style={styles.cardTitle}>Event checklist</Text><Text style={styles.cardCopy}>Shared with Katie, CatNana, and event helpers.</Text>{checklist.map((item) => <View key={item.id} style={styles.checklistRow}><Pressable onPress={() => toggleChecklistItem(item)} style={[styles.checkBox, item.completed && styles.checkBoxDone]}><Text style={styles.checkMark}>{item.completed ? '✓' : ''}</Text></Pressable><View style={styles.grow}><Text style={[styles.checklistLabel, item.completed && styles.checklistLabelDone]}>{item.label}</Text>{item.assignedTo ? <Text style={styles.assignment}>Assigned to {item.assignedTo}</Text> : <Text style={styles.assignment}>Anyone can take this</Text>}</View><Pressable onPress={() => removeChecklistItem(item)}><Text style={styles.removeText}>Remove</Text></Pressable></View>)}<Text style={styles.label}>Assign new task to</Text><View style={styles.choices}><Pressable onPress={() => setNewAssignee('')} style={[styles.choice, !newAssignee && styles.choiceActive]}><Text style={[styles.choiceText, !newAssignee && styles.choiceTextActive]}>Anyone</Text></Pressable>{assignees.map((name) => <Pressable key={name} onPress={() => setNewAssignee(name)} style={[styles.choice, newAssignee === name && styles.choiceActive]}><Text style={[styles.choiceText, newAssignee === name && styles.choiceTextActive]}>{name}</Text></Pressable>)}</View><View style={styles.checklistAdd}><TextInput value={newChecklistItem} onChangeText={setNewChecklistItem} onSubmitEditing={addChecklistItem} placeholder="Tablecloth, reader, cash box…" placeholderTextColor="#8b8075" style={[styles.input, styles.grow]} /><Pressable disabled={saving || !newChecklistItem.trim()} onPress={addChecklistItem} style={[styles.addButton, (saving || !newChecklistItem.trim()) && styles.disabled]}><Text style={styles.primaryText}>Add</Text></Pressable></View></View> : <Text style={styles.cardCopy}>Save the event first, then its shared checklist will appear here.</Text>}
+          {editing?.id ? (
+            <View style={styles.checklistSection}>
+              <Text style={styles.cardTitle}>Event checklist</Text>
+              <Text style={styles.cardCopy}>Tasks are grouped by when they need attention. Their symbols also appear on the calendar.</Text>
+              {planningStages.map((stage) => {
+                const items = checklist.filter((item) => checklistStage(item.label) === stage.key)
+                if (!items.length) return null
+                return (
+                  <View key={stage.key} style={styles.stageCard}>
+                    <View style={styles.stageHeading}>
+                      <Text style={styles.stageSymbol}>{stage.symbol}</Text>
+                      <View style={styles.grow}>
+                        <Text style={styles.stageTitle}>{stage.title}</Text>
+                        <Text style={styles.stageDate}>{displayDate(shiftedDateKey(eventDate, stage.offset))} · {items.filter((item) => item.completed).length}/{items.length} done</Text>
+                      </View>
+                    </View>
+                    {items.map((item) => (
+                      <View key={item.id} style={styles.checklistRow}>
+                        <Pressable onPress={() => toggleChecklistItem(item)} style={[styles.checkBox, item.completed && styles.checkBoxDone]}><Text style={styles.checkMark}>{item.completed ? '✓' : ''}</Text></Pressable>
+                        <View style={styles.grow}><Text style={[styles.checklistLabel, item.completed && styles.checklistLabelDone]}>{item.label}</Text>{item.assignedTo ? <Text style={styles.assignment}>Assigned to {item.assignedTo}</Text> : <Text style={styles.assignment}>Anyone can take this</Text>}</View>
+                        <Pressable onPress={() => removeChecklistItem(item)}><Text style={styles.removeText}>Remove</Text></Pressable>
+                      </View>
+                    ))}
+                  </View>
+                )
+              })}
+              <Text style={styles.label}>Assign new day-before task to</Text>
+              <View style={styles.choices}><Pressable onPress={() => setNewAssignee('')} style={[styles.choice, !newAssignee && styles.choiceActive]}><Text style={[styles.choiceText, !newAssignee && styles.choiceTextActive]}>Anyone</Text></Pressable>{assignees.map((name) => <Pressable key={name} onPress={() => setNewAssignee(name)} style={[styles.choice, newAssignee === name && styles.choiceActive]}><Text style={[styles.choiceText, newAssignee === name && styles.choiceTextActive]}>{name}</Text></Pressable>)}</View>
+              <View style={styles.checklistAdd}><TextInput value={newChecklistItem} onChangeText={setNewChecklistItem} onSubmitEditing={addChecklistItem} placeholder="Tablecloth, reader, cash box…" placeholderTextColor="#8b8075" style={[styles.input, styles.grow]} /><Pressable disabled={saving || !newChecklistItem.trim()} onPress={addChecklistItem} style={[styles.addButton, (saving || !newChecklistItem.trim()) && styles.disabled]}><Text style={styles.primaryText}>Add</Text></Pressable></View>
+            </View>
+          ) : <Text style={styles.cardCopy}>Save the event first, then its shared checklist will appear here.</Text>}
         </View>
       ) : null}
       <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>Upcoming</Text><Pressable onPress={refresh}><Text style={styles.link}>Refresh</Text></Pressable></View>
@@ -567,7 +663,7 @@ const styles = StyleSheet.create({
   header: { minHeight: 84, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.sandDeep, backgroundColor: colors.white }, logoMark: { width: 44, height: 44, marginRight: 12, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand }, logoText: { fontWeight: '900', color: colors.sageDeep }, headerTitle: { fontSize: 20, fontWeight: '900', color: colors.bark }, headerSubtitle: { fontSize: 13, color: colors.barkSoft }, signOut: { marginLeft: 'auto', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: colors.sandDeep }, signOutText: { fontWeight: '900', color: colors.terracottaDeep },
   formCard: { marginTop: 14, padding: 17, borderRadius: 22, backgroundColor: colors.sand, borderWidth: 1, borderColor: colors.sandDeep }, choices: { marginTop: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, choice: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: colors.sandDeep, backgroundColor: colors.white }, choiceActive: { backgroundColor: colors.bark }, choiceText: { fontWeight: '800', color: colors.barkSoft }, choiceTextActive: { color: colors.white }, sectionHeading: { marginTop: 26, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, sectionTitle: { fontSize: 22, fontWeight: '900', color: colors.bark }, link: { fontWeight: '900', color: colors.terracottaDeep },
   monthCard: { marginTop: 18, padding: 14, borderRadius: 22, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, monthHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, monthTitle: { fontSize: 17, fontWeight: '900', color: colors.bark }, monthArrow: { paddingHorizontal: 12, fontSize: 28, color: colors.terracottaDeep }, weekRow: { marginTop: 10, flexDirection: 'row' }, weekDay: { width: '14.285%', textAlign: 'center', color: colors.sageDeep, fontSize: 11, fontWeight: '900' }, monthGrid: { flexDirection: 'row', flexWrap: 'wrap' }, dayCell: { width: '14.285%', height: 45, paddingTop: 6, alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.sand }, dayCellPressed: { backgroundColor: colors.sand }, dayCellSelected: { backgroundColor: colors.terracotta, borderRadius: 10 }, dayNumber: { color: colors.bark, fontSize: 12, fontWeight: '800' }, dayNumberSelected: { color: colors.white }, dayMarks: { minHeight: 18, fontSize: 13, color: colors.terracottaDeep }, calendarLegend: { marginTop: 10, color: colors.barkSoft, fontSize: 11, textAlign: 'center' }, cheetoToggle: { marginTop: 16, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 16, backgroundColor: colors.white },
-  checklistSection: { marginTop: 22, paddingTop: 18, borderTopWidth: 1, borderTopColor: colors.sandDeep }, checklistRow: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: 1, borderBottomColor: colors.sandDeep }, checkBox: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.sageDeep, backgroundColor: colors.white }, checkBoxDone: { backgroundColor: colors.sageDeep }, checkMark: { color: colors.white, fontWeight: '900' }, checklistLabel: { color: colors.bark, fontWeight: '700' }, checklistLabelDone: { color: colors.barkSoft, textDecorationLine: 'line-through' }, assignment: { marginTop: 2, color: colors.sageDeep, fontSize: 11, fontWeight: '800' }, removeText: { color: colors.terracottaDeep, fontSize: 12, fontWeight: '800' }, checklistAdd: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }, addButton: { minHeight: 52, paddingHorizontal: 18, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.terracotta },
+  checklistSection: { marginTop: 22, paddingTop: 18, borderTopWidth: 1, borderTopColor: colors.sandDeep }, stageCard: { marginTop: 14, padding: 13, borderRadius: 16, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, stageHeading: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 7 }, stageSymbol: { width: 30, textAlign: 'center', color: colors.terracottaDeep, fontSize: 22, fontWeight: '900' }, stageTitle: { color: colors.bark, fontSize: 16, fontWeight: '900' }, stageDate: { marginTop: 2, color: colors.sageDeep, fontSize: 11, fontWeight: '800' }, checklistRow: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 10, borderTopWidth: 1, borderTopColor: colors.sandDeep }, checkBox: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.sageDeep, backgroundColor: colors.white }, checkBoxDone: { backgroundColor: colors.sageDeep }, checkMark: { color: colors.white, fontWeight: '900' }, checklistLabel: { color: colors.bark, fontWeight: '700' }, checklistLabelDone: { color: colors.barkSoft, textDecorationLine: 'line-through' }, assignment: { marginTop: 2, color: colors.sageDeep, fontSize: 11, fontWeight: '800' }, removeText: { color: colors.terracottaDeep, fontSize: 12, fontWeight: '800' }, checklistAdd: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }, addButton: { minHeight: 52, paddingHorizontal: 18, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.terracotta }, locationButton: { alignSelf: 'flex-start', marginTop: 8, paddingVertical: 8, paddingHorizontal: 4 }, locationButtonText: { color: colors.terracottaDeep, fontWeight: '900' },
   eventCard: { marginBottom: 10, padding: 15, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, eventDate: { width: 44, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand }, eventDateText: { fontSize: 20, fontWeight: '900', color: colors.terracottaDeep }, cardTitle: { flexShrink: 1, fontSize: 16, fontWeight: '900', color: colors.bark }, meta: { marginTop: 4, fontSize: 12, color: colors.sageDeep, fontWeight: '700' }, cardCopy: { marginTop: 5, fontSize: 13, lineHeight: 18, color: colors.barkSoft }, pill: { marginLeft: 'auto', fontSize: 10, fontWeight: '900', color: colors.sageDeep }, arrow: { fontSize: 26, color: colors.terracottaDeep }, empty: { padding: 18, borderRadius: 20, backgroundColor: colors.sand },
   readerCard: { marginTop: 20, padding: 18, borderRadius: 22, backgroundColor: colors.sand }, testPill: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, overflow: 'hidden', backgroundColor: colors.sageDeep, color: colors.white, fontSize: 10, fontWeight: '900' }, productCard: { marginBottom: 10, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, productImage: { width: 58, height: 58, borderRadius: 14, backgroundColor: colors.sand }, quantity: { flexDirection: 'row', alignItems: 'center', gap: 7 }, quantityButton: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand }, quantityText: { fontSize: 18, fontWeight: '900', color: colors.bark }, quantityValue: { minWidth: 18, textAlign: 'center', fontWeight: '900', color: colors.bark }, cartCard: { marginTop: 20, padding: 18, borderRadius: 22, backgroundColor: colors.bark }, cartLabel: { marginTop: 12, flex: 1, color: colors.sand }, cartTotal: { marginTop: 12, fontSize: 22, fontWeight: '900', color: colors.white },
   readerChoice: { marginTop: 10, padding: 13, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.white },
