@@ -231,7 +231,16 @@ function Register({ token }: { token: string }) {
         setLocationId(nextLocation)
       }
       if (!nextLocation) throw new Error('Create a Stripe Terminal location before connecting a test reader.')
-      const result = await discoverReaders({ discoveryMethod: 'bluetoothScan', simulated: true, timeout: 12 })
+      // The event app's test reader is a Stripe-hosted simulated reader. Using
+      // internet discovery keeps testing independent of iPhone Bluetooth and
+      // avoids opening the native Bluetooth scan path when no physical reader
+      // is present.
+      const result = await discoverReaders({
+        discoveryMethod: 'internet',
+        simulated: true,
+        locationId: nextLocation,
+        timeout: 12,
+      })
       if (result.error) throw result.error
       setMessage('Opening Stripe’s simulated reader…')
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'The test reader could not start.') }
@@ -241,7 +250,11 @@ function Register({ token }: { token: string }) {
     setReaderBusy(true); setError('')
     try {
       await cancelDiscovering().catch(() => {})
-      const result = await connectReader({ discoveryMethod: 'bluetoothScan', reader, locationId: reader.locationId || reader.location?.id || locationId, autoReconnectOnUnexpectedDisconnect: true })
+      const result = await connectReader({
+        discoveryMethod: 'internet',
+        reader,
+        failIfInUse: true,
+      })
       if (result.error) throw result.error
       setMessage('Simulated Stripe reader connected. Test cards only.')
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'The test reader could not connect.') }
