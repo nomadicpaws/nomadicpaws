@@ -46,3 +46,17 @@ export function createTerminalPaymentIntent(sale, fetchImpl) {
     fetchImpl,
   );
 }
+
+export async function retrieveStripePaymentIntent(paymentIntentId, fetchImpl = fetch) {
+  const key = process.env.STRIPE_SECRET_KEY || "";
+  const response = await fetchImpl(`${STRIPE_API}/payment_intents/${encodeURIComponent(paymentIntentId)}`, {
+    headers: { Authorization: `Bearer ${key}` },
+  });
+  const payload = await response.json();
+  if (!response.ok) {
+    const error = new Error(payload?.error?.message || `Stripe returned ${response.status}.`);
+    error.status = 502;
+    throw error;
+  }
+  return payload;
+}

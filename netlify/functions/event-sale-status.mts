@@ -1,5 +1,6 @@
 import type { Config } from "@netlify/functions";
 import { getSale } from "./lib/event-db.mjs";
+import { reconcileSalePayment } from "./lib/event-payment-service.mjs";
 import { errorResponse, json, requireEventOperator, requireTestMode } from "./lib/event-http.mjs";
 
 export default async (request: Request) => {
@@ -9,8 +10,9 @@ export default async (request: Request) => {
     await requireEventOperator(request);
     const id = new URL(request.url).searchParams.get("id");
     if (!id) throw Object.assign(new Error("A sale id is required."), { status: 400 });
-    const sale = await getSale(id);
+    let sale = await getSale(id);
     if (!sale) throw Object.assign(new Error("Sale not found."), { status: 404 });
+    sale = await reconcileSalePayment(sale);
     return json({ sale });
   } catch (error) {
     return errorResponse(error);
