@@ -34,6 +34,7 @@ import {
   completeMomReview,
   createJournalStory,
   createSharedAdventure,
+  ensureMediaLibraryCollection,
   ensureStudioUploadAdventure,
   JournalContribution,
   JournalReviewNote,
@@ -6372,8 +6373,6 @@ function WorkingPhotoEditor({
         : destination === "trail-hero"
           ? 16 / 9
           : 3 / 2;
-  const focusTop =
-    focus === "top" ? "0%" : focus === "bottom" ? "-25%" : "-12.5%";
   async function save() {
     setSaving(true);
     setMessage("");
@@ -6456,7 +6455,7 @@ function WorkingPhotoEditor({
             headers: { Authorization: `Bearer ${token}` },
           }}
           resizeMode="cover"
-          style={[styles.workingPhoto, { top: focusTop as `${number}%` }]}
+          style={styles.workingPhoto}
         />
         {logoColor !== "none" ? (
           <Image
@@ -6688,10 +6687,10 @@ function MediaLibrary({
       setSavingDetails(false);
     }
   }
-  async function uploadFinishedPhotos() {
+  async function uploadPastMedia() {
     setUploadMessage("");
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ["images", "videos"],
       allowsMultipleSelection: true,
       selectionLimit: 20,
       quality: 1,
@@ -6700,21 +6699,30 @@ function MediaLibrary({
     if (result.canceled) return;
     setUploadingFinished(true);
     try {
-      const collection = await ensureStudioUploadAdventure(token);
+      const collection = await ensureMediaLibraryCollection(token);
       for (const [index, picked] of result.assets.entries()) {
-        setUploadMessage(`Adding finished photo ${index + 1} of ${result.assets.length}…`);
+        const isVideo = picked.type === "video" || picked.mimeType?.startsWith("video/");
+        setUploadMessage(`Adding ${isVideo ? "video" : "photo"} ${index + 1} of ${result.assets.length}…`);
         const info = await FileSystem.getInfoAsync(picked.uri);
-        await uploadAdventurePhoto(token, collection.id, {
+        const common = {
           uri: picked.uri,
-          name: picked.fileName || `Trinitie-finished-${Date.now()}-${index + 1}.jpg`,
-          displayName: (picked.fileName || `Trinitie finished photo ${index + 1}`).replace(/\.[^.]+$/, ""),
+          name: picked.fileName || `Cheeto-past-media-${Date.now()}-${index + 1}.${isVideo ? "mov" : "jpg"}`,
+          displayName: (picked.fileName || `Cheeto moment ${index + 1}`).replace(/\.[^.]+$/, ""),
           mimeType: picked.mimeType,
           byteSize: picked.fileSize || (info.exists ? info.size || 0 : 0),
           width: picked.width,
           height: picked.height,
-        });
+        };
+        if (isVideo) {
+          await uploadAdventureVideo(token, collection.id, {
+            ...common,
+            durationSeconds: Math.max(0, (picked.duration || 0) / 1000),
+          });
+        } else {
+          await uploadAdventurePhoto(token, collection.id, common);
+        }
       }
-      setUploadMessage("Saved in Trinitie finished edits. Katie can see them too.");
+      setUploadMessage("Saved directly in the shared Media Library—no Adventure card created.");
       onUploaded();
     } catch (reason) {
       setUploadMessage(reason instanceof Error ? reason.message : "Those finished photos could not be added.");
@@ -6821,20 +6829,18 @@ function MediaLibrary({
           Original photos and videos are shared privately between Katie and
           Trinitie. Every edit uses a working copy—never the original.
         </Text>
-        {person === "Trinitie" ? (
-          <View style={styles.noticeBox}>
-            <Text style={styles.noticeTitle}>Bring in edits from your iPhone</Text>
-            <Text style={[styles.helper, { textAlign: "left" }]}>Upload photos you already finished in another app. They stay separate from Katie’s originals.</Text>
+        <View style={styles.noticeBox}>
+            <Text style={styles.noticeTitle}>Upload past photos and videos</Text>
+            <Text style={[styles.helper, { textAlign: "left" }]}>Save older Cheeto footage directly in the private library without creating an Adventure card. Tap an upload afterward to add a searchable name, notes, and hashtags.</Text>
             <Pressable
               disabled={uploadingFinished}
-              onPress={uploadFinishedPhotos}
+              onPress={uploadPastMedia}
               style={[styles.primary, uploadingFinished && styles.primaryDisabled]}
             >
-              <Text style={styles.primaryText}>{uploadingFinished ? "Adding…" : "Upload finished photos"}</Text>
+              <Text style={styles.primaryText}>{uploadingFinished ? "Adding…" : "Choose past media"}</Text>
             </Pressable>
             {uploadMessage ? <Text style={styles.success}>{uploadMessage}</Text> : null}
           </View>
-        ) : null}
         {media.length ? (
           <>
             <TextInput
@@ -6915,8 +6921,7 @@ function MediaLibrary({
           <View style={styles.teamEmpty}>
             <Text style={styles.teamEmptyTitle}>The library is ready.</Text>
             <Text style={styles.teamEmptyCopy}>
-              Katie’s first Adventure upload will appear here for both Katie and
-              Trinitie.
+              Upload past media here, or add new footage through an Adventure.
             </Text>
           </View>
         )}
@@ -8203,9 +8208,10 @@ const styles = StyleSheet.create({
   },
   workingPhoto: {
     position: "absolute",
+    top: 0,
     left: 0,
     width: "100%",
-    height: "125%",
+    height: "100%",
   },
   filterStrip: { gap: 10, paddingBottom: 14 },
   filterChoice: {

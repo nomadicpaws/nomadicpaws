@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { getStore } from '@netlify/blobs'
 import type { Config } from '@netlify/functions'
 import { requireAppUser } from './lib/app-auth.mjs'
-import { addMediaAsset, advanceAdventureToJournal, adventureExists, adventureUploadAllowed, adventuresWithMedia, createAdventure, ensureStudioUploadAdventure, mediaById, saveWorkingVersion, updateAdventure, updateMediaDetails, workingVersionById } from './lib/media-db.mjs'
+import { addMediaAsset, advanceAdventureToJournal, adventureExists, adventureUploadAllowed, adventuresWithMedia, createAdventure, ensureMediaLibraryCollection, ensureStudioUploadAdventure, mediaById, saveWorkingVersion, updateAdventure, updateMediaDetails, workingVersionById } from './lib/media-db.mjs'
 import { MAX_ADVENTURE_PHOTO_BYTES, MAX_ADVENTURE_VIDEO_BYTES, MAX_ADVENTURE_VIDEO_SECONDS, MAX_DIRECT_PHOTO_BYTES, VIDEO_CHUNK_BYTES, validAdventure, validDirectPhoto, validDirectPhotoUpload, validMediaDetails, validVideoUpload, validWorkingVersion } from './lib/media-settings.mjs'
 import { renderWorkingImage, workingFilename } from './lib/media-render.mjs'
 import { inspectR2Object, r2Configured, signedR2Download, signedR2Upload } from './lib/r2-media.mjs'
@@ -63,6 +63,9 @@ export default async (request: Request) => {
       if (user.role !== 'trinitie') return Response.json({ error: 'This upload space belongs to Trinitie.' }, { status: 403, headers: HEADERS })
       return Response.json({ adventure: await ensureStudioUploadAdventure(user.id) }, { headers: HEADERS })
     }
+    if (body.action === 'ensure-media-library-collection') {
+      return Response.json({ adventure: await ensureMediaLibraryCollection(user.id) }, { headers: HEADERS })
+    }
     if (body.action === 'create-direct-photo-upload') {
       if (!validDirectPhotoUpload(body)) return Response.json({ error: `Choose a JPG, PNG, WebP, HEIC, or HEIF photo no larger than ${Math.floor(MAX_ADVENTURE_PHOTO_BYTES / 1024 / 1024)} MB.` }, { status: 400, headers: HEADERS })
       if (!(await adventureUploadAllowed(String(body.adventureId), user))) return Response.json({ error: 'Choose a media collection you can add to.' }, { status: 403, headers: HEADERS })
@@ -92,9 +95,8 @@ export default async (request: Request) => {
       return Response.json({ media: asset }, { status: 201, headers: HEADERS })
     }
     if (body.action === 'create-direct-video-upload') {
-      if (user.role !== 'katie') return Response.json({ error: 'Adventure uploads belong to Katie’s workspace.' }, { status: 403, headers: HEADERS })
       if (!validVideoUpload(body)) return Response.json({ error: `Choose a video up to ${MAX_ADVENTURE_VIDEO_SECONDS} seconds and ${Math.floor(MAX_ADVENTURE_VIDEO_BYTES / 1024 / 1024)} MB.` }, { status: 400, headers: HEADERS })
-      if (!(await adventureExists(String(body.adventureId)))) return Response.json({ error: 'Choose a saved adventure before adding videos.' }, { status: 400, headers: HEADERS })
+      if (!(await adventureUploadAllowed(String(body.adventureId), user))) return Response.json({ error: 'Choose a media collection you can add to.' }, { status: 403, headers: HEADERS })
       if (!r2Configured()) return Response.json({ mode: 'chunked' }, { headers: HEADERS })
       const uploadId = randomUUID(), objectKey = `r2/originals/${String(body.adventureId)}/${uploadId}`
       const session = {
@@ -121,9 +123,8 @@ export default async (request: Request) => {
       return Response.json({ media: asset }, { status: 201, headers: HEADERS })
     }
     if (body.action === 'start-video-upload') {
-      if (user.role !== 'katie') return Response.json({ error: 'Adventure uploads belong to Katie’s workspace.' }, { status: 403, headers: HEADERS })
       if (!validVideoUpload(body)) return Response.json({ error: `Choose a video up to ${MAX_ADVENTURE_VIDEO_SECONDS} seconds and ${Math.floor(MAX_ADVENTURE_VIDEO_BYTES / 1024 / 1024)} MB.` }, { status: 400, headers: HEADERS })
-      if (!(await adventureExists(String(body.adventureId)))) return Response.json({ error: 'Choose a saved adventure before adding videos.' }, { status: 400, headers: HEADERS })
+      if (!(await adventureUploadAllowed(String(body.adventureId), user))) return Response.json({ error: 'Choose a media collection you can add to.' }, { status: 403, headers: HEADERS })
       const uploadId = randomUUID()
       const session = {
         uploadId,

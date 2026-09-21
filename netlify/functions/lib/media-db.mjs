@@ -5,7 +5,7 @@ function db() { return getDatabase() }
 
 export async function adventuresWithMedia() {
   const [adventures, media, workingVersions] = await Promise.all([
-    db().pool.query(`SELECT a.*, COUNT(m.id)::int AS media_count FROM adventures a LEFT JOIN media_assets m ON m.adventure_id = a.id AND m.status = 'ready' GROUP BY a.id ORDER BY a.captured_at DESC, a.created_at DESC`),
+    db().pool.query(`SELECT a.*, COUNT(m.id)::int AS media_count FROM adventures a LEFT JOIN media_assets m ON m.adventure_id = a.id AND m.status = 'ready' WHERE a.title <> 'Media Library uploads' GROUP BY a.id ORDER BY a.captured_at DESC, a.created_at DESC`),
     db().pool.query(`SELECT m.*, COUNT(u.id)::int AS usage_count
       FROM media_assets m
       LEFT JOIN media_usage u ON u.media_id = m.id
@@ -45,12 +45,27 @@ export async function ensureStudioUploadAdventure(userId) {
   return result.rows[0]
 }
 
+export async function ensureMediaLibraryCollection(userId) {
+  const existing = await db().pool.query(
+    `SELECT * FROM adventures WHERE created_by = $1 AND title = 'Media Library uploads' ORDER BY created_at DESC LIMIT 1`,
+    [userId],
+  )
+  if (existing.rows[0]) return existing.rows[0]
+  const result = await db().pool.query(
+    `INSERT INTO adventures (id, title, notes, private_location, captured_at, assigned_to, status, platforms, created_by)
+     VALUES ($1, 'Media Library uploads', 'Original past photos and videos saved directly to the private Media Library.', '', CURRENT_DATE, 'Katie', 'Draft', '[]'::jsonb, $2)
+     RETURNING *`,
+    [randomUUID(), userId],
+  )
+  return result.rows[0]
+}
+
 export async function adventureUploadAllowed(id, user) {
   if (user.role === 'katie') return adventureExists(id)
   const result = await db().pool.query(
     `SELECT EXISTS (
        SELECT 1 FROM adventures
-        WHERE id = $1 AND created_by = $2 AND title = 'Trinitie finished edits'
+        WHERE id = $1 AND created_by = $2 AND title IN ('Trinitie finished edits', 'Media Library uploads')
      ) AS found`,
     [id, user.id],
   )

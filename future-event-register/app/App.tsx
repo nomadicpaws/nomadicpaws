@@ -81,6 +81,14 @@ function paymentDate(value: string) {
   return new Date(value).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 }
 
+function saleRequestId() {
+  const bytes = Crypto.getRandomBytes(16)
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80
+  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 function monthCells(monthOffset: number) {
   const today = new Date()
   const first = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1)
@@ -370,13 +378,13 @@ function Register({ token }: { token: string }) {
     try {
       if (paymentMethod === 'cash') {
         setMessage('Recording cash and updating stock…')
-        const result = await createCashSale(token, cartItems, Crypto.randomUUID(), cashTendered)
+        const result = await createCashSale(token, cartItems, saleRequestId(), cashTendered)
         setCart({}); setCashTendered(''); await Promise.all([refresh(), refreshSales(true)])
         setMessage('')
         setLastResult({ status: 'success', title: 'Cash sale complete', detail: `${money(result.sale.total_cents)} paid in cash · ${money(result.changeDueCents)} change due. Inventory has been updated.` })
         return
       }
-      const sale = await createSale(token, cartItems, Crypto.randomUUID())
+      const sale = await createSale(token, cartItems, saleRequestId())
       await setReaderDisplay({ currency: 'usd', tax: sale.taxCents, total: sale.totalCents, lineItems: cartItems.map((item) => { const product = products.find((entry) => entry.sku === item.sku)!; return { displayName: product.name, quantity: item.quantity, amount: product.unitPriceCents * item.quantity } }) }).catch(() => ({ error: undefined }))
       const retrieved = await retrievePaymentIntent(sale.clientSecret)
       if (retrieved.error || !retrieved.paymentIntent) throw retrieved.error || new Error('Stripe could not open the test payment.')

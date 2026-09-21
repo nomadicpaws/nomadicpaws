@@ -177,6 +177,13 @@ export async function ensureStudioUploadAdventure(token: string) {
   return data.adventure
 }
 
+export async function ensureMediaLibraryCollection(token: string) {
+  const data = await request<{ adventure: SharedAdventure }>('/api/app/media', token, {
+    method: 'POST', body: JSON.stringify({ action: 'ensure-media-library-collection' }),
+  })
+  return data.adventure
+}
+
 export async function updateSharedAdventure(token: string, adventureId: string, input: { title: string; notes: string; privateLocation: string }) {
   const data = await request<{ adventure: SharedAdventure }>('/api/app/media', token, { method: 'POST', body: JSON.stringify({ action: 'update-adventure', adventureId, ...input }) })
   return data.adventure
