@@ -35,7 +35,6 @@ import {
   createJournalStory,
   createSharedAdventure,
   ensureMediaLibraryCollection,
-  ensureStudioUploadAdventure,
   JournalContribution,
   JournalReviewNote,
   JournalStory,
@@ -3712,6 +3711,9 @@ function NewAdventure({
       contentContainerStyle={styles.page}
       keyboardShouldPersistTaps="handled"
     >
+      <Pressable onPress={onCancel} accessibilityRole="button">
+        <Text style={styles.backText}>‹ Today</Text>
+      </Pressable>
       <Text style={styles.eyebrow}>ADVENTURE INBOX</Text>
       <Text style={styles.pageTitle}>{adventure ? `Add to ${adventure.title}.` : "Capture it while it’s fresh."}</Text>
       <Text style={styles.copy}>
@@ -4070,7 +4072,7 @@ function InstagramPostEditor({
     setUploadingOwnPhoto(true);
     setHandoffMessage(`Adding ${result.assets.length} finished ${result.assets.length === 1 ? "photo" : "photos"}…`);
     try {
-      const collection = await ensureStudioUploadAdventure(token);
+      const collection = await ensureMediaLibraryCollection(token);
       for (const [index, picked] of result.assets.entries()) {
         const info = await FileSystem.getInfoAsync(picked.uri);
         const uploaded = await uploadAdventurePhoto(token, collection.id, {
@@ -4236,6 +4238,12 @@ function InstagramPostEditor({
           </SafeAreaView>
         ) : null}
       </Modal>
+      <Pressable
+        onPress={() => persistInstagramLocal().finally(onCancel)}
+        accessibilityRole="button"
+      >
+        <Text style={styles.backText}>‹ Instagram Studio</Text>
+      </Pressable>
       <Text style={styles.eyebrow}>CLOUD POST DRAFT</Text>
       <Text style={styles.pageTitle}>
         {post ? "Keep shaping it." : "Prepare a post."}
@@ -4340,7 +4348,7 @@ function InstagramPostEditor({
               </Text>
             </Pressable>
             <Pressable onPress={() => setEditingPhoto(asset)} style={styles.instagramEditPhoto}>
-              <Text style={styles.instagramEditPhotoText}>Edit first</Text>
+              <Text style={styles.instagramEditPhotoText}>Crop / watermark</Text>
             </Pressable>
           </View>
         ))}
@@ -4804,6 +4812,24 @@ function InstagramStudio({
       updatedAt: new Date().toISOString(),
     });
   }
+  if (editingPost !== undefined) {
+    return (
+      <ScrollView
+        contentContainerStyle={styles.page}
+        keyboardShouldPersistTaps="handled"
+      >
+        <InstagramPostEditor
+          token={token}
+          person={person}
+          rhythm={rhythm}
+          post={editingPost || undefined}
+          media={studioMedia}
+          onCancel={() => setEditingPost(undefined)}
+          onSaved={acceptSavedPost}
+        />
+      </ScrollView>
+    );
+  }
   return (
     <ScrollView
       contentContainerStyle={styles.page}
@@ -4836,18 +4862,7 @@ function InstagramStudio({
           <Text style={styles.instagramPreviewButtonText}>Shared previews</Text>
         </Pressable>
       </View>
-      {editingPost !== undefined ? (
-        <InstagramPostEditor
-          token={token}
-          person={person}
-          rhythm={rhythm}
-          post={editingPost || undefined}
-          media={studioMedia}
-          onCancel={() => setEditingPost(undefined)}
-          onSaved={acceptSavedPost}
-        />
-      ) : (
-        <>
+      <>
           <View style={styles.listHeading}>
             <Text style={styles.listTitle}>Prepared posts</Text>
             <Pressable onPress={() => setEditingPost(null)}>
@@ -4884,8 +4899,7 @@ function InstagramStudio({
               </Text>
             </View>
           )}
-        </>
-      )}
+      </>
       {templates.length && importMessage ? (
         <Text style={styles.importMessage}>{importMessage}</Text>
       ) : null}
@@ -6938,6 +6952,12 @@ function MediaLibrary({
         {selected ? (
           <View style={styles.mediaModalBackdrop}>
             <ScrollView contentContainerStyle={styles.mediaModal}>
+              <Pressable
+                onPress={() => setSelected(null)}
+                accessibilityRole="button"
+              >
+                <Text style={styles.backText}>‹ Media Library</Text>
+              </Pressable>
               {selected.kind === "video" ? (
                 <SharedVideoPreview token={token} asset={selected} />
               ) : (
