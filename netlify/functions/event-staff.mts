@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { createEventStaff, listEventStaff, setEventStaffActive } from './lib/event-staff-db.mjs'
+import { createEventStaff, getEventStaffCode, listEventStaff, rotateEventStaffCode, setEventStaffActive } from './lib/event-staff-db.mjs'
 import { errorResponse, json, readJson, requireEventOwner, requireTestMode } from './lib/event-http.mjs'
 
 export default async (request: Request) => {
@@ -17,6 +17,12 @@ export default async (request: Request) => {
     }
     if (input.action === 'set-active' && /^[0-9a-f-]{36}$/i.test(String(input.id || '')) && typeof input.active === 'boolean') {
       return json({ staff: await setEventStaffActive(input.id, input.active) })
+    }
+    if (input.action === 'rotate-code' && /^[0-9a-f-]{36}$/i.test(String(input.id || ''))) {
+      return json(await rotateEventStaffCode(input.id))
+    }
+    if (input.action === 'view-code' && /^[0-9a-f-]{36}$/i.test(String(input.id || ''))) {
+      return json(await getEventStaffCode(input.id))
     }
     return json({ error: 'That staff update is incomplete.' }, 400)
   } catch (error) {

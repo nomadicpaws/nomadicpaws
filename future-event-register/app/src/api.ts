@@ -65,6 +65,7 @@ export type EventStaff = {
   role: 'manager' | 'helper'
   active: boolean
   last_signed_in_at?: string | null
+  has_saved_code?: boolean
 }
 
 export type SignedInStaff = { id: string; name: string; permission: 'owner' | 'manager' | 'helper' }
@@ -104,6 +105,18 @@ export async function createEventStaff(token: string, name: string, role: EventS
 export async function setEventStaffActive(token: string, id: string, active: boolean) {
   return request<{ staff: EventStaff }>('/api/event/staff', token, {
     method: 'POST', body: JSON.stringify({ action: 'set-active', id, active }),
+  })
+}
+
+export async function rotateEventStaffCode(token: string, id: string) {
+  return request<{ staff: EventStaff; accessCode: string }>('/api/event/staff', token, {
+    method: 'POST', body: JSON.stringify({ action: 'rotate-code', id }),
+  })
+}
+
+export async function viewEventStaffCode(token: string, id: string) {
+  return request<{ displayName: string; accessCode: string }>('/api/event/staff', token, {
+    method: 'POST', body: JSON.stringify({ action: 'view-code', id }),
   })
 }
 

@@ -35,10 +35,12 @@ import {
   loadProducts,
   loadSaleHistory,
   loadSaleStatus,
+  rotateEventStaffCode,
   saveCalendar,
   saveChecklistItem,
   setEventStaffActive,
   SignedInStaff,
+  viewEventStaffCode,
 } from './src/api'
 
 const SESSION_KEY = 'nomadic-paws-event-session'
@@ -423,7 +425,7 @@ function StaffAccess({ token }: { token: string }) {
       setStaff((current) => [result.staff, ...current])
       setNewCode(result.accessCode)
       setName('')
-      Alert.alert('Private access code created', `${result.staff.display_name}: ${result.accessCode}\n\nThis is shown only now. Send it privately.`)
+      Alert.alert('Private access code created', `${result.staff.display_name}: ${result.accessCode}\n\nYou can tap their name to view this same code again.`)
     } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'That helper could not be added.') }
     finally { setBusy(false) }
   }
@@ -433,6 +435,44 @@ function StaffAccess({ token }: { token: string }) {
       const result = await setEventStaffActive(token, item.id, !item.active)
       setStaff((current) => current.map((entry) => entry.id === item.id ? result.staff : entry))
     } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'That access could not be changed.') }
+    finally { setBusy(false) }
+  }
+  function resetCode(item: EventStaff) {
+    Alert.alert(
+      `Create a new code for ${item.display_name}?`,
+      'Only use this if their current code is lost or compromised. Their current code will stop working immediately.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Create new code', style: 'destructive', onPress: async () => {
+          setBusy(true); setMessage(''); setNewCode('')
+          try {
+            const result = await rotateEventStaffCode(token, item.id)
+            setStaff((current) => current.map((entry) => entry.id === item.id ? result.staff : entry))
+            setNewCode(result.accessCode)
+            Alert.alert('New private access code', `${result.staff.display_name}: ${result.accessCode}\n\nThe previous code no longer works. This new code will remain viewable from their name.`)
+          } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'A replacement code could not be created.') }
+          finally { setBusy(false) }
+        } },
+      ],
+    )
+  }
+  async function viewCode(item: EventStaff) {
+    if (!item.has_saved_code) {
+      Alert.alert(
+        `${item.display_name} has an older code`,
+        'That code was created before reusable viewing was added. Reset it once, and the new code will remain available here afterward.',
+        [{ text: 'Cancel', style: 'cancel' }, { text: 'Reset code once', onPress: () => resetCode(item) }],
+      )
+      return
+    }
+    setBusy(true); setMessage('')
+    try {
+      const result = await viewEventStaffCode(token, item.id)
+      Alert.alert(`${result.displayName}’s access code`, result.accessCode, [
+        { text: 'Done' },
+        { text: 'Reset code', style: 'destructive', onPress: () => resetCode(item) },
+      ])
+    } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'That code could not be displayed.') }
     finally { setBusy(false) }
   }
   return (
@@ -447,11 +487,11 @@ function StaffAccess({ token }: { token: string }) {
         <View style={styles.choices}>{(['helper', 'manager'] as const).map((item) => <Pressable key={item} onPress={() => setRole(item)} style={[styles.choice, role === item && styles.choiceActive]}><Text style={[styles.choiceText, role === item && styles.choiceTextActive]}>{item === 'manager' ? 'Manager' : 'Event helper'}</Text></Pressable>)}</View>
         <Text style={styles.cardCopy}>{role === 'manager' ? 'Managers can run the register and calendar.' : 'Helpers can run the register and use the calendar. Only Katie manages staff.'}</Text>
         <Pressable disabled={busy} onPress={add} style={[styles.primary, busy && styles.disabled]}><Text style={styles.primaryText}>{busy ? 'Saving…' : 'Create private access code'}</Text></Pressable>
-        {newCode ? <View style={styles.codeCard}><Text style={styles.eyebrow}>SHOW ONCE</Text><Text selectable style={styles.codeText}>{newCode}</Text><Text style={styles.cardCopy}>Send this privately. The app stores only a protected hash, so the code cannot be looked up later.</Text></View> : null}
+        {newCode ? <View style={styles.codeCard}><Text style={styles.eyebrow}>ACCESS CODE</Text><Text selectable style={styles.codeText}>{newCode}</Text><Text style={styles.cardCopy}>This stays the same. Tap the person below whenever you need to see it again.</Text></View> : null}
         {message ? <Text style={styles.error}>{message}</Text> : null}
       </View>
       <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>People with access</Text><Pressable onPress={refresh}><Text style={styles.link}>Refresh</Text></Pressable></View>
-      {staff.map((item) => <View key={item.id} style={styles.eventCard}><View style={styles.grow}><Text style={styles.cardTitle}>{item.display_name}</Text><Text style={styles.meta}>{item.role === 'manager' ? 'Manager' : 'Event helper'} · {item.active ? 'Active' : 'Paused'}</Text>{item.last_signed_in_at ? <Text style={styles.cardCopy}>Last used {new Date(item.last_signed_in_at).toLocaleDateString()}</Text> : null}</View><Pressable disabled={busy} onPress={() => toggle(item)} style={styles.staffToggle}><Text style={styles.link}>{item.active ? 'Pause' : 'Restore'}</Text></Pressable></View>)}
+      {staff.map((item) => <View key={item.id} style={styles.eventCard}><Pressable disabled={busy} onPress={() => viewCode(item)} style={styles.grow}><Text style={styles.cardTitle}>{item.display_name}</Text><Text style={styles.meta}>{item.role === 'manager' ? 'Manager' : 'Event helper'} · {item.active ? 'Active' : 'Paused'}</Text>{item.last_signed_in_at ? <Text style={styles.cardCopy}>Last used {new Date(item.last_signed_in_at).toLocaleDateString()}</Text> : null}<Text style={styles.staffHint}>Tap to view access code</Text></Pressable><Pressable disabled={busy} onPress={() => toggle(item)} style={styles.staffToggle}><Text style={styles.link}>{item.active ? 'Pause' : 'Restore'}</Text></Pressable></View>)}
     </ScrollView>
   )
 }
@@ -506,6 +546,6 @@ const styles = StyleSheet.create({
   cartMethodLabel: { marginTop: 16, marginBottom: 7, color: colors.sand, fontSize: 13, fontWeight: '900' }, cartChoices: { flexDirection: 'row', gap: 8 }, cartChoice: { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 14, borderWidth: 1, borderColor: colors.barkSoft }, cartChoiceActive: { backgroundColor: colors.white, borderColor: colors.white }, cartChoiceText: { color: colors.sand, fontWeight: '900' }, cartChoiceTextActive: { color: colors.bark }, cashInput: { minHeight: 50, paddingHorizontal: 15, borderRadius: 14, backgroundColor: colors.white, color: colors.bark, fontSize: 20, fontWeight: '900' }, cartHint: { marginTop: 7, color: colors.sandDeep, fontSize: 12, lineHeight: 17 },
   paymentResult: { marginTop: 14, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, borderWidth: 1 }, paymentResultSuccess: { backgroundColor: '#eef3e9', borderColor: colors.sage }, paymentResultPending: { backgroundColor: colors.sand, borderColor: colors.sandDeep }, paymentResultError: { backgroundColor: '#faeeeb', borderColor: '#d9a49c' }, paymentResultIcon: { width: 32, height: 32, borderRadius: 16, overflow: 'hidden', textAlign: 'center', textAlignVertical: 'center', backgroundColor: colors.white, color: colors.bark, fontSize: 19, fontWeight: '900' },
   historyHelp: { marginTop: -4, marginBottom: 12, color: colors.barkSoft, fontSize: 13, lineHeight: 18 }, paymentCard: { marginBottom: 10, padding: 15, flexDirection: 'row', alignItems: 'flex-start', gap: 12, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, paymentStatusDot: { width: 11, height: 11, marginTop: 5, borderRadius: 6 }, dotSuccess: { backgroundColor: colors.sageDeep }, dotPending: { backgroundColor: '#c69b46' }, dotError: { backgroundColor: colors.red }, paymentAmount: { marginLeft: 'auto', fontWeight: '900', color: colors.bark }, receiptItems: { marginTop: 7, color: colors.barkSoft, fontSize: 12, fontWeight: '700' },
-  codeCard: { marginTop: 16, padding: 16, borderRadius: 18, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, codeText: { marginTop: 8, fontSize: 28, letterSpacing: 4, fontWeight: '900', color: colors.bark }, staffToggle: { paddingHorizontal: 12, paddingVertical: 10 },
+  codeCard: { marginTop: 16, padding: 16, borderRadius: 18, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, codeText: { marginTop: 8, fontSize: 28, letterSpacing: 4, fontWeight: '900', color: colors.bark }, staffToggle: { paddingHorizontal: 12, paddingVertical: 10 }, staffHint: { marginTop: 6, color: colors.terracottaDeep, fontSize: 11, fontWeight: '800' },
   tabs: { minHeight: 68, flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.sandDeep, backgroundColor: colors.white }, tab: { flex: 1, alignItems: 'center', justifyContent: 'center' }, tabText: { fontWeight: '900', color: colors.barkSoft }, tabTextActive: { color: colors.terracottaDeep },
 })
