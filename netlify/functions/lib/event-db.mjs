@@ -5,15 +5,15 @@ function db() {
   return getDatabase();
 }
 
-export async function createSaleRecord(sale, items) {
+export async function createSaleRecord(sale, items, paymentMethod = "stripe_terminal") {
   const client = await db().pool.connect();
   try {
     await client.query("BEGIN");
     const inserted = await client.query(
-      `INSERT INTO event_sales (id, status, mode, subtotal_cents, tax_cents, total_cents)
-       VALUES ($1, 'payment_pending', 'test', $2, $3, $4)
+      `INSERT INTO event_sales (id, status, mode, subtotal_cents, tax_cents, total_cents, payment_method)
+       VALUES ($1, 'payment_pending', 'test', $2, $3, $4, $5)
        ON CONFLICT (id) DO NOTHING RETURNING id`,
-      [sale.id, sale.subtotalCents, sale.taxCents, sale.totalCents],
+      [sale.id, sale.subtotalCents, sale.taxCents, sale.totalCents, paymentMethod],
     );
     if (!inserted.rowCount) {
       const error = new Error("This sale request was already received. Check its status instead of charging again.");
@@ -64,7 +64,8 @@ export async function markSalePaymentFailed(saleId, message) {
 export async function getSale(saleId) {
   const result = await db().pool.query(
     `SELECT id, status, mode, currency, subtotal_cents, tax_cents, total_cents,
-            stripe_payment_intent_id, created_at, updated_at
+            stripe_payment_intent_id, payment_method, cash_tendered_cents, change_due_cents,
+            created_at, updated_at
        FROM event_sales WHERE id = $1`,
     [saleId],
   );
@@ -74,7 +75,8 @@ export async function getSale(saleId) {
 export async function listSales(limit = 25) {
   const result = await db().pool.query(
     `SELECT s.id, s.status, s.mode, s.currency, s.subtotal_cents, s.tax_cents,
-            s.total_cents, s.stripe_payment_intent_id, s.created_at, s.updated_at,
+            s.total_cents, s.stripe_payment_intent_id, s.payment_method,
+            s.cash_tendered_cents, s.change_due_cents, s.created_at, s.updated_at,
             COALESCE(
               json_agg(
                 json_build_object(
@@ -94,6 +96,43 @@ export async function listSales(limit = 25) {
     [Math.max(1, Math.min(Number(limit) || 25, 100))],
   );
   return result.rows;
+}
+
+export async function recordCashPayment(saleId, tenderedCents, effects) {
+  const client = await db().pool.connect();
+  try {
+    await client.query("BEGIN");
+    const sale = await client.query(
+      `UPDATE event_sales
+          SET status = 'paid', cash_tendered_cents = $2,
+              change_due_cents = $2 - total_cents, updated_at = NOW()
+        WHERE id = $1 AND status = 'payment_pending' AND payment_method = 'cash'
+          AND $2 >= total_cents
+        RETURNING id, total_cents, change_due_cents`,
+      [saleId, tenderedCents],
+    );
+    if (!sale.rowCount) throw Object.assign(new Error("Cash received must cover the sale total."), { status: 400 });
+    for (const effect of effects) {
+      await client.query(
+        `INSERT INTO event_inventory_adjustments
+          (id, sale_id, stripe_event_id, sku, snipcart_product_id, quantity_delta, status)
+         VALUES ($1, $2, NULL, $3, $4, $5, 'pending') ON CONFLICT (sale_id, sku) DO NOTHING`,
+        [randomUUID(), saleId, effect.sku, effect.snipcartId, -effect.quantity],
+      );
+    }
+    await client.query(
+      `INSERT INTO event_audit_log (correlation_id, sale_id, action, status, detail)
+       VALUES ($1, $1, 'cash.payment.recorded', 'ok', $2::jsonb)`,
+      [saleId, JSON.stringify({ tenderedCents, changeDueCents: sale.rows[0].change_due_cents })],
+    );
+    await client.query("COMMIT");
+    return sale.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function recordSuccessfulPayment(event, rawBody, effects) {

@@ -36,6 +36,9 @@ export type EventSaleHistory = {
   tax_cents: number
   total_cents: number
   stripe_payment_intent_id?: string | null
+  payment_method: 'stripe_terminal' | 'cash'
+  cash_tendered_cents?: number | null
+  change_due_cents?: number | null
   created_at: string
   updated_at: string
   items: Array<{ sku: string; name: string; quantity: number; unitPriceCents: number }>
@@ -102,6 +105,12 @@ export async function createSale(token: string, items: Array<{ sku: string; quan
   return request<EventSale>('/api/event/sales', token, {
     method: 'POST',
     body: JSON.stringify({ items, requestId }),
+  })
+}
+
+export async function createCashSale(token: string, items: Array<{ sku: string; quantity: number }>, requestId: string, cashTendered: string) {
+  return request<{ sale: EventSaleHistory; changeDueCents: number }>('/api/event/sales/cash', token, {
+    method: 'POST', body: JSON.stringify({ items, requestId, cashTendered }),
   })
 }
 
