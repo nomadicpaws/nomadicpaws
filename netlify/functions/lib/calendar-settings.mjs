@@ -6,5 +6,6 @@ export function validCalendarEvent(input = {}) {
     && typeof input.eventDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input.eventDate)
     && typeof (input.location || '') === 'string' && String(input.location || '').length <= 240
     && typeof (input.notes || '') === 'string' && String(input.notes || '').length <= 2000
+    && typeof (input.cheetoAttending ?? false) === 'boolean'
     && statuses.includes(input.status)
 }

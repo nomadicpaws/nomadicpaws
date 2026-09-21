@@ -17,11 +17,12 @@ export type CalendarEvent = {
   notes: string
   status: 'Planned' | 'Confirmed' | 'Done' | 'Canceled'
   created_by: 'Katie' | 'Trinitie'
-  checklist: Array<{ id: string; label: string; completed: boolean }>
+  cheeto_attending: boolean
+  checklist: Array<{ id: string; label: string; completed: boolean; assignedTo: string; cheetoOnly: boolean }>
 }
 
-export async function saveChecklistItem(token: string, eventId: string, input: { id?: string; label: string; completed: boolean }) {
-  const data = await request<{ item: { id: string; event_id: string; label: string; completed: boolean } }>('/api/app/calendar', token, {
+export async function saveChecklistItem(token: string, eventId: string, input: { id?: string; label: string; completed: boolean; assignedTo?: string; cheetoOnly?: boolean }) {
+  const data = await request<{ item: { id: string; event_id: string; label: string; completed: boolean; assignedTo: string; cheetoOnly: boolean } }>('/api/app/calendar', token, {
     method: 'POST', body: JSON.stringify({ action: 'save-checklist-item', eventId, ...input }),
   })
   return data.item
@@ -137,7 +138,7 @@ export async function loadSaleHistory(token: string, limit = 25) {
 }
 
 export async function loadCalendar(token: string) {
-  return request<{ events: CalendarEvent[] }>('/api/app/calendar', token)
+  return request<{ events: CalendarEvent[]; assignees: string[] }>('/api/app/calendar', token)
 }
 
 export async function saveCalendar(token: string, input: {
@@ -147,6 +148,7 @@ export async function saveCalendar(token: string, input: {
   location: string
   notes: string
   status: CalendarEvent['status']
+  cheetoAttending: boolean
 }) {
   const data = await request<{ event: CalendarEvent }>('/api/app/calendar', token, {
     method: 'POST',
