@@ -172,10 +172,22 @@ function Calendar({ token }: { token: string }) {
     setMessage('')
     setOpen(true)
   }
-  function chooseCalendarDate(value: string) {
+  function chooseCalendarDate(value: string, dayEvents: CalendarEvent[]) {
     if (open) {
       setEventDate(value)
       setMessage('')
+      return
+    }
+    if (dayEvents.length) {
+      Alert.alert(
+        'Events on this date',
+        'Open an event to edit it, or add another one.',
+        [
+          ...dayEvents.slice(0, 2).map((event) => ({ text: `Edit ${event.title}`, onPress: () => edit(event) })),
+          { text: 'Add another event', onPress: () => edit(undefined, value) },
+          { text: 'Cancel', style: 'cancel' as const },
+        ],
+      )
       return
     }
     edit(undefined, value)
@@ -224,7 +236,7 @@ function Calendar({ token }: { token: string }) {
       <Text style={styles.eyebrow}>SHARED EVENT CALENDAR</Text>
       <Text style={styles.pageTitle}>Plan once. See it everywhere.</Text>
       <Text style={styles.copy}>Events saved here appear on the same calendar used by the Creative Studio.</Text>
-      {(() => { const month = monthCells(monthOffset); return <View style={styles.monthCard}><View style={styles.monthHeader}><Pressable onPress={() => setMonthOffset((value) => value - 1)}><Text style={styles.monthArrow}>‹</Text></Pressable><Text style={styles.monthTitle}>{month.label}</Text><Pressable onPress={() => setMonthOffset((value) => value + 1)}><Text style={styles.monthArrow}>›</Text></Pressable></View><View style={styles.weekRow}>{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => <Text key={`${day}-${index}`} style={styles.weekDay}>{day}</Text>)}</View><View style={styles.monthGrid}>{month.cells.map((cell) => { const dayEvents = cell.day ? events.filter((event) => event.event_date.match(/^\d{4}-\d{2}-\d{2}/)?.[0] === cell.key) : []; const selected = open && cell.key === eventDate; return cell.day ? <Pressable accessibilityRole="button" accessibilityLabel={`${open ? 'Select' : 'Add event on'} ${cell.key}`} key={cell.key} onPress={() => chooseCalendarDate(cell.key)} style={({ pressed }) => [styles.dayCell, selected && styles.dayCellSelected, pressed && styles.dayCellPressed]}><Text style={[styles.dayNumber, selected && styles.dayNumberSelected]}>{cell.day}</Text><Text numberOfLines={1} style={[styles.dayMarks, selected && styles.dayNumberSelected]}>{dayEvents.some((event) => event.cheeto_attending) ? '🐱' : dayEvents.length ? '•' : '+'}</Text></Pressable> : <View key={cell.key} style={styles.dayCell} /> })}</View><Text style={styles.calendarLegend}>{open ? 'Tap a date to change this event’s date' : 'Tap a date to add an event'} · 🐱 Cheeto attending · • Event</Text></View> })()}
+      {(() => { const month = monthCells(monthOffset); return <View style={styles.monthCard}><View style={styles.monthHeader}><Pressable onPress={() => setMonthOffset((value) => value - 1)}><Text style={styles.monthArrow}>‹</Text></Pressable><Text style={styles.monthTitle}>{month.label}</Text><Pressable onPress={() => setMonthOffset((value) => value + 1)}><Text style={styles.monthArrow}>›</Text></Pressable></View><View style={styles.weekRow}>{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => <Text key={`${day}-${index}`} style={styles.weekDay}>{day}</Text>)}</View><View style={styles.monthGrid}>{month.cells.map((cell) => { const dayEvents = cell.day ? events.filter((event) => event.event_date.match(/^\d{4}-\d{2}-\d{2}/)?.[0] === cell.key) : []; const selected = open && cell.key === eventDate; return cell.day ? <Pressable accessibilityRole="button" accessibilityLabel={`${open ? 'Select' : dayEvents.length ? 'Open events on' : 'Add event on'} ${cell.key}`} key={cell.key} onPress={() => chooseCalendarDate(cell.key, dayEvents)} style={({ pressed }) => [styles.dayCell, selected && styles.dayCellSelected, pressed && styles.dayCellPressed]}><Text style={[styles.dayNumber, selected && styles.dayNumberSelected]}>{cell.day}</Text><Text numberOfLines={1} style={[styles.dayMarks, selected && styles.dayNumberSelected]}>{dayEvents.some((event) => event.cheeto_attending) ? '🐱' : dayEvents.length ? '•' : '+'}</Text></Pressable> : <View key={cell.key} style={styles.dayCell} /> })}</View><Text style={styles.calendarLegend}>{open ? 'Tap a date to change this event’s date' : 'Tap a date to add or edit events'} · 🐱 Cheeto attending · • Event</Text></View> })()}
       <Pressable onPress={() => open ? setOpen(false) : edit()} style={styles.secondary}><Text style={styles.secondaryText}>{open ? 'Close planner' : '+ Plan an event'}</Text></Pressable>
       {open ? (
         <View style={styles.formCard}>
