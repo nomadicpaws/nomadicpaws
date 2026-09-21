@@ -3115,6 +3115,7 @@ function Today({
   const [rhythm, setRhythm] = useState<InstagramDay[]>(initialInstagramRhythm);
   const [posts, setPosts] = useState<InstagramPostDraft[]>([]);
   const [reviewStories, setReviewStories] = useState<JournalStory[]>([]);
+  const [events, setEvents] = useState<SharedCalendarEvent[]>([]);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [loadMessage, setLoadMessage] = useState("");
   const [startingJournal, setStartingJournal] = useState("");
@@ -3132,12 +3133,14 @@ function Today({
     setLoadState("loading");
     setLoadMessage("");
     try {
-      const [instagram, journal] = await Promise.all([
+      const [instagram, journal, calendar] = await Promise.all([
         loadInstagramStudio(token),
         person === "Trinitie" ? Promise.resolve(null) : loadStories(token),
+        loadCalendarEvents(token),
       ]);
       if (instagram.rhythm) setRhythm(instagram.rhythm);
       setPosts(instagram.posts);
+      setEvents(calendar.events);
       if (journal) setReviewStories(journal.stories.filter((story) =>
         person === "Mom"
           ? story.reviewStatus === "ready_for_mom"
@@ -3162,11 +3165,24 @@ function Today({
   const needsKatie = posts.filter(
     (post) => post.assignedTo === "Katie" && post.status !== "Posted",
   );
+  const eventReminders = events
+    .filter((event) => event.status !== "Canceled")
+    .flatMap((event) => {
+      const stages = [
+        { date: shiftedDateKey(event.event_date, -14), symbol: "◇", label: "Two-week planning" },
+        { date: shiftedDateKey(event.event_date, -1), symbol: "▣", label: "Prepare tomorrow’s event" },
+        { date: dateKeyFrom(event.event_date), symbol: "●", label: "Event today" },
+        { date: shiftedDateKey(event.event_date, 1), symbol: "✓", label: "Event follow-up" },
+      ];
+      return stages
+        .filter((stage) => stage.date === localDateKey())
+        .map((stage) => ({ ...stage, event }));
+    });
   const visibleTodayCount = person === "Trinitie"
-    ? mine.length + posts.filter((post) => post.targetDate === localDateKey() && post.status !== "Posted").length
+    ? mine.length + posts.filter((post) => post.targetDate === localDateKey() && post.status !== "Posted").length + eventReminders.length
     : person === "Mom"
-      ? reviewStories.length + posts.filter((post) => post.sharedWithMom).length
-      : mine.length + needsKatie.length + reviewStories.length;
+      ? reviewStories.length + posts.filter((post) => post.sharedWithMom).length + eventReminders.length
+      : mine.length + needsKatie.length + reviewStories.length + eventReminders.length;
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.todayHeader}>
@@ -3199,6 +3215,33 @@ function Today({
           <Pressable onPress={refreshToday} style={styles.secondary}>
             <Text style={styles.secondaryText}>Try again</Text>
           </Pressable>
+        </View>
+      ) : null}
+      {eventReminders.length ? (
+        <View style={styles.todayEventReminders}>
+          <View style={styles.listHeading}>
+            <Text style={styles.listTitle}>Event reminders</Text>
+            <Text style={styles.listCount}>{eventReminders.length} today</Text>
+          </View>
+          {eventReminders.map(({ event, symbol, label }) => (
+            <Pressable
+              key={`${event.id}-${label}`}
+              onPress={onOpenCalendar}
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${label} for ${event.title} in the shared calendar`}
+              style={styles.todayEventCard}
+            >
+              <Text style={styles.todayEventSymbol}>{symbol}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.preparedPostStatus}>{label.toUpperCase()}</Text>
+                <Text style={styles.preparedPostTitle}>{event.title}</Text>
+                <Text style={styles.preparedPostMeta}>
+                  {[formatAdventureDate(event.event_date), event.location].filter(Boolean).join(" · ")}
+                </Text>
+              </View>
+              <Text style={styles.journalArrow}>›</Text>
+            </Pressable>
+          ))}
         </View>
       ) : null}
       {person === "Katie" ? (
@@ -9560,6 +9603,25 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
+  },
+  todayEventReminders: { marginTop: 5, marginBottom: 17 },
+  todayEventCard: {
+    backgroundColor: "#f7f1e8",
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 17,
+    padding: 15,
+    marginBottom: 9,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  todayEventSymbol: {
+    width: 32,
+    textAlign: "center",
+    fontSize: 25,
+    fontWeight: "900",
+    color: colors.terracottaDeep,
   },
   preparedPostStatus: {
     fontSize: 10,
