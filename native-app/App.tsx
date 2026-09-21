@@ -4015,17 +4015,20 @@ function InstagramPostEditor({
       setSaving(false);
     }
   }
-  async function addMedia(asset: SharedMediaAsset) {
+  async function addMedia(asset: SharedMediaAsset, alreadyFinished = false) {
     setAddingMedia(asset.id);
     setError("");
     try {
       const version = await saveWorkingVersion(token, asset.id, "instagram", {
-        logoColor: "terracotta",
+        logoColor: "none",
         logoSize: "small",
         logoSide: "right",
         focus: "center",
       });
       setMediaUrls((current) => [...current, `working:${version.id}`]);
+      if (alreadyFinished) {
+        setHandoffMessage("Finished photo added as-is with no additional watermark.");
+      }
       if (
         asset.width &&
         asset.height &&
@@ -4079,7 +4082,7 @@ function InstagramPostEditor({
           width: picked.width,
           height: picked.height,
         });
-        await addMedia(uploaded);
+        await addMedia(uploaded, true);
       }
       setHandoffMessage("Your finished photos are in this post and safely saved in the shared Media Library.");
     } catch (reason) {
@@ -4292,8 +4295,8 @@ function InstagramPostEditor({
         <Text style={styles.listCount}>{media.length} available</Text>
       </View>
       <Text style={styles.helperCopy}>
-        Tap a photo to make an Instagram-ready working copy. Katie’s original
-        always stays untouched.
+        Use photo makes an Instagram-ready copy with no watermark. Choose Edit
+        first only when you want to crop it or deliberately add one.
       </Text>
       {person === "Trinitie" ? (
         <Pressable
@@ -4333,7 +4336,7 @@ function InstagramPostEditor({
             ) : null}
             <Pressable disabled={addingMedia === asset.id} onPress={() => addMedia(asset)}>
               <Text style={styles.instagramMediaAdd}>
-                {addingMedia === asset.id ? "Preparing…" : "Use photo"}
+                {addingMedia === asset.id ? "Preparing…" : "Use photo · no watermark"}
               </Text>
             </Pressable>
             <Pressable onPress={() => setEditingPhoto(asset)} style={styles.instagramEditPhoto}>
@@ -6357,7 +6360,7 @@ function WorkingPhotoEditor({
 }) {
   const [destination, setDestination] =
       useState<PhotoDestination>(initialDestination),
-    [logoColor, setLogoColor] = useState<LogoColor>("bark"),
+    [logoColor, setLogoColor] = useState<LogoColor>("none"),
     [logoSize, setLogoSize] = useState<LogoSize>("small"),
     [logoSide, setLogoSide] = useState<LogoSide>("left"),
     [focus, setFocus] = useState<"top" | "center" | "bottom">("center"),
@@ -6508,7 +6511,7 @@ function WorkingPhotoEditor({
               </View>
               <Text style={styles.filterName}>
                 {color === "none"
-                  ? "Original"
+                  ? "No watermark"
                   : color[0]!.toUpperCase() + color.slice(1)}
               </Text>
             </Pressable>
