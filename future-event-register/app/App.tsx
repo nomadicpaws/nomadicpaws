@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -81,21 +81,25 @@ function Login({ onSignedIn }: { onSignedIn: (session: StoredSession) => void })
     }
   }
   return (
-    <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <SafeAreaView style={styles.loginPage}>
-        <Text style={styles.eyebrow}>NOMADIC PAWS EVENTS</Text>
-        <Text style={styles.heroTitle}>Ready when the table is.</Text>
-        <Text style={styles.copy}>Use your own private event code. The app remembers you for the shift, and no live card can be charged in this version.</Text>
-        <View style={styles.loginCard}>
-          <Text style={styles.label}>Seller access code</Text>
-          <TextInput value={code} onChangeText={setCode} secureTextEntry autoCapitalize="none" returnKeyType="go" onSubmitEditing={signIn} placeholder="Enter the private code" placeholderTextColor="#8b8075" style={styles.input} />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Pressable disabled={busy || code.trim().length < 8} onPress={signIn} style={[styles.primary, (busy || code.trim().length < 8) && styles.disabled]}>
-            <Text style={styles.primaryText}>{busy ? 'Opening…' : 'Open event workspace'}</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+    <SafeAreaView style={styles.fill}>
+      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.loginPage} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
+          <View style={styles.loginInner}>
+            <Text style={styles.eyebrow}>NOMADIC PAWS EVENTS</Text>
+            <Text style={styles.heroTitle}>Ready when the table is.</Text>
+            <Text style={styles.copy}>Use your own private event code. The app remembers you for the shift, and no live card can be charged in this version.</Text>
+            <View style={styles.loginCard}>
+              <Text style={styles.label}>Seller access code</Text>
+              <TextInput value={code} onChangeText={setCode} secureTextEntry autoCapitalize="none" returnKeyType="go" onSubmitEditing={signIn} placeholder="Enter the private code" placeholderTextColor="#8b8075" style={styles.input} />
+              {error ? <Text style={styles.error}>{error}</Text> : null}
+              <Pressable disabled={busy || code.trim().length < 8} onPress={signIn} style={[styles.primary, (busy || code.trim().length < 8) && styles.disabled]}>
+                <Text style={styles.primaryText}>{busy ? 'Opening…' : 'Open event workspace'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 
@@ -345,6 +349,15 @@ export default function App() {
   const [session, setSession] = useState<StoredSession>()
   const [restoring, setRestoring] = useState(true)
   const [tab, setTab] = useState<Tab>('Calendar')
+  const terminalTokenProvider = useCallback(async () => {
+    if (!session?.token) throw new Error('Sign in again before opening the event register.')
+    try {
+      return await createTerminalToken(session.token)
+    } catch (reason) {
+      const detail = reason instanceof Error ? reason.message : 'The Stripe test connection is unavailable.'
+      throw new Error(`Stripe test connection could not start. ${detail}`)
+    }
+  }, [session?.token])
   useEffect(() => {
     SecureStore.getItemAsync(SESSION_KEY).then((raw) => {
       if (!raw) return
@@ -360,7 +373,7 @@ export default function App() {
       <StatusBar barStyle="dark-content" />
       <ExpoStatusBar style="dark" />
       <View style={styles.header}><View style={styles.logoMark}><Text style={styles.logoText}>NP</Text></View><View><Text style={styles.headerTitle}>Nomadic Paws</Text><Text style={styles.headerSubtitle}>{session.staff.name} · Events & Mobile Store</Text></View><Pressable onPress={async () => { await SecureStore.deleteItemAsync(SESSION_KEY); setSession(undefined) }} style={styles.signOut}><Text style={styles.signOutText}>Lock</Text></Pressable></View>
-      <View style={styles.body}>{tab === 'Calendar' ? <Calendar token={session.token} /> : tab === 'Staff' ? <StaffAccess token={session.token} /> : <StripeTerminalProvider tokenProvider={() => createTerminalToken(session.token)}><Register token={session.token} /></StripeTerminalProvider>}</View>
+      <View style={styles.body}>{tab === 'Calendar' ? <Calendar token={session.token} /> : tab === 'Staff' ? <StaffAccess token={session.token} /> : <StripeTerminalProvider tokenProvider={terminalTokenProvider}><Register token={session.token} /></StripeTerminalProvider>}</View>
       <View style={styles.tabs}>{(['Calendar', 'Register', ...(session.staff.permission === 'owner' ? ['Staff' as const] : [])] as Tab[]).map((item) => <Pressable key={item} onPress={() => setTab(item)} style={styles.tab}><Text style={[styles.tabText, tab === item && styles.tabTextActive]}>{item}</Text></Pressable>)}</View>
     </SafeAreaView>
   )
@@ -368,7 +381,7 @@ export default function App() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.cream }, center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cream }, body: { flex: 1 }, grow: { flex: 1 }, row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  loginPage: { flex: 1, justifyContent: 'center', padding: 28, backgroundColor: colors.cream }, loginCard: { marginTop: 26, padding: 20, borderRadius: 24, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep },
+  loginPage: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 22, paddingVertical: 28, backgroundColor: colors.cream }, loginInner: { width: '100%', maxWidth: 520, alignSelf: 'center' }, loginCard: { marginTop: 22, padding: 20, borderRadius: 24, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep },
   page: { padding: 24, paddingBottom: 50 }, eyebrow: { fontSize: 12, fontWeight: '900', letterSpacing: 2, color: colors.sageDeep }, heroTitle: { marginTop: 10, fontSize: 42, lineHeight: 46, fontWeight: '900', color: colors.bark }, pageTitle: { marginTop: 7, fontSize: 31, lineHeight: 35, fontWeight: '900', color: colors.bark }, copy: { marginTop: 12, fontSize: 16, lineHeight: 24, color: colors.barkSoft },
   label: { marginTop: 13, marginBottom: 7, fontSize: 13, fontWeight: '900', color: colors.bark }, input: { minHeight: 52, paddingHorizontal: 15, borderRadius: 15, borderWidth: 1, borderColor: colors.sandDeep, backgroundColor: colors.white, fontSize: 16, color: colors.bark }, notes: { minHeight: 100, paddingTop: 14, textAlignVertical: 'top' },
   primary: { marginTop: 16, minHeight: 54, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.terracotta }, primaryText: { fontSize: 16, fontWeight: '900', color: colors.white }, disabled: { opacity: 0.45 }, secondary: { marginTop: 18, minHeight: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.sandDeep, backgroundColor: colors.white }, secondaryText: { fontWeight: '900', color: colors.terracottaDeep }, error: { marginTop: 12, color: colors.red, fontWeight: '700' }, success: { marginTop: 12, color: colors.sageDeep, fontWeight: '800' },
