@@ -5,7 +5,7 @@
     "slug": "cheeto",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon-v2.png",
     "userInterfaceStyle": "light",
     "runtimeVersion": {
       "policy": "appVersion"
@@ -16,7 +16,7 @@
       "fallbackToCacheTimeout": 0
     },
     "splash": {
-      "image": "./assets/icon.png",
+      "image": "./assets/icon-v2.png",
       "resizeMode": "contain",
       "backgroundColor": "#fdfaf5"
     },
@@ -25,7 +25,8 @@
       "usesAppleSignIn": true,
       "bundleIdentifier": "co.nomadicpaws.admin",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Allow Nomadic Paws to use your location only when you choose a location-aware adventure or media feature."
       }
     },
     "plugins": [

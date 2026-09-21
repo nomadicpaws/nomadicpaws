@@ -12,7 +12,9 @@
   "dependencies": {
     "@stripe/stripe-terminal-react-native": "file:../stripe-terminal-react-native",
     "expo": "57.0.15",
+    "expo-calendar": "~57.0.4",
     "expo-crypto": "~57.0.2",
+    "expo-notifications": "~57.0.20",
     "expo-secure-store": "~57.0.2",
     "expo-status-bar": "~3.0.0",
     "expo-updates": "~57.0.23",

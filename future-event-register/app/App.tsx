@@ -17,6 +17,8 @@ import {
 } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import * as Crypto from 'expo-crypto'
+import * as DeviceCalendar from 'expo-calendar/legacy'
+import * as Notifications from 'expo-notifications'
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar'
 import { Reader, StripeTerminalProvider, useStripeTerminal } from '@stripe/stripe-terminal-react-native'
 import {
@@ -41,10 +43,19 @@ import {
   saveChecklistItem,
   setEventStaffActive,
   SignedInStaff,
+  toggleChecklistItem as toggleCalendarChecklistItem,
   viewEventStaffCode,
 } from './src/api'
 
 const SESSION_KEY = 'nomadic-paws-event-session'
+const DEVICE_CALENDAR_KEY = 'nomadic-paws-device-calendar-connected'
+const DEVICE_CALENDAR_ID_KEY = 'nomadic-paws-device-calendar-id'
+const DEVICE_EVENT_PREFIX = 'nomadic-paws-device-event-'
+const EVENT_NOTIFICATION_PREFIX = 'nomadic-paws-event-notifications-'
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
+})
 const colors = {
   cream: '#fdfaf5', sand: '#f4eee1', sandDeep: '#e9dfc8', bark: '#3f352a',
   barkSoft: '#6b5d4c', sage: '#8b9a7c', sageDeep: '#6f7e62',
@@ -165,7 +176,8 @@ function Login({ onSignedIn }: { onSignedIn: (session: StoredSession) => void })
   )
 }
 
-function Calendar({ token }: { token: string }) {
+function Calendar({ token, permission }: { token: string; permission: SignedInStaff['permission'] }) {
+  const canManage = permission === 'owner' || permission === 'manager'
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<CalendarEvent>()
@@ -183,6 +195,12 @@ function Calendar({ token }: { token: string }) {
   const [newChecklistItem, setNewChecklistItem] = useState('')
   const [assignees, setAssignees] = useState<string[]>(['Katie'])
   const [newAssignee, setNewAssignee] = useState('')
+  const [deviceCalendarConnected, setDeviceCalendarConnected] = useState(false)
+  const [deviceEvents, setDeviceEvents] = useState<DeviceCalendar.Event[]>([])
+  const [deviceBusy, setDeviceBusy] = useState(false)
+  const [deviceCalendars, setDeviceCalendars] = useState<DeviceCalendar.Calendar[]>([])
+  const [deviceCalendarId, setDeviceCalendarId] = useState('')
+  const [importedDeviceEventId, setImportedDeviceEventId] = useState('')
 
   async function refresh() {
     setLoading(true)
@@ -191,7 +209,115 @@ function Calendar({ token }: { token: string }) {
     catch (reason) { setMessage(reason instanceof Error ? reason.message : 'The calendar could not load.') }
     finally { setLoading(false) }
   }
-  useEffect(() => { refresh().catch(() => {}) }, [token])
+  useEffect(() => {
+    refresh().catch(() => {})
+    Promise.all([SecureStore.getItemAsync(DEVICE_CALENDAR_KEY), SecureStore.getItemAsync(DEVICE_CALENDAR_ID_KEY)]).then(([connected, savedId]) => {
+      if (connected === 'yes') {
+        setDeviceCalendarConnected(true)
+        loadDeviceCalendars(savedId || '').catch(() => {})
+      }
+    })
+  }, [token])
+  async function loadDeviceCalendars(preferredId = '') {
+    const permission = await DeviceCalendar.getCalendarPermissionsAsync()
+    if (!permission.granted) return
+    const available = (await DeviceCalendar.getCalendarsAsync(DeviceCalendar.EntityTypes.EVENT)).filter((calendar) => calendar.allowsModifications !== false)
+    const defaultCalendar = await DeviceCalendar.getDefaultCalendarAsync()
+    const selected = available.find((calendar) => calendar.id === preferredId) || available.find((calendar) => calendar.id === defaultCalendar.id) || available[0]
+    setDeviceCalendars(available)
+    if (selected) {
+      setDeviceCalendarId(selected.id)
+      await SecureStore.setItemAsync(DEVICE_CALENDAR_ID_KEY, selected.id)
+      await refreshDeviceCalendar(selected.id)
+    }
+  }
+  async function refreshDeviceCalendar(calendarId = deviceCalendarId) {
+    const permission = await DeviceCalendar.getCalendarPermissionsAsync()
+    if (!permission.granted) return
+    const selectedId = calendarId || (await DeviceCalendar.getDefaultCalendarAsync()).id
+    const start = new Date()
+    start.setDate(start.getDate() - 1)
+    const end = new Date()
+    end.setMonth(end.getMonth() + 6)
+    const entries = await DeviceCalendar.getEventsAsync([selectedId], start, end)
+    setDeviceEvents(entries.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()).slice(0, 8))
+  }
+  async function chooseDeviceCalendar(calendarId: string) {
+    setDeviceCalendarId(calendarId)
+    await SecureStore.setItemAsync(DEVICE_CALENDAR_ID_KEY, calendarId)
+    await refreshDeviceCalendar(calendarId)
+  }
+  async function connectDeviceCalendar() {
+    setDeviceBusy(true)
+    setMessage('')
+    try {
+      const calendarPermission = await DeviceCalendar.requestCalendarPermissionsAsync()
+      const notificationPermission = await Notifications.requestPermissionsAsync()
+      if (!calendarPermission.granted) throw new Error('Calendar access was not enabled. You can turn it on later in iPhone Settings.')
+      await SecureStore.setItemAsync(DEVICE_CALENDAR_KEY, 'yes')
+      setDeviceCalendarConnected(true)
+      await loadDeviceCalendars()
+      setMessage(notificationPermission.granted ? 'Your selected device calendar and event reminders are connected.' : 'Your selected device calendar is connected. Notifications remain off.')
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : 'The device calendar could not connect.')
+    } finally {
+      setDeviceBusy(false)
+    }
+  }
+  function importDeviceEvent(event: DeviceCalendar.Event) {
+    const start = new Date(event.startDate)
+    setEditing(undefined)
+    setTitle(event.title || '')
+    setEventDate(dateKey(start))
+    setLocation(event.location || '')
+    setNotes(event.notes || '')
+    setStatus('Planned')
+    setCheetoAttending(false)
+    setChecklist([])
+    setImportedDeviceEventId(event.id)
+    setMessage('Review this calendar event, then save it to share with the team.')
+    setOpen(true)
+  }
+  async function syncDeviceEvent(event: CalendarEvent) {
+    if (!deviceCalendarConnected) return
+    const permission = await DeviceCalendar.getCalendarPermissionsAsync()
+    if (!permission.granted) return
+    const calendarId = deviceCalendarId || (await DeviceCalendar.getDefaultCalendarAsync()).id
+    const startDate = new Date(`${event.event_date.match(/^\d{4}-\d{2}-\d{2}/)?.[0]}T09:00:00`)
+    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
+    const details = { title: event.title, startDate, endDate, location: event.location || undefined, notes: event.notes || undefined }
+    const savedDeviceId = await SecureStore.getItemAsync(`${DEVICE_EVENT_PREFIX}${event.id}`)
+    let deviceId = savedDeviceId
+    if (savedDeviceId) {
+      try { await DeviceCalendar.updateEventAsync(savedDeviceId, details) }
+      catch { deviceId = await DeviceCalendar.createEventAsync(calendarId, details) }
+    } else {
+      deviceId = await DeviceCalendar.createEventAsync(calendarId, details)
+    }
+    if (deviceId) await SecureStore.setItemAsync(`${DEVICE_EVENT_PREFIX}${event.id}`, deviceId)
+    await refreshDeviceCalendar()
+  }
+  async function syncEventNotifications(event: CalendarEvent) {
+    const permission = await Notifications.getPermissionsAsync()
+    if (!permission.granted) return
+    const storageKey = `${EVENT_NOTIFICATION_PREFIX}${event.id}`
+    const existing = JSON.parse((await SecureStore.getItemAsync(storageKey)) || '[]') as string[]
+    await Promise.all(existing.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => {})))
+    const eventKey = event.event_date.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || ''
+    const reminders = [
+      { date: shiftedDateKey(eventKey, -14), title: `Plan for ${event.title}`, body: 'Two-week event checklist is ready.' },
+      { date: shiftedDateKey(eventKey, -1), title: `${event.title} is tomorrow`, body: 'Open the day-before checklist and finish packing.' },
+      { date: eventKey, title: `${event.title} is today`, body: 'Event-day plan, assignments, and register are ready.' },
+      { date: shiftedDateKey(eventKey, 1), title: `Follow up after ${event.title}`, body: 'Record inventory, restock needs, and anything to remember.' },
+    ]
+    const ids: string[] = []
+    for (const reminder of reminders) {
+      const trigger = new Date(`${reminder.date}T09:00:00`)
+      if (trigger.getTime() <= Date.now()) continue
+      ids.push(await Notifications.scheduleNotificationAsync({ content: { title: reminder.title, body: reminder.body, data: { eventId: event.id } }, trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: trigger } }))
+    }
+    await SecureStore.setItemAsync(storageKey, JSON.stringify(ids))
+  }
   function edit(event?: CalendarEvent, requestedDate?: string) {
     setEditing(event)
     setTitle(event?.title || '')
@@ -203,11 +329,12 @@ function Calendar({ token }: { token: string }) {
     setChecklist(event?.checklist || [])
     setNewChecklistItem('')
     setNewAssignee('')
+    setImportedDeviceEventId('')
     setMessage('')
     setOpen(true)
   }
   function chooseCalendarDate(value: string, dayEvents: CalendarEvent[]) {
-    if (open) {
+    if (open && canManage) {
       setEventDate(value)
       setMessage('')
       return
@@ -217,14 +344,14 @@ function Calendar({ token }: { token: string }) {
         'Events on this date',
         'Open an event to edit it, or add another one.',
         [
-          ...dayEvents.slice(0, 2).map((event) => ({ text: `Edit ${event.title}`, onPress: () => edit(event) })),
-          { text: 'Add another event', onPress: () => edit(undefined, value) },
+          ...dayEvents.slice(0, 2).map((event) => ({ text: `${canManage ? 'Edit' : 'Open'} ${event.title}`, onPress: () => edit(event) })),
+          ...(canManage ? [{ text: 'Add another event', onPress: () => edit(undefined, value) }] : []),
           { text: 'Cancel', style: 'cancel' as const },
         ],
       )
       return
     }
-    edit(undefined, value)
+    if (canManage) edit(undefined, value)
   }
   function planningEventsOn(value: string) {
     return events.flatMap((event) =>
@@ -248,7 +375,7 @@ function Calendar({ token }: { token: string }) {
       reminders.map(({ event, stage }) => `${stage.symbol} ${stage.title}: ${event.title}`).join('\n'),
       [
         ...reminders.slice(0, 2).map(({ event }) => ({ text: `Open ${event.title}`, onPress: () => edit(event) })),
-        { text: 'Add an event here', onPress: () => edit(undefined, value) },
+        ...(canManage ? [{ text: 'Add an event here', onPress: () => edit(undefined, value) }] : []),
         { text: 'Cancel', style: 'cancel' as const },
       ],
     )
@@ -277,7 +404,12 @@ function Calendar({ token }: { token: string }) {
       setEvents(result.events); setAssignees(result.assignees)
       const refreshed = result.events.find((item) => item.id === saved.id) || { ...saved, checklist: [] }
       setEditing(refreshed); setChecklist(refreshed.checklist || [])
-      setMessage('Saved to the same calendar used by Studio.')
+      if (importedDeviceEventId) {
+        await SecureStore.setItemAsync(`${DEVICE_EVENT_PREFIX}${refreshed.id}`, importedDeviceEventId)
+        setImportedDeviceEventId('')
+      }
+      await Promise.all([syncDeviceEvent(refreshed), syncEventNotifications(refreshed)])
+      setMessage(deviceCalendarConnected ? 'Saved for the team, your selected calendar, and event reminders.' : 'Saved to the same calendar used by Studio.')
     } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'That event could not be saved.') }
     finally { setSaving(false) }
   }
@@ -294,7 +426,7 @@ function Calendar({ token }: { token: string }) {
   }
   async function toggleChecklistItem(item: CalendarEvent['checklist'][number]) {
     if (!editing?.id) return
-    const updated = await saveChecklistItem(token, editing.id, { ...item, completed: !item.completed })
+    const updated = await toggleCalendarChecklistItem(token, editing.id, item.id, !item.completed)
     setChecklist((current) => current.map((entry) => entry.id === item.id ? updated : entry))
     setEvents((current) => current.map((event) => event.id === editing.id ? { ...event, checklist: (event.checklist || []).map((entry) => entry.id === item.id ? updated : entry) } : event))
   }
@@ -309,23 +441,54 @@ function Calendar({ token }: { token: string }) {
       <Text style={styles.eyebrow}>SHARED EVENT CALENDAR</Text>
       <Text style={styles.pageTitle}>Plan once. See it everywhere.</Text>
       <Text style={styles.copy}>Events saved here appear on the same calendar used by the Creative Studio.</Text>
+      {canManage ? <>
+      <View style={styles.deviceCalendarCard}>
+        <View style={styles.grow}>
+          <Text style={styles.cardTitle}>{deviceCalendarConnected ? 'Phone calendar connected ✓' : 'Connect iCloud or Google Calendar'}</Text>
+          <Text style={styles.cardCopy}>{deviceCalendarConnected ? 'Shared events use the calendar selected below and local planning reminders are scheduled.' : 'Choose any writable iCloud or Google calendar already connected to this phone.'}</Text>
+        </View>
+        <Pressable disabled={deviceBusy} onPress={() => deviceCalendarConnected ? refreshDeviceCalendar() : connectDeviceCalendar()} style={styles.deviceCalendarButton}><Text style={styles.deviceCalendarButtonText}>{deviceBusy ? 'Connecting…' : deviceCalendarConnected ? 'Refresh' : 'Connect'}</Text></Pressable>
+      </View>
+      {deviceCalendarConnected && deviceCalendars.length ? (
+        <View style={styles.deviceCalendarChoices}>
+          <Text style={styles.label}>Calendar to use</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.choices}>
+            {deviceCalendars.map((calendar) => (
+              <Pressable key={calendar.id} onPress={() => chooseDeviceCalendar(calendar.id)} style={[styles.choice, deviceCalendarId === calendar.id && styles.choiceActive]}>
+                <Text style={[styles.choiceText, deviceCalendarId === calendar.id && styles.choiceTextActive]}>{calendar.title}{calendar.source?.name ? ` · ${calendar.source.name}` : ''}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+      {deviceCalendarConnected && deviceEvents.length ? (
+        <View style={styles.deviceEvents}>
+          <Text style={styles.label}>Upcoming on this device · tap to share with the team</Text>
+          {deviceEvents.slice(0, 4).map((event) => (
+            <Pressable key={event.id} onPress={() => importDeviceEvent(event)} style={styles.deviceEventRow}>
+              <View style={styles.grow}><Text style={styles.checklistLabel}>{event.title || 'Untitled event'}</Text><Text style={styles.assignment}>{displayDate(dateKey(new Date(event.startDate)))}{event.location ? ` · ${event.location}` : ''}</Text></View><Text style={styles.arrow}>›</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+      </> : null}
       {(() => { const month = monthCells(monthOffset); return <View style={styles.monthCard}><View style={styles.monthHeader}><Pressable onPress={() => setMonthOffset((value) => value - 1)}><Text style={styles.monthArrow}>‹</Text></Pressable><Text style={styles.monthTitle}>{month.label}</Text><Pressable onPress={() => setMonthOffset((value) => value + 1)}><Text style={styles.monthArrow}>›</Text></Pressable></View><View style={styles.weekRow}>{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => <Text key={`${day}-${index}`} style={styles.weekDay}>{day}</Text>)}</View><View style={styles.monthGrid}>{month.cells.map((cell) => { const dayEvents = cell.day ? events.filter((event) => event.event_date.match(/^\d{4}-\d{2}-\d{2}/)?.[0] === cell.key) : []; const reminders = cell.day ? planningEventsOn(cell.key) : []; const selected = open && cell.key === eventDate; const marks = dayEvents.some((event) => event.cheeto_attending) ? '🐱' : dayEvents.length ? '•' : reminders.length ? [...new Set(reminders.map(({ stage }) => stage.symbol))].join('') : '+'; return cell.day ? <Pressable accessibilityRole="button" accessibilityLabel={`${open ? 'Select' : dayEvents.length ? 'Open events on' : reminders.length ? 'Open planning for' : 'Add event on'} ${cell.key}`} key={cell.key} onPress={() => chooseCalendarCell(cell.key, dayEvents)} style={({ pressed }) => [styles.dayCell, selected && styles.dayCellSelected, pressed && styles.dayCellPressed]}><Text style={[styles.dayNumber, selected && styles.dayNumberSelected]}>{cell.day}</Text><Text numberOfLines={1} style={[styles.dayMarks, selected && styles.dayNumberSelected]}>{marks}</Text></Pressable> : <View key={cell.key} style={styles.dayCell} /> })}</View><Text style={styles.calendarLegend}>{open ? 'Tap a date to change this event’s date' : 'Tap a date to add or edit events'} · 🐱 Cheeto · • Event · ◇ 2 weeks · ▣ Day before · ✓ Follow-up</Text></View> })()}
-      <Pressable onPress={() => open ? setOpen(false) : edit()} style={styles.secondary}><Text style={styles.secondaryText}>{open ? 'Close planner' : '+ Plan an event'}</Text></Pressable>
+      {open || canManage ? <Pressable onPress={() => open ? setOpen(false) : edit()} style={styles.secondary}><Text style={styles.secondaryText}>{open ? 'Close event' : '+ Plan an event'}</Text></Pressable> : null}
       {open ? (
         <View style={styles.formCard}>
           <Text style={styles.label}>Event name</Text>
-          <TextInput value={title} onChangeText={setTitle} placeholder="Market, pop-up, trail day…" placeholderTextColor="#8b8075" style={styles.input} />
+          <TextInput editable={canManage} value={title} onChangeText={setTitle} placeholder="Market, pop-up, trail day…" placeholderTextColor="#8b8075" style={styles.input} />
           <Text style={styles.label}>Date</Text>
-          <TextInput value={eventDate} onChangeText={setEventDate} placeholder="YYYY-MM-DD" placeholderTextColor="#8b8075" keyboardType="numbers-and-punctuation" style={styles.input} />
+          <TextInput editable={canManage} value={eventDate} onChangeText={setEventDate} placeholder="YYYY-MM-DD" placeholderTextColor="#8b8075" keyboardType="numbers-and-punctuation" style={styles.input} />
           <Text style={styles.label}>Location</Text>
-          <TextInput value={location} onChangeText={setLocation} placeholder="Venue name or street address" placeholderTextColor="#8b8075" style={styles.input} />
+          <TextInput editable={canManage} value={location} onChangeText={setLocation} placeholder="Venue name or street address" placeholderTextColor="#8b8075" style={styles.input} />
           <Pressable onPress={searchLocation} style={styles.locationButton}><Text style={styles.locationButtonText}>Search location in Maps ↗</Text></Pressable>
           <Text style={styles.label}>Who to meet · event contact</Text>
-          <TextInput value={notes} onChangeText={setNotes} placeholder="Contact name, phone number, booth instructions, or arrival details" placeholderTextColor="#8b8075" multiline style={[styles.input, styles.notes]} />
-          <View style={styles.choices}>{(['Planned', 'Confirmed', 'Done', 'Canceled'] as const).map((item) => <Pressable key={item} onPress={() => setStatus(item)} style={[styles.choice, status === item && styles.choiceActive]}><Text style={[styles.choiceText, status === item && styles.choiceTextActive]}>{item}</Text></Pressable>)}</View>
-          <Pressable onPress={() => setCheetoAttending((value) => !value)} style={styles.cheetoToggle}><View style={[styles.checkBox, cheetoAttending && styles.checkBoxDone]}><Text style={styles.checkMark}>{cheetoAttending ? '✓' : ''}</Text></View><View style={styles.grow}><Text style={styles.cardTitle}>Cheeto is attending 🐱</Text><Text style={styles.cardCopy}>{cheetoAttending ? 'His event checklist will be included.' : 'His checklist stays out of this event.'}</Text></View></Pressable>
+          <TextInput editable={canManage} value={notes} onChangeText={setNotes} placeholder="Contact name, phone number, booth instructions, or arrival details" placeholderTextColor="#8b8075" multiline style={[styles.input, styles.notes]} />
+          <View style={styles.choices}>{(['Planned', 'Confirmed', 'Done', 'Canceled'] as const).map((item) => <Pressable disabled={!canManage} key={item} onPress={() => setStatus(item)} style={[styles.choice, status === item && styles.choiceActive]}><Text style={[styles.choiceText, status === item && styles.choiceTextActive]}>{item}</Text></Pressable>)}</View>
+          <Pressable disabled={!canManage} onPress={() => setCheetoAttending((value) => !value)} style={styles.cheetoToggle}><View style={[styles.checkBox, cheetoAttending && styles.checkBoxDone]}><Text style={styles.checkMark}>{cheetoAttending ? '✓' : ''}</Text></View><View style={styles.grow}><Text style={styles.cardTitle}>Cheeto is attending 🐱</Text><Text style={styles.cardCopy}>{cheetoAttending ? 'His event checklist is included.' : 'His checklist stays out of this event.'}</Text></View></Pressable>
           {message ? <Text style={message.startsWith('Saved') ? styles.success : styles.error}>{message}</Text> : null}
-          <Pressable disabled={saving} onPress={save} style={[styles.primary, saving && styles.disabled]}><Text style={styles.primaryText}>{saving ? 'Saving…' : editing ? 'Update shared event' : 'Save shared event'}</Text></Pressable>
+          {canManage ? <Pressable disabled={saving} onPress={save} style={[styles.primary, saving && styles.disabled]}><Text style={styles.primaryText}>{saving ? 'Saving…' : editing ? 'Update shared event' : 'Save shared event'}</Text></Pressable> : <Text style={styles.cardCopy}>Event details are read-only for helpers. You can still complete checklist items below.</Text>}
           {editing?.id ? (
             <View style={styles.checklistSection}>
               <Text style={styles.cardTitle}>Event checklist</Text>
@@ -346,15 +509,17 @@ function Calendar({ token }: { token: string }) {
                       <View key={item.id} style={styles.checklistRow}>
                         <Pressable onPress={() => toggleChecklistItem(item)} style={[styles.checkBox, item.completed && styles.checkBoxDone]}><Text style={styles.checkMark}>{item.completed ? '✓' : ''}</Text></Pressable>
                         <View style={styles.grow}><Text style={[styles.checklistLabel, item.completed && styles.checklistLabelDone]}>{item.label}</Text>{item.assignedTo ? <Text style={styles.assignment}>Assigned to {item.assignedTo}</Text> : <Text style={styles.assignment}>Anyone can take this</Text>}</View>
-                        <Pressable onPress={() => removeChecklistItem(item)}><Text style={styles.removeText}>Remove</Text></Pressable>
+                        {canManage ? <Pressable onPress={() => removeChecklistItem(item)}><Text style={styles.removeText}>Remove</Text></Pressable> : null}
                       </View>
                     ))}
                   </View>
                 )
               })}
-              <Text style={styles.label}>Assign new day-before task to</Text>
-              <View style={styles.choices}><Pressable onPress={() => setNewAssignee('')} style={[styles.choice, !newAssignee && styles.choiceActive]}><Text style={[styles.choiceText, !newAssignee && styles.choiceTextActive]}>Anyone</Text></Pressable>{assignees.map((name) => <Pressable key={name} onPress={() => setNewAssignee(name)} style={[styles.choice, newAssignee === name && styles.choiceActive]}><Text style={[styles.choiceText, newAssignee === name && styles.choiceTextActive]}>{name}</Text></Pressable>)}</View>
-              <View style={styles.checklistAdd}><TextInput value={newChecklistItem} onChangeText={setNewChecklistItem} onSubmitEditing={addChecklistItem} placeholder="Tablecloth, reader, cash box…" placeholderTextColor="#8b8075" style={[styles.input, styles.grow]} /><Pressable disabled={saving || !newChecklistItem.trim()} onPress={addChecklistItem} style={[styles.addButton, (saving || !newChecklistItem.trim()) && styles.disabled]}><Text style={styles.primaryText}>Add</Text></Pressable></View>
+              {canManage ? <>
+                <Text style={styles.label}>Assign new day-before task to</Text>
+                <View style={styles.choices}><Pressable onPress={() => setNewAssignee('')} style={[styles.choice, !newAssignee && styles.choiceActive]}><Text style={[styles.choiceText, !newAssignee && styles.choiceTextActive]}>Anyone</Text></Pressable>{assignees.map((name) => <Pressable key={name} onPress={() => setNewAssignee(name)} style={[styles.choice, newAssignee === name && styles.choiceActive]}><Text style={[styles.choiceText, newAssignee === name && styles.choiceTextActive]}>{name}</Text></Pressable>)}</View>
+                <View style={styles.checklistAdd}><TextInput value={newChecklistItem} onChangeText={setNewChecklistItem} onSubmitEditing={addChecklistItem} placeholder="Tablecloth, reader, cash box…" placeholderTextColor="#8b8075" style={[styles.input, styles.grow]} /><Pressable disabled={saving || !newChecklistItem.trim()} onPress={addChecklistItem} style={[styles.addButton, (saving || !newChecklistItem.trim()) && styles.disabled]}><Text style={styles.primaryText}>Add</Text></Pressable></View>
+              </> : null}
             </View>
           ) : <Text style={styles.cardCopy}>Save the event first, then its shared checklist will appear here.</Text>}
         </View>
@@ -648,7 +813,7 @@ export default function App() {
       <StatusBar barStyle="dark-content" />
       <ExpoStatusBar style="dark" />
       <View style={styles.header}><View style={styles.logoMark}><Text style={styles.logoText}>NP</Text></View><View><Text style={styles.headerTitle}>Nomadic Paws</Text><Text style={styles.headerSubtitle}>{session.staff.name} · Events & Mobile Store</Text></View><Pressable onPress={async () => { await SecureStore.deleteItemAsync(SESSION_KEY); setSession(undefined) }} style={styles.signOut}><Text style={styles.signOutText}>Lock</Text></Pressable></View>
-      <View style={styles.body}>{tab === 'Calendar' ? <Calendar token={session.token} /> : tab === 'Staff' ? <StaffAccess token={session.token} /> : <StripeTerminalProvider tokenProvider={terminalTokenProvider}><Register token={session.token} /></StripeTerminalProvider>}</View>
+      <View style={styles.body}>{tab === 'Calendar' ? <Calendar token={session.token} permission={session.staff.permission} /> : tab === 'Staff' ? <StaffAccess token={session.token} /> : <StripeTerminalProvider tokenProvider={terminalTokenProvider}><Register token={session.token} /></StripeTerminalProvider>}</View>
       <View style={styles.tabs}>{(['Calendar', 'Register', ...(session.staff.permission === 'owner' ? ['Staff' as const] : [])] as Tab[]).map((item) => <Pressable key={item} onPress={() => setTab(item)} style={styles.tab}><Text style={[styles.tabText, tab === item && styles.tabTextActive]}>{item}</Text></Pressable>)}</View>
     </SafeAreaView>
   )
@@ -663,6 +828,7 @@ const styles = StyleSheet.create({
   header: { minHeight: 84, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.sandDeep, backgroundColor: colors.white }, logoMark: { width: 44, height: 44, marginRight: 12, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand }, logoText: { fontWeight: '900', color: colors.sageDeep }, headerTitle: { fontSize: 20, fontWeight: '900', color: colors.bark }, headerSubtitle: { fontSize: 13, color: colors.barkSoft }, signOut: { marginLeft: 'auto', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: colors.sandDeep }, signOutText: { fontWeight: '900', color: colors.terracottaDeep },
   formCard: { marginTop: 14, padding: 17, borderRadius: 22, backgroundColor: colors.sand, borderWidth: 1, borderColor: colors.sandDeep }, choices: { marginTop: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, choice: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: colors.sandDeep, backgroundColor: colors.white }, choiceActive: { backgroundColor: colors.bark }, choiceText: { fontWeight: '800', color: colors.barkSoft }, choiceTextActive: { color: colors.white }, sectionHeading: { marginTop: 26, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, sectionTitle: { fontSize: 22, fontWeight: '900', color: colors.bark }, link: { fontWeight: '900', color: colors.terracottaDeep },
   monthCard: { marginTop: 18, padding: 14, borderRadius: 22, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, monthHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, monthTitle: { fontSize: 17, fontWeight: '900', color: colors.bark }, monthArrow: { paddingHorizontal: 12, fontSize: 28, color: colors.terracottaDeep }, weekRow: { marginTop: 10, flexDirection: 'row' }, weekDay: { width: '14.285%', textAlign: 'center', color: colors.sageDeep, fontSize: 11, fontWeight: '900' }, monthGrid: { flexDirection: 'row', flexWrap: 'wrap' }, dayCell: { width: '14.285%', height: 45, paddingTop: 6, alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.sand }, dayCellPressed: { backgroundColor: colors.sand }, dayCellSelected: { backgroundColor: colors.terracotta, borderRadius: 10 }, dayNumber: { color: colors.bark, fontSize: 12, fontWeight: '800' }, dayNumberSelected: { color: colors.white }, dayMarks: { minHeight: 18, fontSize: 13, color: colors.terracottaDeep }, calendarLegend: { marginTop: 10, color: colors.barkSoft, fontSize: 11, textAlign: 'center' }, cheetoToggle: { marginTop: 16, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 16, backgroundColor: colors.white },
+  deviceCalendarCard: { marginTop: 16, padding: 15, borderRadius: 18, borderWidth: 1, borderColor: colors.sandDeep, backgroundColor: colors.sand, flexDirection: 'row', alignItems: 'center', gap: 12 }, deviceCalendarButton: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, deviceCalendarButtonText: { color: colors.terracottaDeep, fontWeight: '900' }, deviceCalendarChoices: { marginTop: 10 }, deviceEvents: { marginTop: 12, padding: 13, borderRadius: 16, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, deviceEventRow: { minHeight: 50, flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.sandDeep },
   checklistSection: { marginTop: 22, paddingTop: 18, borderTopWidth: 1, borderTopColor: colors.sandDeep }, stageCard: { marginTop: 14, padding: 13, borderRadius: 16, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, stageHeading: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 7 }, stageSymbol: { width: 30, textAlign: 'center', color: colors.terracottaDeep, fontSize: 22, fontWeight: '900' }, stageTitle: { color: colors.bark, fontSize: 16, fontWeight: '900' }, stageDate: { marginTop: 2, color: colors.sageDeep, fontSize: 11, fontWeight: '800' }, checklistRow: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 10, borderTopWidth: 1, borderTopColor: colors.sandDeep }, checkBox: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.sageDeep, backgroundColor: colors.white }, checkBoxDone: { backgroundColor: colors.sageDeep }, checkMark: { color: colors.white, fontWeight: '900' }, checklistLabel: { color: colors.bark, fontWeight: '700' }, checklistLabelDone: { color: colors.barkSoft, textDecorationLine: 'line-through' }, assignment: { marginTop: 2, color: colors.sageDeep, fontSize: 11, fontWeight: '800' }, removeText: { color: colors.terracottaDeep, fontSize: 12, fontWeight: '800' }, checklistAdd: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }, addButton: { minHeight: 52, paddingHorizontal: 18, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.terracotta }, locationButton: { alignSelf: 'flex-start', marginTop: 8, paddingVertical: 8, paddingHorizontal: 4 }, locationButtonText: { color: colors.terracottaDeep, fontWeight: '900' },
   eventCard: { marginBottom: 10, padding: 15, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, eventDate: { width: 44, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand }, eventDateText: { fontSize: 20, fontWeight: '900', color: colors.terracottaDeep }, cardTitle: { flexShrink: 1, fontSize: 16, fontWeight: '900', color: colors.bark }, meta: { marginTop: 4, fontSize: 12, color: colors.sageDeep, fontWeight: '700' }, cardCopy: { marginTop: 5, fontSize: 13, lineHeight: 18, color: colors.barkSoft }, pill: { marginLeft: 'auto', fontSize: 10, fontWeight: '900', color: colors.sageDeep }, arrow: { fontSize: 26, color: colors.terracottaDeep }, empty: { padding: 18, borderRadius: 20, backgroundColor: colors.sand },
   readerCard: { marginTop: 20, padding: 18, borderRadius: 22, backgroundColor: colors.sand }, testPill: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, overflow: 'hidden', backgroundColor: colors.sageDeep, color: colors.white, fontSize: 10, fontWeight: '900' }, productCard: { marginBottom: 10, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sandDeep }, productImage: { width: 58, height: 58, borderRadius: 14, backgroundColor: colors.sand }, quantity: { flexDirection: 'row', alignItems: 'center', gap: 7 }, quantityButton: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sand }, quantityText: { fontSize: 18, fontWeight: '900', color: colors.bark }, quantityValue: { minWidth: 18, textAlign: 'center', fontWeight: '900', color: colors.bark }, cartCard: { marginTop: 20, padding: 18, borderRadius: 22, backgroundColor: colors.bark }, cartLabel: { marginTop: 12, flex: 1, color: colors.sand }, cartTotal: { marginTop: 12, fontSize: 22, fontWeight: '900', color: colors.white },

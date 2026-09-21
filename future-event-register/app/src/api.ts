@@ -28,6 +28,13 @@ export async function saveChecklistItem(token: string, eventId: string, input: {
   return data.item
 }
 
+export async function toggleChecklistItem(token: string, eventId: string, id: string, completed: boolean) {
+  const data = await request<{ item: CalendarEvent['checklist'][number] }>('/api/app/calendar', token, {
+    method: 'POST', body: JSON.stringify({ action: 'toggle-checklist-item', eventId, id, completed }),
+  })
+  return data.item
+}
+
 export async function deleteChecklistItem(token: string, eventId: string, id: string) {
   return request<{ deleted: true }>('/api/app/calendar', token, {
     method: 'POST', body: JSON.stringify({ action: 'delete-checklist-item', eventId, id }),

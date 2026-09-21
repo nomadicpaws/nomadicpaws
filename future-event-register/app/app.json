@@ -5,7 +5,13 @@
     "owner": "nomadic-paws",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon-v2.png",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/icon-v2.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#fdfaf5"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "co.nomadicpaws.register",
@@ -18,6 +24,14 @@
     },
     "plugins": [
       "expo-secure-store",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow Nomadic Paws Events to show upcoming events and keep shared plans on an iCloud or Google calendar connected to this device.",
+          "remindersPermission": "Allow Nomadic Paws Events to coordinate event-planning reminders you choose."
+        }
+      ],
+      "expo-notifications",
       [
         "@stripe/stripe-terminal-react-native",
         {

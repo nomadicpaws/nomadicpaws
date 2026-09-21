@@ -50,6 +50,17 @@ export async function saveEventChecklistItem(input) {
   return result.rows[0]
 }
 
+export async function toggleEventChecklistItem(id, eventId, completed) {
+  const result = await getDatabase().pool.query(
+    `UPDATE shared_event_checklist_items SET completed = $3, updated_at = NOW()
+     WHERE id = $1 AND event_id = $2
+     RETURNING id, event_id, label, completed, assigned_to AS "assignedTo", cheeto_only AS "cheetoOnly"`,
+    [id, eventId, Boolean(completed)],
+  )
+  if (!result.rows[0]) throw Object.assign(new Error('That checklist item is no longer available.'), { status: 404 })
+  return result.rows[0]
+}
+
 export async function listEventAssignees() {
   const result = await getDatabase().pool.query(
     `SELECT display_name FROM event_staff WHERE active = TRUE ORDER BY display_name ASC`,
