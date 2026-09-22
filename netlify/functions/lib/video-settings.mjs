@@ -1,7 +1,7 @@
 const statuses = ['Draft', 'Ready', 'Handed Off', 'Posted']
 const people = ['Katie', 'Trinitie']
 const platforms = ['Instagram Reels', 'TikTok', 'YouTube Shorts']
-const animations = ['Typewriter', 'Word by word', 'Flicker', 'Fade', 'Pop']
+const animations = ['Typewriter', 'Word by word', 'Flicker', 'Fade', 'Pop', 'Slide up', 'Bounce', 'Wiggle', 'Zoom']
 
 function validOverlay(item = {}) {
   return typeof item.id === 'string' && item.id.length <= 100

@@ -223,6 +223,27 @@ const videoFonts = [
     preview: "WAIT FOR IT",
   },
 ];
+const videoAnimations = [
+  "Fade",
+  "Pop",
+  "Slide up",
+  "Bounce",
+  "Typewriter",
+  "Word by word",
+  "Wiggle",
+  "Zoom",
+  "Flicker",
+] as const;
+const videoStickers = [
+  { label: "Cheeto", glyph: "🐈" },
+  { label: "Paw", glyph: "🐾" },
+  { label: "Sparkle", glyph: "✨" },
+  { label: "Heart", glyph: "🧡" },
+  { label: "Trail", glyph: "🥾" },
+  { label: "Camp", glyph: "🏕️" },
+  { label: "Bible", glyph: "📖" },
+  { label: "Arrow", glyph: "➜" },
+] as const;
 const mediaTags = [
   "Cheeto",
   "Trail",
@@ -5129,6 +5150,8 @@ function VideoStudio({
   const [presetId, setPresetId] = useState(firstPreset.id),
     [fontId, setFontId] = useState(videoFonts[0]!.id),
     [text, setText] = useState(firstPreset.defaultText);
+  const [animation, setAnimation] = useState(firstPreset.animation),
+    [includeEndCredit, setIncludeEndCredit] = useState(true);
   const [textColor, setTextColor] = useState(firstPreset.defaultColor),
     [accentColor, setAccentColor] = useState(firstPreset.defaultAccent);
   const [startAt, setStartAt] = useState("1"),
@@ -5319,7 +5342,7 @@ function VideoStudio({
           accentColor,
           startAt,
           endAt,
-          animation: preset.animation,
+          animation,
         },
         status: projectStatus,
         assignedTo,
@@ -5349,6 +5372,7 @@ function VideoStudio({
     setPreviewText(next.defaultText);
     setTextColor(next.defaultColor);
     setAccentColor(next.defaultAccent);
+    setAnimation(next.animation);
     setMessage("");
   }
   function stopPreview() {
@@ -5382,11 +5406,11 @@ function VideoStudio({
     playbackTimers.current.push(
       setTimeout(() => {
         if (
-          preset.animation === "Typewriter" ||
-          preset.animation === "Word by word"
+          animation === "Typewriter" ||
+          animation === "Word by word"
         ) {
           const pieces =
-            preset.animation === "Word by word"
+            animation === "Word by word"
               ? source.split(/(\s+)/)
               : [...source];
           let index = 0;
@@ -5404,8 +5428,8 @@ function VideoStudio({
           );
         } else {
           setPreviewText(source);
-          const animation =
-            preset.animation === "Flicker"
+          const motionAnimation =
+            animation === "Flicker"
               ? Animated.sequence(
                   [0, 1, 0.2, 1, 0.35, 1].map((value) =>
                     Animated.timing(previewMotion, {
@@ -5417,11 +5441,11 @@ function VideoStudio({
                 )
               : Animated.timing(previewMotion, {
                   toValue: 1,
-                  duration: preset.animation === "Fade" ? 900 : 520,
+                  duration: animation === "Fade" ? 900 : 520,
                   easing: Easing.out(Easing.back(1.4)),
                   useNativeDriver: true,
                 });
-          animation.start();
+          motionAnimation.start();
         }
       }, start * 1000) as unknown as number,
     );
@@ -5454,7 +5478,7 @@ function VideoStudio({
         accentColor,
         startAt: start,
         endAt: end,
-        animation: preset.animation,
+        animation,
         boxed: Boolean(preset.boxed),
         uppercase: Boolean(preset.uppercase),
       },
@@ -5462,6 +5486,34 @@ function VideoStudio({
     setMessage(
       "Added to this video. You can add another overlay without changing the original clip.",
     );
+  }
+  function addSticker(label: string, glyph: string) {
+    const start = Math.max(0, Number(startAt) || 0),
+      end = Math.max(start + 0.5, Number(endAt) || start + 5);
+    setTimeline((current) => [
+      ...current,
+      {
+        id: `sticker-${Date.now()}`,
+        presetId: "sticker",
+        name: `${label} sticker`,
+        fontId: "clean",
+        fontName: "Sticker",
+        fontFamily: "System",
+        text: glyph,
+        textColor: "#ffffff",
+        accentColor: colors.terracotta,
+        startAt: start,
+        endAt: end,
+        animation,
+        boxed: false,
+        uppercase: false,
+      },
+    ]);
+    setMessage(`${label} sticker added to the video.`);
+  }
+  function removeTimelineLayer(id: string) {
+    setTimeline((current) => current.filter((item) => item.id !== id));
+    setMessage("Layer removed. The original video is unchanged.");
   }
   async function createFinishedVideo() {
     if (!clip) {
@@ -5486,10 +5538,31 @@ function VideoStudio({
           accentColor,
           startAt: Math.max(0, Number(startAt) || 0),
           endAt: Math.max((Number(startAt) || 0) + 0.5, Number(endAt) || 5),
-          animation: preset.animation,
+          animation,
           boxed: Boolean(preset.boxed),
           uppercase: Boolean(preset.uppercase),
         }];
+    const exportLayers = includeEndCredit
+      ? [
+          ...layers,
+          {
+            id: "cheeto-end-credit",
+            presetId: "end-credit",
+            name: "Cheeto end credit",
+            fontId: "clean",
+            fontName: "Cheeto credit",
+            fontFamily: "System",
+            text: "🐾 A Cheeto-approved Nomadic Paws adventure",
+            textColor: "#fff4df",
+            accentColor: "#a85c39",
+            startAt: -3,
+            endAt: -0.15,
+            animation: "Fade",
+            boxed: true,
+            uppercase: false,
+          },
+        ]
+      : layers;
     const destination = `${FileSystem.cacheDirectory}${localDateKey()}-${exportStem(projectTitle || text, "nomadic-paws-video")}.mp4`;
     setRendering(true);
     setFinishedVideo(undefined);
@@ -5504,7 +5577,7 @@ function VideoStudio({
       const uri = await renderNomadicVideo(
         clip.uri,
         destination,
-        layers.map((layer) => ({
+        exportLayers.map((layer) => ({
           text: layer.text,
           fontName: layer.fontFamily,
           textColor: layer.textColor,
@@ -5694,7 +5767,7 @@ function VideoStudio({
                 {
                   scale: previewMotion.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [preset.animation === "Pop" ? 0.62 : 1, 1],
+                    outputRange: [animation === "Pop" || animation === "Bounce" ? 0.62 : 1, 1],
                   }),
                 },
               ],
@@ -5734,7 +5807,7 @@ function VideoStudio({
       <View style={styles.videoMeta}>
         <Text style={styles.videoMetaTitle}>{preset.name}</Text>
         <Text style={styles.videoMetaCopy}>
-          {preset.animation} · editable text · 9:16 safe
+          {animation} · editable text · 9:16 safe
         </Text>
       </View>
       <Text style={styles.controlLabel}>Overlay style</Text>
@@ -5770,6 +5843,37 @@ function VideoStudio({
             </View>
             <Text style={styles.overlayPresetName}>{item.name}</Text>
             <Text style={styles.overlayPresetAnimation}>{item.animation}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+      <Text style={styles.controlLabel}>Text animation</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.animationRail}
+      >
+        {videoAnimations.map((item) => (
+          <Pressable
+            key={item}
+            onPress={() => {
+              stopPreview();
+              setAnimation(item);
+            }}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: animation === item }}
+            style={[
+              styles.animationChoice,
+              animation === item && styles.animationChoiceActive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.animationChoiceText,
+                animation === item && styles.animationChoiceTextActive,
+              ]}
+            >
+              {item}
+            </Text>
           </Pressable>
         ))}
       </ScrollView>
@@ -5872,6 +5976,29 @@ function VideoStudio({
       <Pressable onPress={addToTimeline} style={styles.primary}>
         <Text style={styles.primaryText}>Add overlay to video</Text>
       </Pressable>
+      <View style={styles.stickerSection}>
+        <Text style={styles.controlLabel}>Stickers</Text>
+        <Text style={styles.helperCopy}>
+          Uses the same timing and animation selected above. More original Cheeto stickers can drop into this library later.
+        </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.stickerRail}
+        >
+          {videoStickers.map((item) => (
+            <Pressable
+              key={item.label}
+              onPress={() => addSticker(item.label, item.glyph)}
+              accessibilityLabel={`Add ${item.label} sticker`}
+              style={styles.stickerChoice}
+            >
+              <Text style={styles.stickerGlyph}>{item.glyph}</Text>
+              <Text style={styles.stickerLabel}>{item.label}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
       {message ? <Text style={styles.syncMessage}>{message}</Text> : null}
       {timeline.length ? (
         <View style={styles.videoTimeline}>
@@ -5910,6 +6037,12 @@ function VideoStudio({
               <Text style={styles.timelineOverlayTime}>
                 {item.startAt.toFixed(1)}–{item.endAt.toFixed(1)}s
               </Text>
+              <Pressable
+                onPress={() => removeTimelineLayer(item.id)}
+                accessibilityLabel={`Remove ${item.name}`}
+              >
+                <Text style={styles.timelineRemove}>Remove</Text>
+              </Pressable>
             </View>
           ))}
           <Pressable onPress={saveSharedProject} disabled={savingProject} style={styles.videoDraftButton}>
@@ -5928,6 +6061,20 @@ function VideoStudio({
         <Text style={styles.eyebrow}>FINISHED VIDEO</Text>
         <Text style={styles.videoExportTitle}>Ready to make it real?</Text>
         <Text style={styles.videoExportCopy}>The iPhone will render the selected clip, every timeline layer, its colors, font, and animation into one private 9:16 video.</Text>
+        <Pressable
+          onPress={() => setIncludeEndCredit((current) => !current)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: includeEndCredit }}
+          style={styles.endCreditChoice}
+        >
+          <View style={[styles.endCreditCheck, includeEndCredit && styles.endCreditCheckActive]}>
+            <Text style={styles.endCreditCheckText}>{includeEndCredit ? "✓" : ""}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.endCreditTitle}>Cheeto ending credit</Text>
+            <Text style={styles.endCreditCopy}>Adds a short Cheeto-approved Nomadic Paws credit during the final three seconds.</Text>
+          </View>
+        </Pressable>
         {rendering || renderProgress > 0 ? (
           <View style={styles.videoRenderProgressTrack}>
             <View style={[styles.videoRenderProgressFill, { width: `${Math.max(3, renderProgress * 100)}%` }]} />
@@ -10273,6 +10420,20 @@ const styles = StyleSheet.create({
     color: colors.barkSoft,
     marginTop: 3,
   },
+  animationRail: { gap: 8, paddingVertical: 3, paddingRight: 20, marginBottom: 8 },
+  animationChoice: {
+    minHeight: 40,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 999,
+    backgroundColor: colors.white,
+    paddingHorizontal: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  animationChoiceActive: { backgroundColor: colors.bark, borderColor: colors.bark },
+  animationChoiceText: { fontSize: 11, fontWeight: "900", color: colors.barkSoft },
+  animationChoiceTextActive: { color: colors.white },
   videoTextInput: { minHeight: 96, paddingTop: 14, textAlignVertical: "top" },
   fontRail: { gap: 9, paddingVertical: 3, paddingRight: 20 },
   fontChoice: {
@@ -10355,6 +10516,20 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: colors.terracotta,
   },
+  stickerSection: { marginTop: 18 },
+  stickerRail: { gap: 9, paddingVertical: 6, paddingRight: 20 },
+  stickerChoice: {
+    width: 82,
+    minHeight: 80,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 16,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stickerGlyph: { fontSize: 28 },
+  stickerLabel: { color: colors.barkSoft, fontSize: 9, fontWeight: "900", marginTop: 5 },
   videoTimeline: { marginTop: 25 },
   timelineOverlay: {
     backgroundColor: colors.white,
@@ -10386,6 +10561,7 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: colors.terracottaDeep,
   },
+  timelineRemove: { fontSize: 10, fontWeight: "900", color: colors.terracottaDeep },
   videoDraftButton: {
     backgroundColor: colors.sageDeep,
     borderRadius: 14,
@@ -10410,6 +10586,31 @@ const styles = StyleSheet.create({
   },
   videoExportTitle: { fontSize: 23, lineHeight: 28, fontWeight: "900", color: colors.bark, marginTop: 4 },
   videoExportCopy: { fontSize: 12, lineHeight: 19, color: colors.barkSoft, marginTop: 7, marginBottom: 14 },
+  endCreditChoice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 11,
+    borderWidth: 1,
+    borderColor: colors.sandDeep,
+    borderRadius: 15,
+    backgroundColor: colors.sand,
+    padding: 12,
+    marginBottom: 14,
+  },
+  endCreditCheck: {
+    width: 27,
+    height: 27,
+    borderWidth: 2,
+    borderColor: colors.sageDeep,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.white,
+  },
+  endCreditCheckActive: { backgroundColor: colors.sageDeep },
+  endCreditCheckText: { color: colors.white, fontWeight: "900" },
+  endCreditTitle: { color: colors.bark, fontSize: 12, fontWeight: "900" },
+  endCreditCopy: { color: colors.barkSoft, fontSize: 10, lineHeight: 15, marginTop: 2 },
   videoRenderProgressTrack: { height: 9, backgroundColor: colors.sand, borderRadius: 999, overflow: "hidden", marginBottom: 7 },
   videoRenderProgressFill: { height: 9, backgroundColor: colors.terracotta, borderRadius: 999 },
   videoRenderStage: { fontSize: 11, fontWeight: "800", color: colors.sageDeep, marginBottom: 12 },

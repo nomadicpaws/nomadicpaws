@@ -6,7 +6,7 @@ export type InstagramDay = { day: string; theme: string; enabled: boolean }
 export type InstagramTemplateKind = 'Post overlay' | 'Carousel frame' | 'Story' | 'Reel cover' | 'Background' | 'Video end card'
 export type InstagramTemplate = { id: string; name: string; kind: InstagramTemplateKind; aspectRatio: string; favorite: boolean; previewUrl?: string }
 export type InstagramPostDraft = { id: string; title: string; caption: string; mediaUrls: string[]; targetDate: string | null; theme: string; status: 'Draft' | 'Ready' | 'Handed Off' | 'Posted'; assignedTo: 'Katie' | 'Trinitie'; handoffNote: string; sharedWithMom: boolean; altText: string; instagramUrl: string; pinterestReusable: boolean; postedAt: string | null; updatedAt: string }
-export type VideoOverlayAnimation = 'Typewriter' | 'Fade' | 'Pop' | 'Flicker' | 'Word by word'
+export type VideoOverlayAnimation = 'Typewriter' | 'Fade' | 'Pop' | 'Flicker' | 'Word by word' | 'Slide up' | 'Bounce' | 'Wiggle' | 'Zoom'
 export type VideoOverlayPreset = {
   id: string
   name: string

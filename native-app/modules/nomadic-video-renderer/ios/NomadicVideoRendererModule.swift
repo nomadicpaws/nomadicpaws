@@ -123,8 +123,10 @@ public final class NomadicVideoRendererModule: Module {
   }
 
   private func addOverlay(_ overlay: NomadicVideoOverlay, to parent: CALayer, duration: Double, outputSize: CGSize) {
-    let start = max(0, overlay.startAt)
-    let end = min(max(start + 0.1, overlay.endAt), max(duration, start + 0.1))
+    let requestedStart = overlay.startAt < 0 ? duration + overlay.startAt : overlay.startAt
+    let requestedEnd = overlay.endAt < 0 ? duration + overlay.endAt : overlay.endAt
+    let start = max(0, requestedStart)
+    let end = min(max(start + 0.1, requestedEnd), max(duration, start + 0.1))
     let visibleDuration = end - start
     let frame = CGRect(x: 76, y: outputSize.height * 0.62, width: outputSize.width - 152, height: 360)
     let container = CALayer()
@@ -179,6 +181,44 @@ public final class NomadicVideoRendererModule: Module {
       pop.fillMode = .both
       pop.isRemovedOnCompletion = false
       container.add(pop, forKey: "entrance")
+    } else if overlay.animation == "Slide up" {
+      let slide = CABasicAnimation(keyPath: "transform.translation.y")
+      slide.fromValue = 120
+      slide.toValue = 0
+      slide.beginTime = AVCoreAnimationBeginTimeAtZero + start
+      slide.duration = min(0.65, visibleDuration)
+      slide.timingFunction = CAMediaTimingFunction(name: .easeOut)
+      slide.fillMode = .both
+      slide.isRemovedOnCompletion = false
+      container.add(slide, forKey: "entrance")
+    } else if overlay.animation == "Bounce" {
+      let bounce = CAKeyframeAnimation(keyPath: "transform.scale")
+      bounce.values = [0.35, 1.16, 0.92, 1.05, 1]
+      bounce.keyTimes = [0, 0.48, 0.68, 0.84, 1]
+      bounce.beginTime = AVCoreAnimationBeginTimeAtZero + start
+      bounce.duration = min(0.8, visibleDuration)
+      bounce.fillMode = .both
+      bounce.isRemovedOnCompletion = false
+      container.add(bounce, forKey: "entrance")
+    } else if overlay.animation == "Zoom" {
+      let zoom = CABasicAnimation(keyPath: "transform.scale")
+      zoom.fromValue = 0.82
+      zoom.toValue = 1
+      zoom.beginTime = AVCoreAnimationBeginTimeAtZero + start
+      zoom.duration = min(1.2, visibleDuration)
+      zoom.timingFunction = CAMediaTimingFunction(name: .easeOut)
+      zoom.fillMode = .both
+      zoom.isRemovedOnCompletion = false
+      container.add(zoom, forKey: "entrance")
+    } else if overlay.animation == "Wiggle" {
+      let wiggle = CAKeyframeAnimation(keyPath: "transform.rotation.z")
+      wiggle.values = [-0.06, 0.06, -0.045, 0.035, 0]
+      wiggle.keyTimes = [0, 0.25, 0.5, 0.75, 1]
+      wiggle.beginTime = AVCoreAnimationBeginTimeAtZero + start
+      wiggle.duration = min(0.7, visibleDuration)
+      wiggle.fillMode = .both
+      wiggle.isRemovedOnCompletion = false
+      container.add(wiggle, forKey: "entrance")
     } else if overlay.animation == "Flicker" {
       let flicker = CAKeyframeAnimation(keyPath: "opacity")
       flicker.values = [0, 1, 0.15, 1, 0.3, 1]
