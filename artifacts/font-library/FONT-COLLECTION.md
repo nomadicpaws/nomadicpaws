@@ -26,5 +26,11 @@ The launch library intentionally contains eight families. Two additional positio
 ## Production status
 
 - Cheeto Kitty: concept, uppercase, lowercase, numbers/punctuation, and decorative-alternates blueprints complete.
-- Remaining seven: visual directions approved as a coordinated collection; full glyph construction remains.
+- Desert Doodle: uppercase, lowercase, numerals, punctuation, and sample-line character check complete.
+- Campfire Glow: uppercase, lowercase, numerals, punctuation, and sample-line character check complete.
+- Trail Journal: uppercase, lowercase, numerals, punctuation, and sample-line character check complete.
+- Roadtrip Marker: uppercase, lowercase, numerals, punctuation, and sample-line character check complete.
+- Ranger Stamp: uppercase, lowercase, numerals, punctuation, and sample-line character check complete.
+- Sunset Postcard: corrected retro direction plus uppercase, lowercase, numerals, punctuation, and sample-line character check complete.
+- Quiet Morning: uppercase, lowercase, numerals, punctuation, and sample-line character check complete.
 - Raster specimen sheets are design references, not installable font files. Production requires vector outlines, spacing, kerning, export, and in-app rendering tests.
