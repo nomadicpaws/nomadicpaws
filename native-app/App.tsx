@@ -1082,7 +1082,7 @@ function JournalEditor({
             else onBack();
           }}
         >
-          <Text style={styles.backText}>‹ Stories</Text>
+          <Text style={styles.backText}>‹ Back</Text>
         </Pressable>
         <View style={styles.saveState}>
           <View
@@ -1681,7 +1681,7 @@ function MomJournalReview({
     return (
       <ScrollView contentContainerStyle={styles.page}>
         <Pressable onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>‹ All stories</Text>
+          <Text style={styles.backText}>‹ Back</Text>
         </Pressable>
         <Text style={styles.eyebrow}>KATIE MADE CHANGES</Text>
         <Text style={styles.pageTitle}>Only what changed.</Text>
@@ -1740,7 +1740,7 @@ function MomJournalReview({
       keyboardShouldPersistTaps="handled"
     >
       <Pressable onPress={onBack} style={styles.backButton}>
-        <Text style={styles.backText}>‹ All stories</Text>
+        <Text style={styles.backText}>‹ Back</Text>
       </Pressable>
       <Text style={styles.eyebrow}>READY FOR YOUR EYES</Text>
       <Text style={styles.pageTitle}>{working?.title || story.title}</Text>
@@ -1896,7 +1896,7 @@ function CatNanaWriter({
       keyboardShouldPersistTaps="handled"
     >
       <Pressable onPress={onBack} style={styles.backButton}>
-        <Text style={styles.backText}>‹ Mom’s Journal</Text>
+        <Text style={styles.backText}>‹ Back</Text>
       </Pressable>
       <Text style={styles.eyebrow}>ONLY IF YOU FEEL LIKE IT</Text>
       <Text style={styles.pageTitle}>Write for the Journal.</Text>
@@ -2184,7 +2184,7 @@ function Journal({
           onPress={() => setSelected(undefined)}
           style={styles.backButton}
         >
-          <Text style={styles.backText}>‹ All stories</Text>
+          <Text style={styles.backText}>‹ Back</Text>
         </Pressable>
         <View style={styles.journalStatusRow}>
           <View style={styles.journalStatus}>
@@ -2946,7 +2946,7 @@ function ContentCalendar({
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <Pressable onPress={onClose} style={styles.backButton}>
-        <Text style={styles.backText}>‹ Today</Text>
+        <Text style={styles.backText}>‹ Back</Text>
       </Pressable>
       <Text style={styles.eyebrow}>SHARED CONTENT CALENDAR</Text>
       <Text style={styles.pageTitle}>
@@ -2968,7 +2968,7 @@ function ContentCalendar({
             style={styles.calendarPlannerButton}
           >
             <Text style={styles.calendarPlannerButtonText}>
-              {eventEditorOpen ? "Close event planner" : "+ Plan an event"}
+              {eventEditorOpen ? "‹ Back" : "+ Plan an event"}
             </Text>
           </Pressable>
           {eventEditorOpen ? (
@@ -3563,7 +3563,7 @@ function SharedPreviews({
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <Pressable onPress={onClose} style={styles.backButton}>
-        <Text style={styles.backText}>‹ Today</Text>
+        <Text style={styles.backText}>‹ Back</Text>
       </Pressable>
       <Text style={styles.eyebrow}>SHARED PREVIEWS</Text>
       <Text style={styles.pageTitle}>
@@ -3755,7 +3755,7 @@ function NewAdventure({
       keyboardShouldPersistTaps="handled"
     >
       <Pressable onPress={onCancel} accessibilityRole="button">
-        <Text style={styles.backText}>‹ Today</Text>
+        <Text style={styles.backText}>‹ Back</Text>
       </Pressable>
       <Text style={styles.eyebrow}>ADVENTURE INBOX</Text>
       <Text style={styles.pageTitle}>{adventure ? `Add to ${adventure.title}.` : "Capture it while it’s fresh."}</Text>
@@ -4264,7 +4264,7 @@ function InstagramPostEditor({
           <SafeAreaView style={styles.workingModal}>
             <ScrollView contentContainerStyle={styles.workingModalPage}>
               <Pressable onPress={() => setEditingPhoto(null)}>
-                <Text style={styles.backText}>‹ Instagram post</Text>
+                <Text style={styles.backText}>‹ Back</Text>
               </Pressable>
               <WorkingPhotoEditor
                 token={token}
@@ -4285,7 +4285,7 @@ function InstagramPostEditor({
         onPress={() => persistInstagramLocal().finally(onCancel)}
         accessibilityRole="button"
       >
-        <Text style={styles.backText}>‹ Instagram Studio</Text>
+        <Text style={styles.backText}>‹ Back</Text>
       </Pressable>
       <Text style={styles.eyebrow}>CLOUD POST DRAFT</Text>
       <Text style={styles.pageTitle}>
@@ -6868,7 +6868,7 @@ function MediaLibrary({
           <SafeAreaView style={styles.workingModal}>
             <ScrollView contentContainerStyle={styles.workingModalPage}>
               <Pressable onPress={() => setWorkingAsset(null)}>
-                <Text style={styles.backText}>‹ Media Library</Text>
+                <Text style={styles.backText}>‹ Back</Text>
               </Pressable>
               <WorkingPhotoEditor
                 token={token}
@@ -6999,7 +6999,7 @@ function MediaLibrary({
                 onPress={() => setSelected(null)}
                 accessibilityRole="button"
               >
-                <Text style={styles.backText}>‹ Media Library</Text>
+                <Text style={styles.backText}>‹ Back</Text>
               </Pressable>
               {selected.kind === "video" ? (
                 <SharedVideoPreview token={token} asset={selected} />
