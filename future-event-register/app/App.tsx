@@ -18,7 +18,6 @@ import {
 import * as SecureStore from 'expo-secure-store'
 import * as Crypto from 'expo-crypto'
 import * as DeviceCalendar from 'expo-calendar/legacy'
-import * as Notifications from 'expo-notifications'
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar'
 import { Reader, StripeTerminalProvider, useStripeTerminal } from '@stripe/stripe-terminal-react-native'
 import {
@@ -51,11 +50,6 @@ const SESSION_KEY = 'nomadic-paws-event-session'
 const DEVICE_CALENDAR_KEY = 'nomadic-paws-device-calendar-connected'
 const DEVICE_CALENDAR_ID_KEY = 'nomadic-paws-device-calendar-id'
 const DEVICE_EVENT_PREFIX = 'nomadic-paws-device-event-'
-const EVENT_NOTIFICATION_PREFIX = 'nomadic-paws-event-notifications-'
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
-})
 const colors = {
   cream: '#fdfaf5', sand: '#f4eee1', sandDeep: '#e9dfc8', bark: '#3f352a',
   barkSoft: '#6b5d4c', sage: '#8b9a7c', sageDeep: '#6f7e62',
@@ -252,12 +246,11 @@ function Calendar({ token, permission }: { token: string; permission: SignedInSt
     setMessage('')
     try {
       const calendarPermission = await DeviceCalendar.requestCalendarPermissionsAsync()
-      const notificationPermission = await Notifications.requestPermissionsAsync()
       if (!calendarPermission.granted) throw new Error('Calendar access was not enabled. You can turn it on later in iPhone Settings.')
       await SecureStore.setItemAsync(DEVICE_CALENDAR_KEY, 'yes')
       setDeviceCalendarConnected(true)
       await loadDeviceCalendars()
-      setMessage(notificationPermission.granted ? 'Your selected device calendar and event reminders are connected.' : 'Your selected device calendar is connected. Notifications remain off.')
+      setMessage('Your selected device calendar and event reminders are connected.')
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : 'The device calendar could not connect.')
     } finally {
@@ -285,7 +278,19 @@ function Calendar({ token, permission }: { token: string; permission: SignedInSt
     const calendarId = deviceCalendarId || (await DeviceCalendar.getDefaultCalendarAsync()).id
     const startDate = new Date(`${event.event_date.match(/^\d{4}-\d{2}-\d{2}/)?.[0]}T09:00:00`)
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
-    const details = { title: event.title, startDate, endDate, location: event.location || undefined, notes: event.notes || undefined }
+    const details = {
+      title: event.title,
+      startDate,
+      endDate,
+      location: event.location || undefined,
+      notes: event.notes || undefined,
+      alarms: [
+        { relativeOffset: -14 * 24 * 60 },
+        { relativeOffset: -24 * 60 },
+        { relativeOffset: 0 },
+        { relativeOffset: 24 * 60 },
+      ],
+    }
     const savedDeviceId = await SecureStore.getItemAsync(`${DEVICE_EVENT_PREFIX}${event.id}`)
     let deviceId = savedDeviceId
     if (savedDeviceId) {
@@ -296,27 +301,6 @@ function Calendar({ token, permission }: { token: string; permission: SignedInSt
     }
     if (deviceId) await SecureStore.setItemAsync(`${DEVICE_EVENT_PREFIX}${event.id}`, deviceId)
     await refreshDeviceCalendar()
-  }
-  async function syncEventNotifications(event: CalendarEvent) {
-    const permission = await Notifications.getPermissionsAsync()
-    if (!permission.granted) return
-    const storageKey = `${EVENT_NOTIFICATION_PREFIX}${event.id}`
-    const existing = JSON.parse((await SecureStore.getItemAsync(storageKey)) || '[]') as string[]
-    await Promise.all(existing.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => {})))
-    const eventKey = event.event_date.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || ''
-    const reminders = [
-      { date: shiftedDateKey(eventKey, -14), title: `Plan for ${event.title}`, body: 'Two-week event checklist is ready.' },
-      { date: shiftedDateKey(eventKey, -1), title: `${event.title} is tomorrow`, body: 'Open the day-before checklist and finish packing.' },
-      { date: eventKey, title: `${event.title} is today`, body: 'Event-day plan, assignments, and register are ready.' },
-      { date: shiftedDateKey(eventKey, 1), title: `Follow up after ${event.title}`, body: 'Record inventory, restock needs, and anything to remember.' },
-    ]
-    const ids: string[] = []
-    for (const reminder of reminders) {
-      const trigger = new Date(`${reminder.date}T09:00:00`)
-      if (trigger.getTime() <= Date.now()) continue
-      ids.push(await Notifications.scheduleNotificationAsync({ content: { title: reminder.title, body: reminder.body, data: { eventId: event.id } }, trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: trigger } }))
-    }
-    await SecureStore.setItemAsync(storageKey, JSON.stringify(ids))
   }
   function edit(event?: CalendarEvent, requestedDate?: string) {
     setEditing(event)
@@ -408,7 +392,7 @@ function Calendar({ token, permission }: { token: string; permission: SignedInSt
         await SecureStore.setItemAsync(`${DEVICE_EVENT_PREFIX}${refreshed.id}`, importedDeviceEventId)
         setImportedDeviceEventId('')
       }
-      await Promise.all([syncDeviceEvent(refreshed), syncEventNotifications(refreshed)])
+      await syncDeviceEvent(refreshed)
       setMessage(deviceCalendarConnected ? 'Saved for the team, your selected calendar, and event reminders.' : 'Saved to the same calendar used by Studio.')
     } catch (reason) { setMessage(reason instanceof Error ? reason.message : 'That event could not be saved.') }
     finally { setSaving(false) }
