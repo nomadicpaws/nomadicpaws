@@ -31,7 +31,6 @@
           "remindersPermission": "Allow Nomadic Paws Events to coordinate event-planning reminders you choose."
         }
       ],
-      "expo-notifications",
       [
         "@stripe/stripe-terminal-react-native",
         {
