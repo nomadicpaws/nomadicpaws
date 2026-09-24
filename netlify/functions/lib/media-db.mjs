@@ -94,6 +94,18 @@ export async function advanceAdventureToJournal(id) {
   return result.rows[0] || null
 }
 
+export async function dismissAdventureFromJournal(id) {
+  const result = await db().pool.query(
+    `UPDATE adventures
+        SET status = 'Ready',
+            platforms = CASE WHEN platforms @> '["No Blog"]'::jsonb THEN platforms ELSE platforms || '["No Blog"]'::jsonb END,
+            updated_at = NOW()
+      WHERE id = $1 RETURNING *`,
+    [id],
+  )
+  return result.rows[0] || null
+}
+
 export async function addMediaAsset(input, userId) {
   const id = randomUUID()
   const result = await db().pool.query(
@@ -111,6 +123,14 @@ export async function adventureExists(id) {
 
 export async function mediaById(id) {
   const result = await db().pool.query(`SELECT * FROM media_assets WHERE id = $1 AND status = 'ready' LIMIT 1`, [id])
+  return result.rows[0] || null
+}
+
+export async function mediaByBlobKey(blobKey) {
+  const result = await db().pool.query(
+    `SELECT * FROM media_assets WHERE blob_key = $1 AND status = 'ready' ORDER BY created_at ASC LIMIT 1`,
+    [blobKey],
+  )
   return result.rows[0] || null
 }
 

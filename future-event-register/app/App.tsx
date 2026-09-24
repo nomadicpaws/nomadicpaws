@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -534,6 +534,7 @@ function Register({ token }: { token: string }) {
   const [lastResult, setLastResult] = useState<{ status: 'success' | 'pending' | 'error'; title: string; detail: string }>()
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const cashRequestId = useRef<string | null>(null)
   const {
     initialize, discoverReaders, cancelDiscovering, connectReader,
     disconnectReader, connectedReader, retrievePaymentIntent,
@@ -565,6 +566,7 @@ function Register({ token }: { token: string }) {
     return () => { cancelDiscovering().catch(() => {}) }
   }, [token])
   function change(product: EventProduct, amount: number) {
+    cashRequestId.current = null
     setCart((current) => ({ ...current, [product.sku]: Math.max(0, Math.min(product.stock, (current[product.sku] || 0) + amount)) }))
   }
   const subtotal = useMemo(() => products.reduce((sum, item) => sum + item.unitPriceCents * (cart[item.sku] || 0), 0), [cart, products])
@@ -623,7 +625,9 @@ function Register({ token }: { token: string }) {
     try {
       if (paymentMethod === 'cash') {
         setMessage('Recording cash and updating stock…')
-        const result = await createCashSale(token, cartItems, saleRequestId(), cashTendered)
+        cashRequestId.current ||= saleRequestId()
+        const result = await createCashSale(token, cartItems, cashRequestId.current, cashTendered)
+        cashRequestId.current = null
         setCart({}); setCashTendered(''); await Promise.all([refresh(), refreshSales(true)])
         setMessage('')
         setLastResult({ status: 'success', title: 'Cash sale complete', detail: `${money(result.sale.total_cents)} paid in cash · ${money(result.changeDueCents)} change due. Inventory has been updated.` })
@@ -664,7 +668,7 @@ function Register({ token }: { token: string }) {
         const quantity = cart[product.sku] || 0
         return <View key={product.sku} style={styles.productCard}><Image source={{ uri: `${API_URL}${product.image}` }} style={styles.productImage} /><View style={styles.grow}><Text style={styles.cardTitle}>{product.name}</Text><Text style={styles.meta}>{money(product.unitPriceCents)} · {product.stock} available</Text></View><View style={styles.quantity}><Pressable onPress={() => change(product, -1)} style={styles.quantityButton}><Text style={styles.quantityText}>−</Text></Pressable><Text style={styles.quantityValue}>{quantity}</Text><Pressable onPress={() => change(product, 1)} style={styles.quantityButton}><Text style={styles.quantityText}>＋</Text></Pressable></View></View>
       })}
-      <View style={styles.cartCard}><Text style={styles.eyebrow}>CURRENT TEST SALE</Text><View style={styles.row}><Text style={styles.cartLabel}>Subtotal before server tax</Text><Text style={styles.cartTotal}>{money(subtotal)}</Text></View><Text style={styles.cartMethodLabel}>Payment method</Text><View style={styles.cartChoices}>{(['card', 'cash'] as const).map((method) => <Pressable key={method} onPress={() => { setPaymentMethod(method); setError(''); setLastResult(undefined) }} style={[styles.cartChoice, paymentMethod === method && styles.cartChoiceActive]}><Text style={[styles.cartChoiceText, paymentMethod === method && styles.cartChoiceTextActive]}>{method === 'card' ? 'Card reader' : 'Cash'}</Text></Pressable>)}</View>{paymentMethod === 'cash' ? <><Text style={styles.cartMethodLabel}>Cash received</Text><TextInput value={cashTendered} onChangeText={setCashTendered} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#9f9488" style={styles.cashInput} /><Text style={styles.cartHint}>The server confirms tax, total, change, and stock before saving the receipt.</Text></> : null}<Pressable disabled={checkoutBusy || (paymentMethod === 'card' && !connectedReader) || !cartItems.length || (paymentMethod === 'cash' && !cashTendered.trim())} onPress={checkout} style={[styles.primary, (checkoutBusy || (paymentMethod === 'card' && !connectedReader) || !cartItems.length || (paymentMethod === 'cash' && !cashTendered.trim())) && styles.disabled]}><Text style={styles.primaryText}>{checkoutBusy ? 'Completing test sale…' : paymentMethod === 'cash' ? 'Complete cash sale' : 'Take test card payment'}</Text></Pressable></View>
+      <View style={styles.cartCard}><Text style={styles.eyebrow}>CURRENT TEST SALE</Text><View style={styles.row}><Text style={styles.cartLabel}>Subtotal before server tax</Text><Text style={styles.cartTotal}>{money(subtotal)}</Text></View><Text style={styles.cartMethodLabel}>Payment method</Text><View style={styles.cartChoices}>{(['card', 'cash'] as const).map((method) => <Pressable key={method} onPress={() => { cashRequestId.current = null; setPaymentMethod(method); setError(''); setLastResult(undefined) }} style={[styles.cartChoice, paymentMethod === method && styles.cartChoiceActive]}><Text style={[styles.cartChoiceText, paymentMethod === method && styles.cartChoiceTextActive]}>{method === 'card' ? 'Card reader' : 'Cash'}</Text></Pressable>)}</View>{paymentMethod === 'cash' ? <><Text style={styles.cartMethodLabel}>Cash received</Text><TextInput value={cashTendered} onChangeText={setCashTendered} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="#9f9488" style={styles.cashInput} /><Text style={styles.cartHint}>The server confirms tax, total, change, and stock before saving the receipt.</Text></> : null}<Pressable disabled={checkoutBusy || (paymentMethod === 'card' && !connectedReader) || !cartItems.length || (paymentMethod === 'cash' && !cashTendered.trim())} onPress={checkout} style={[styles.primary, (checkoutBusy || (paymentMethod === 'card' && !connectedReader) || !cartItems.length || (paymentMethod === 'cash' && !cashTendered.trim())) && styles.disabled]}><Text style={styles.primaryText}>{checkoutBusy ? 'Completing test sale…' : paymentMethod === 'cash' ? 'Complete cash sale' : 'Take test card payment'}</Text></Pressable></View>
       <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>Recent payments</Text><Pressable onPress={() => refreshSales()}><Text style={styles.link}>Refresh</Text></Pressable></View>
       <Text style={styles.historyHelp}>Test receipts are saved here for Katie and event helpers. Full card numbers are never stored.</Text>
       {sales.length ? sales.map((sale) => {

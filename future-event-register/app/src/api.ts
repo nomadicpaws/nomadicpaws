@@ -78,18 +78,28 @@ export type EventStaff = {
 export type SignedInStaff = { id: string; name: string; permission: 'owner' | 'manager' | 'helper' }
 
 async function request<T>(path: string, token = '', options: RequestInit = {}) {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      Accept: 'application/json',
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-  })
-  const data = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(data.error || 'Nomadic Paws Events could not complete that request.')
-  return data as T
+  const controller = options.signal ? null : new AbortController()
+  const timeout = controller ? setTimeout(() => controller.abort(), 30000) : null
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      signal: options.signal || controller?.signal,
+      headers: {
+        Accept: 'application/json',
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || 'Nomadic Paws Events could not complete that request.')
+    return data as T
+  } catch (error) {
+    if (controller?.signal.aborted) throw new Error('The connection took too long. Nothing was charged—check Recent payments before trying again.')
+    throw error
+  } finally {
+    if (timeout) clearTimeout(timeout)
+  }
 }
 
 export async function createSellerSession(accessCode: string) {

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { authRateLimitKey, createSellerToken, secureEqual, verifySellerToken } from "../netlify/functions/lib/event-auth.mjs";
+import { validRequestId } from "../netlify/functions/lib/event-http.mjs";
 
 const secret = "a-secure-test-secret-that-is-long-enough";
 
@@ -25,4 +26,10 @@ test("rate-limit keys are stable hashes and do not reveal the address", () => {
   assert.equal(key.length, 64);
   assert.equal(key, authRateLimitKey(request, secret));
   assert.doesNotMatch(key, /192\.0\.2\.10/);
+});
+
+test("cash and card sales accept the same standard UUID request id", () => {
+  assert.equal(validRequestId("f2b7f948-c45b-4c10-a8bb-641953f34cf7"), true);
+  assert.equal(validRequestId("f2b7f948-c45b-4c10-a8bb641953f34cf7"), false);
+  assert.equal(validRequestId("not-a-sale-id"), false);
 });

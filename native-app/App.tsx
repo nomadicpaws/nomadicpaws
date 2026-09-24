@@ -24,6 +24,7 @@ import {
 import {
   addReviewNote,
   advanceAdventureToJournal,
+  dismissAdventureFromJournal,
   askCheetoAssistant,
   API_URL,
   AppUser,
@@ -106,6 +107,7 @@ import * as Sharing from "expo-sharing";
 import * as Clipboard from "expo-clipboard";
 import * as ExpoMediaLibrary from "expo-media-library";
 import * as Notifications from "expo-notifications";
+import * as Font from "expo-font";
 import { useVideoPlayer, VideoView } from "expo-video";
 import {
   listenForRenderProgress,
@@ -186,41 +188,11 @@ const logoChoices: Array<{
 const videoFonts = [
   { id: "clean", name: "Clean", family: "System", preview: "Easy to read" },
   {
-    id: "editorial",
-    name: "Trail Journal",
-    family: "Fraunces",
-    preview: "A desert story",
-  },
-  {
-    id: "typewriter",
-    name: "Typewriter",
-    family: "Special Elite",
-    preview: "Field notes",
-  },
-  {
-    id: "handwritten",
-    name: "Handwritten",
-    family: "Caveat",
-    preview: "Cheeto said so",
-  },
-  {
-    id: "tall",
-    name: "Tall title",
-    family: "Bebas Neue",
-    preview: "TRAIL DAY",
-  },
-  { id: "bold", name: "Bold Cheeto", family: "Bungee", preview: "MANAGEMENT" },
-  {
-    id: "classic",
-    name: "Classic story",
-    family: "Playfair Display",
-    preview: "Golden hour",
-  },
-  {
-    id: "impact",
-    name: "Big emphasis",
-    family: "Archivo Black",
-    preview: "WAIT FOR IT",
+    id: "cheeto-kitty",
+    name: "Cheeto Kitty",
+    family: "CheetoKitty",
+    nativeName: "CheetoKitty-Regular",
+    preview: "Adventure Together!",
   },
 ];
 const videoAnimations = [
@@ -2657,6 +2629,7 @@ function SeedCard({
   media,
   onPress,
   onStartJournal,
+  onSkipJournal,
   journalStarting = false,
 }: {
   seed: ContentSeed;
@@ -2664,6 +2637,7 @@ function SeedCard({
   media?: SharedMediaAsset[];
   onPress?: () => void;
   onStartJournal?: () => void;
+  onSkipJournal?: () => void;
   journalStarting?: boolean;
 }) {
   const tone = statusTone[seed.status];
@@ -2720,6 +2694,11 @@ function SeedCard({
       {onStartJournal ? (
         <Pressable disabled={journalStarting} onPress={onStartJournal} style={[styles.adventureNextPrimary, journalStarting && styles.primaryDisabled]}>
           <Text style={styles.adventureNextPrimaryText}>{journalStarting ? "Opening Journal draft…" : seed.platforms.includes("Trail Journal") ? "Open Trail Journal draft" : "Start Trail Journal draft"}</Text>
+        </Pressable>
+      ) : null}
+      {onSkipJournal ? (
+        <Pressable disabled={journalStarting} onPress={onSkipJournal} style={styles.adventureNextSecondary}>
+          <Text style={styles.adventureNextSecondaryText}>Not for a blog post · Clear from Today</Text>
         </Pressable>
       ) : null}
       {onPress ? (
@@ -3118,6 +3097,7 @@ function Today({
   onOpenJournalStory,
   onOpenAdventure,
   onStartJournal,
+  onSkipJournal,
 }: {
   token: string;
   person: Person;
@@ -3132,6 +3112,7 @@ function Today({
   onOpenJournalStory: (slug: string) => void;
   onOpenAdventure: (adventureId: string) => void;
   onStartJournal: (seed: ContentSeed) => Promise<void>;
+  onSkipJournal: (seed: ContentSeed) => Promise<void>;
 }) {
   const [rhythm, setRhythm] = useState<InstagramDay[]>(initialInstagramRhythm);
   const [posts, setPosts] = useState<InstagramPostDraft[]>([]);
@@ -3165,7 +3146,7 @@ function Today({
       if (journal) setReviewStories(journal.stories.filter((story) =>
         person === "Mom"
           ? story.reviewStatus === "ready_for_mom"
-          : story.reviewStatus === "back_with_katie",
+          : story.status === "Draft" || story.reviewStatus === "back_with_katie",
       ));
       setLoadState("ready");
     } catch (reason) {
@@ -3179,7 +3160,11 @@ function Today({
   const mine =
     person === "Mom"
       ? []
-      : seeds.filter((seed) => seed.assignedTo === person);
+      : seeds.filter((seed) =>
+          seed.assignedTo === person &&
+          seed.status === "Idea" &&
+          !seed.platforms.includes("Trail Journal"),
+        );
   const readyInstagram = posts.filter(
     (post) => post.status === "Ready" && post.targetDate === localDateKey(),
   ).length;
@@ -3428,9 +3413,9 @@ function Today({
         ? reviewStories.map((story) => (
             <Pressable key={story.slug} onPress={() => onOpenJournalStory(story.slug)} style={styles.preparedPost}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.preparedPostStatus}>CATNANA REVIEW RETURNED</Text>
+                <Text style={styles.preparedPostStatus}>{story.reviewStatus === "back_with_katie" ? "CATNANA REVIEW RETURNED" : "BLOG DRAFT"}</Text>
                 <Text style={styles.preparedPostTitle}>{story.title}</Text>
-                <Text style={styles.preparedPostMeta}>Trail Journal · Open the draft and respond to her passage notes</Text>
+                <Text style={styles.preparedPostMeta}>{story.reviewStatus === "back_with_katie" ? "Trail Journal · Open the draft and respond to her passage notes" : "Trail Journal · Continue writing this draft"}</Text>
               </View>
               <Text style={styles.journalArrow}>›</Text>
             </Pressable>
@@ -3477,6 +3462,17 @@ function Today({
               await onStartJournal(seed);
             } catch (reason) {
               setWorkflowError(reason instanceof Error ? reason.message : "That Journal draft could not be started.");
+            } finally {
+              setStartingJournal("");
+            }
+          }}
+          onSkipJournal={async () => {
+            setStartingJournal(seed.id);
+            setWorkflowError("");
+            try {
+              await onSkipJournal(seed);
+            } catch (reason) {
+              setWorkflowError(reason instanceof Error ? reason.message : "That Adventure could not be cleared from Today.");
             } finally {
               setStartingJournal("");
             }
@@ -3700,8 +3696,8 @@ function NewAdventure({
     setSaving(true);
     setError("");
     try {
-      if (adventure) {
-        await updateSharedAdventure(token, adventure.id, {
+      if (adventure || adventureId) {
+        await updateSharedAdventure(token, adventure?.id || adventureId, {
           title,
           notes: note,
           privateLocation: location,
@@ -3775,8 +3771,8 @@ function NewAdventure({
       contentContainerStyle={styles.page}
       keyboardShouldPersistTaps="handled"
     >
-      <Pressable onPress={onCancel} accessibilityRole="button">
-        <Text style={styles.backText}>‹ Back</Text>
+      <Pressable disabled={saving} onPress={onCancel} accessibilityRole="button">
+        <Text style={[styles.backText, saving && { opacity: 0.45 }]}>‹ Back</Text>
       </Pressable>
       <Text style={styles.eyebrow}>ADVENTURE INBOX</Text>
       <Text style={styles.pageTitle}>{adventure ? `Add to ${adventure.title}.` : "Capture it while it’s fresh."}</Text>
@@ -3894,8 +3890,8 @@ function NewAdventure({
                 : "Save shared adventure"}
         </Text>
       </Pressable>
-      <Pressable onPress={onCancel} style={styles.secondary}>
-        <Text style={styles.secondaryText}>Cancel</Text>
+      <Pressable disabled={saving} onPress={onCancel} style={[styles.secondary, saving && styles.primaryDisabled]}>
+        <Text style={styles.secondaryText}>{saving ? "Upload in progress…" : "Cancel"}</Text>
       </Pressable>
     </ScrollView>
   );
@@ -5203,7 +5199,7 @@ function VideoStudio({
       );
   }, [token]);
   useEffect(() => {
-    if (clip?.uri) player.replace(clip.uri);
+    player.replace(clip?.uri || null);
   }, [clip?.uri, player]);
   useEffect(() => {
     if (
@@ -5257,12 +5253,17 @@ function VideoStudio({
       setSelectedMediaId(asset.id);
       setClipMessage(`${asset.original_name} · from the shared Media Library`);
       setMessage("");
+      return true;
     } catch (reason) {
+      setClip(undefined);
+      setSelectedMediaId(null);
+      setClipMessage("The shared original could not be opened on this iPhone.");
       setMessage(
         reason instanceof Error
           ? reason.message
           : "That shared video could not be opened.",
       );
+      return false;
     }
   }
   function toggleVideoPlatform(platform: VideoProject["platforms"][number]) {
@@ -5291,6 +5292,7 @@ function VideoStudio({
   }
   async function openProject(project: VideoProject) {
     stopPreview();
+    setClip(undefined);
     setActiveProjectId(project.id);
     setProjectTitle(project.title);
     setProjectStatus(project.status);
@@ -5311,9 +5313,15 @@ function VideoStudio({
     if (current?.startAt) setStartAt(current.startAt);
     if (current?.endAt) setEndAt(current.endAt);
     const shared = sharedVideos.find((item) => item.id === project.mediaId);
-    if (shared) await chooseSharedClip(shared);
-    else if (project.mediaId)
+    if (shared) {
+      const opened = await chooseSharedClip(shared);
+      if (!opened) return;
+    } else if (project.mediaId) {
+      setSelectedMediaId(null);
       setClipMessage("The shared original is temporarily unavailable.");
+      setMessage(`Opened “${project.title}”, but its original video is unavailable. Choose the correct clip before previewing or exporting.`);
+      return;
+    }
     setMessage(`Opened “${project.title}” · last edited by ${project.lastEditedBy}.`);
   }
   async function saveSharedProject() {
@@ -5471,7 +5479,7 @@ function VideoStudio({
         presetId,
         name: preset.name,
         fontId,
-        fontName: font.name,
+        fontName: font.nativeName || font.name,
         fontFamily: font.family,
         text: text.trim() || "Your words appear here",
         textColor,
@@ -5531,7 +5539,7 @@ function VideoStudio({
           presetId,
           name: preset.name,
           fontId,
-          fontName: font.name,
+          fontName: font.nativeName || font.name,
           fontFamily: font.family,
           text: text.trim() || "Your words appear here",
           textColor,
@@ -5584,7 +5592,7 @@ function VideoStudio({
           return {
           text: layer.text,
           imageUri: sticker?.source ? Image.resolveAssetSource(sticker.source).uri : "",
-          fontName: layer.fontFamily,
+          fontName: layer.fontName,
           textColor: layer.textColor,
           accentColor: layer.accentColor,
           startAt: layer.startAt,
@@ -6843,6 +6851,8 @@ function MediaLibrary({
   onUpdated,
   onUploaded,
   onWorkingSaved,
+  onStartBlog,
+  onBackToday,
 }: {
   token: string;
   person: Person;
@@ -6851,6 +6861,8 @@ function MediaLibrary({
   onUpdated: (asset: SharedMediaAsset) => void;
   onUploaded: () => void;
   onWorkingSaved: () => void;
+  onStartBlog: (adventure: SharedAdventure) => void;
+  onBackToday: () => void;
 }) {
   const [filter, setFilter] = useState<"all" | "unused" | "used">("all"),
     [query, setQuery] = useState(""),
@@ -7024,6 +7036,9 @@ function MediaLibrary({
         {workingAsset ? (
           <SafeAreaView style={styles.workingModal}>
             <ScrollView contentContainerStyle={styles.workingModalPage}>
+              <Pressable onPress={onBackToday} style={styles.backToTodayButton}>
+                <Text style={styles.backToTodayText}>‹ Back to Today</Text>
+              </Pressable>
               <Pressable onPress={() => setWorkingAsset(null)}>
                 <Text style={styles.backText}>‹ Back</Text>
               </Pressable>
@@ -7113,6 +7128,11 @@ function MediaLibrary({
                 <View style={styles.mediaGrid}>
                   {group.media.map(renderCard)}
                 </View>
+                {person === "Katie" && !group.adventure.platforms.includes("Trail Journal") ? (
+                  <Pressable onPress={() => onStartBlog(group.adventure)} style={styles.adventureNextPrimary}>
+                    <Text style={styles.adventureNextPrimaryText}>Use this Adventure for a blog post</Text>
+                  </Pressable>
+                ) : null}
               </View>
             ))}
             {ungrouped.length ? (
@@ -7152,6 +7172,9 @@ function MediaLibrary({
         {selected ? (
           <View style={styles.mediaModalBackdrop}>
             <ScrollView contentContainerStyle={styles.mediaModal}>
+              <Pressable onPress={onBackToday} style={styles.backToTodayButton}>
+                <Text style={styles.backToTodayText}>‹ Back to Today</Text>
+              </Pressable>
               <Pressable
                 onPress={() => setSelected(null)}
                 accessibilityRole="button"
@@ -7706,6 +7729,9 @@ export default function App() {
     [initialPinterestStorySlug, setInitialPinterestStorySlug] = useState<string>(),
     [pinterestBacklogCount, setPinterestBacklogCount] = useState<number | null>(null),
     [keyboardHeight, setKeyboardHeight] = useState(0);
+  Font.useFonts({
+    CheetoKitty: require("./assets/fonts/CheetoKitty-Regular.ttf"),
+  });
   useEffect(() => {
     const show = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
@@ -7869,6 +7895,25 @@ export default function App() {
     setInitialJournalStorySlug(data.story.slug);
     setTab("Journal");
   }
+  async function skipJournalForAdventure(seed: ContentSeed) {
+    await dismissAdventureFromJournal(account!.token, seed.id);
+    await refreshShared();
+  }
+  function goToToday() {
+    Keyboard.dismiss();
+    setTeamOpen(false);
+    setCreatingAdventure(false);
+    setEditingAdventure(undefined);
+    setViewingPreviews(false);
+    setViewingCalendar(false);
+    setAdaptation(undefined);
+    setInitialInstagramPostId(undefined);
+    setInitialJournalStorySlug(undefined);
+    setInitialJournalEditorTab(undefined);
+    setInitialJournalAdventureId(undefined);
+    setInitialPinterestStorySlug(undefined);
+    setTab("Today");
+  }
   useEffect(() => {
     refreshShared().catch(() => {});
     refreshPinterestBacklog().catch(() => {});
@@ -7942,6 +7987,7 @@ export default function App() {
       onOpenInstagramPost={openInstagramPost}
       onOpenJournalStory={openJournalStory}
       onStartJournal={startJournalFromAdventure}
+      onSkipJournal={skipJournalForAdventure}
     />
   ) : tab === "Media" ? (
     <MediaLibrary
@@ -7958,6 +8004,17 @@ export default function App() {
       }
       onUploaded={() => refreshShared().catch(() => {})}
       onWorkingSaved={() => refreshShared().catch(() => {})}
+      onStartBlog={(adventure) => startJournalFromAdventure({
+        id: adventure.id,
+        title: adventure.title,
+        note: adventure.notes,
+        capturedAt: formatAdventureDate(adventure.captured_at || adventure.created_at),
+        assignedTo: adventure.assigned_to,
+        status: adventure.status,
+        platforms: adventure.platforms.filter((platform): platform is ContentSeed["platforms"][number] => ["Trail Journal", "Instagram", "Pinterest", "TikTok", "YouTube Shorts"].includes(platform)),
+        mediaCount: adventure.media_count,
+      })}
+      onBackToday={goToToday}
     />
   ) : tab === "Studio" ? (
     person !== "Mom" ? (
@@ -8072,6 +8129,11 @@ export default function App() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={0}
       >
+      {tab !== "Today" || teamOpen || viewingPreviews || viewingCalendar || creatingAdventure || Boolean(editingAdventure) ? (
+        <Pressable onPress={goToToday} accessibilityRole="button" accessibilityLabel="Back to Today" style={styles.backToTodayButton}>
+          <Text style={styles.backToTodayText}>‹ Back to Today</Text>
+        </Pressable>
+      ) : null}
       {content}
       <View style={styles.tabs}>
         {tabs.map((item) => (
@@ -8114,6 +8176,19 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  backToTodayButton: {
+    minHeight: 48,
+    justifyContent: "center",
+    paddingHorizontal: 22,
+    backgroundColor: "#f4eee3",
+    borderBottomWidth: 1,
+    borderBottomColor: colors.sandDeep,
+  },
+  backToTodayText: {
+    color: colors.terracottaDeep,
+    fontSize: 15,
+    fontWeight: "900",
+  },
   journalMediaRow: { gap: 10, paddingVertical: 8, paddingRight: 12 },
   journalMediaCard: {
     width: 150,

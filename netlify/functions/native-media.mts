@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { getStore } from '@netlify/blobs'
 import type { Config } from '@netlify/functions'
 import { requireAppUser } from './lib/app-auth.mjs'
-import { addMediaAsset, advanceAdventureToJournal, adventureExists, adventureUploadAllowed, adventuresWithMedia, createAdventure, ensureMediaLibraryCollection, ensureStudioUploadAdventure, mediaById, saveWorkingVersion, updateAdventure, updateMediaDetails, workingVersionById } from './lib/media-db.mjs'
-import { MAX_ADVENTURE_PHOTO_BYTES, MAX_ADVENTURE_VIDEO_BYTES, MAX_ADVENTURE_VIDEO_SECONDS, MAX_DIRECT_PHOTO_BYTES, VIDEO_CHUNK_BYTES, validAdventure, validDirectPhoto, validDirectPhotoUpload, validMediaDetails, validVideoUpload, validWorkingVersion } from './lib/media-settings.mjs'
+import { addMediaAsset, advanceAdventureToJournal, adventureExists, adventureUploadAllowed, adventuresWithMedia, createAdventure, dismissAdventureFromJournal, ensureMediaLibraryCollection, ensureStudioUploadAdventure, mediaByBlobKey, mediaById, saveWorkingVersion, updateAdventure, updateMediaDetails, workingVersionById } from './lib/media-db.mjs'
+import { MAX_ADVENTURE_PHOTO_BYTES, MAX_ADVENTURE_VIDEO_BYTES, MAX_ADVENTURE_VIDEO_SECONDS, MAX_DIRECT_PHOTO_BYTES, VIDEO_CHUNK_BYTES, normalizeMediaContentType, validAdventure, validDirectPhoto, validDirectPhotoUpload, validMediaDetails, validVideoUpload, validWorkingVersion } from './lib/media-settings.mjs'
 import { renderWorkingImage, workingFilename } from './lib/media-render.mjs'
 import { inspectR2Object, r2Configured, signedR2Download, signedR2Upload } from './lib/r2-media.mjs'
 
@@ -53,9 +53,10 @@ export default async (request: Request) => {
       if (displayName.length > 160) return Response.json({ error: 'Keep the searchable media name under 160 characters.' }, { status: 400, headers: HEADERS })
       if (!/^[0-9a-f-]{36}$/i.test(adventureId) || !(await adventureUploadAllowed(adventureId, user))) return Response.json({ error: 'Choose a media collection you can add to.' }, { status: 403, headers: HEADERS })
       const blobKey = `originals/${adventureId}/${randomUUID()}`
-      await store().set(blobKey, file, { metadata: { originalName: file.name, contentType: file.type, owner: user.id }, onlyIfNew: true })
+      const normalizedType = normalizeMediaContentType(file.type)
+      await store().set(blobKey, file, { metadata: { originalName: file.name, contentType: normalizedType, owner: user.id }, onlyIfNew: true })
       const originalName = requestedName && requestedName.length <= 255 ? requestedName : (file.name || 'Nomadic Paws photo')
-      const asset = await addMediaAsset({ adventureId, blobKey, displayName, originalName, contentType: file.type, byteSize: file.size, width, height }, user.id)
+      const asset = await addMediaAsset({ adventureId, blobKey, displayName, originalName, contentType: normalizedType, byteSize: file.size, width, height }, user.id)
       return Response.json({ media: asset }, { status: 201, headers: HEADERS })
     }
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
@@ -73,7 +74,7 @@ export default async (request: Request) => {
       const uploadId = randomUUID(), objectKey = `r2/originals/${String(body.adventureId)}/${uploadId}`
       const session = {
         owner: user.id, objectKey, adventureId: String(body.adventureId), displayName: String(body.displayName || '').trim(),
-        originalName: String(body.originalName), contentType: String(body.contentType).toLowerCase(), byteSize: Number(body.byteSize),
+        originalName: String(body.originalName), contentType: normalizeMediaContentType(body.contentType), byteSize: Number(body.byteSize),
         width: Number(body.width) || 0, height: Number(body.height) || 0, durationSeconds: 0, kind: 'photo',
       }
       await store().setJSON(`r2-uploads/${user.id}/${uploadId}`, session, { onlyIfNew: true })
@@ -82,6 +83,12 @@ export default async (request: Request) => {
     if (body.action === 'finish-direct-photo-upload' && r2Configured()) {
       const uploadId = String(body.uploadId || '')
       if (!/^[0-9a-f-]{36}$/i.test(uploadId)) return Response.json({ error: 'That photo upload is not valid.' }, { status: 400, headers: HEADERS })
+      const receiptKey = `r2-receipts/${user.id}/${uploadId}`
+      const receipt = await store().get(receiptKey, { type: 'json', consistency: 'strong' }) as null | { mediaId?: string }
+      if (receipt?.mediaId) {
+        const completed = await mediaById(receipt.mediaId)
+        if (completed) return Response.json({ media: completed }, { status: 200, headers: HEADERS })
+      }
       const sessionKey = `r2-uploads/${user.id}/${uploadId}`
       const session = await store().get(sessionKey, { type: 'json', consistency: 'strong' }) as null | {
         owner: string; objectKey: string; adventureId: string; displayName: string; originalName: string; contentType: string;
@@ -90,7 +97,8 @@ export default async (request: Request) => {
       if (!session || session.owner !== user.id || session.kind !== 'photo') return Response.json({ error: 'That photo upload has expired.' }, { status: 404, headers: HEADERS })
       const uploaded = await inspectR2Object(session.objectKey)
       if (Number(uploaded.ContentLength || 0) !== session.byteSize) return Response.json({ error: 'The uploaded photo did not match the original size.' }, { status: 409, headers: HEADERS })
-      const asset = await addMediaAsset({ ...session, blobKey: session.objectKey }, user.id)
+      const asset = await mediaByBlobKey(session.objectKey) || await addMediaAsset({ ...session, blobKey: session.objectKey }, user.id)
+      await store().setJSON(receiptKey, { mediaId: asset.id, completedAt: new Date().toISOString() })
       await store().delete(sessionKey)
       return Response.json({ media: asset }, { status: 201, headers: HEADERS })
     }
@@ -101,7 +109,7 @@ export default async (request: Request) => {
       const uploadId = randomUUID(), objectKey = `r2/originals/${String(body.adventureId)}/${uploadId}`
       const session = {
         owner: user.id, objectKey, adventureId: String(body.adventureId), displayName: String(body.displayName || '').trim(), originalName: String(body.originalName),
-        contentType: String(body.contentType).toLowerCase(), byteSize: Number(body.byteSize),
+        contentType: normalizeMediaContentType(body.contentType), byteSize: Number(body.byteSize),
         width: Number(body.width) || 0, height: Number(body.height) || 0, durationSeconds: Number(body.durationSeconds),
       }
       await store().setJSON(`r2-uploads/${user.id}/${uploadId}`, session, { onlyIfNew: true })
@@ -110,6 +118,12 @@ export default async (request: Request) => {
     if (body.action === 'finish-direct-video-upload' && r2Configured()) {
       const uploadId = String(body.uploadId || '')
       if (!/^[0-9a-f-]{36}$/i.test(uploadId)) return Response.json({ error: 'That video upload is not valid.' }, { status: 400, headers: HEADERS })
+      const receiptKey = `r2-receipts/${user.id}/${uploadId}`
+      const receipt = await store().get(receiptKey, { type: 'json', consistency: 'strong' }) as null | { mediaId?: string }
+      if (receipt?.mediaId) {
+        const completed = await mediaById(receipt.mediaId)
+        if (completed) return Response.json({ media: completed }, { status: 200, headers: HEADERS })
+      }
       const sessionKey = `r2-uploads/${user.id}/${uploadId}`
       const session = await store().get(sessionKey, { type: 'json', consistency: 'strong' }) as null | {
         owner: string; objectKey: string; adventureId: string; displayName: string; originalName: string; contentType: string;
@@ -118,7 +132,8 @@ export default async (request: Request) => {
       if (!session || session.owner !== user.id) return Response.json({ error: 'That video upload has expired.' }, { status: 404, headers: HEADERS })
       const uploaded = await inspectR2Object(session.objectKey)
       if (Number(uploaded.ContentLength || 0) !== session.byteSize) return Response.json({ error: 'The uploaded video did not match the original size.' }, { status: 409, headers: HEADERS })
-      const asset = await addMediaAsset({ ...session, blobKey: session.objectKey, kind: 'video' }, user.id)
+      const asset = await mediaByBlobKey(session.objectKey) || await addMediaAsset({ ...session, blobKey: session.objectKey, kind: 'video' }, user.id)
+      await store().setJSON(receiptKey, { mediaId: asset.id, completedAt: new Date().toISOString() })
       await store().delete(sessionKey)
       return Response.json({ media: asset }, { status: 201, headers: HEADERS })
     }
@@ -132,7 +147,7 @@ export default async (request: Request) => {
         adventureId: String(body.adventureId),
         originalName: String(body.originalName),
         displayName: String(body.displayName || '').trim(),
-        contentType: String(body.contentType).toLowerCase(),
+        contentType: normalizeMediaContentType(body.contentType),
         byteSize: Number(body.byteSize),
         width: Math.max(0, Math.min(50000, Number(body.width) || 0)),
         height: Math.max(0, Math.min(50000, Number(body.height) || 0)),
@@ -145,6 +160,14 @@ export default async (request: Request) => {
     if (body.action === 'upload-video-chunk' || body.action === 'finish-video-upload') {
       const uploadId = String(body.uploadId || '')
       if (!/^[0-9a-f-]{36}$/i.test(uploadId)) return Response.json({ error: 'That video upload is not valid.' }, { status: 400, headers: HEADERS })
+      const receiptKey = `upload-receipts/${user.id}/${uploadId}`
+      if (body.action === 'finish-video-upload') {
+        const receipt = await store().get(receiptKey, { type: 'json', consistency: 'strong' }) as null | { mediaId?: string }
+        if (receipt?.mediaId) {
+          const completed = await mediaById(receipt.mediaId)
+          if (completed) return Response.json({ media: completed }, { status: 200, headers: HEADERS })
+        }
+      }
       const sessionKey = `uploads/${user.id}/${uploadId}/session`
       const session = await store().get(sessionKey, { type: 'json', consistency: 'strong' }) as null | {
         owner: string; adventureId: string; displayName: string; originalName: string; contentType: string; byteSize: number;
@@ -170,6 +193,7 @@ export default async (request: Request) => {
       const blobKey = `originals/${session.adventureId}/${randomUUID()}`
       await store().set(blobKey, video, { metadata: { originalName: session.originalName, contentType: session.contentType, owner: user.id }, onlyIfNew: true })
       const asset = await addMediaAsset({ ...session, blobKey, kind: 'video' }, user.id)
+      await store().setJSON(receiptKey, { mediaId: asset.id, completedAt: new Date().toISOString() })
       await Promise.all([
         store().delete(sessionKey),
         ...Array.from({ length: session.chunkCount }, (_, index) => store().delete(`uploads/${user.id}/${uploadId}/chunk-${index}`)),
@@ -196,6 +220,12 @@ export default async (request: Request) => {
       const adventureId = String(body.adventureId || '')
       if (!/^[0-9a-f-]{36}$/i.test(adventureId)) return Response.json({ error: 'That Adventure could not be connected to the Journal.' }, { status: 400, headers: HEADERS })
       const adventure = await advanceAdventureToJournal(adventureId)
+      return adventure ? Response.json({ adventure }, { headers: HEADERS }) : Response.json({ error: 'That Adventure is no longer available.' }, { status: 404, headers: HEADERS })
+    }
+    if (body.action === 'dismiss-adventure-from-journal') {
+      const adventureId = String(body.adventureId || '')
+      if (!/^[0-9a-f-]{36}$/i.test(adventureId)) return Response.json({ error: 'That Adventure could not be cleared from Today.' }, { status: 400, headers: HEADERS })
+      const adventure = await dismissAdventureFromJournal(adventureId)
       return adventure ? Response.json({ adventure }, { headers: HEADERS }) : Response.json({ error: 'That Adventure is no longer available.' }, { status: 404, headers: HEADERS })
     }
     if (body.action !== 'create-adventure' || !validAdventure(body)) return Response.json({ error: 'Give this adventure a short name before saving it.' }, { status: 400, headers: HEADERS })

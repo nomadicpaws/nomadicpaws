@@ -1,6 +1,6 @@
 import type { Config } from "@netlify/functions";
 import { attachPaymentIntent, createSaleRecord, markSalePaymentFailed } from "./lib/event-db.mjs";
-import { errorResponse, json, readJson, requireEventOperator, requireTestMode } from "./lib/event-http.mjs";
+import { errorResponse, json, readJson, requireEventOperator, requireTestMode, validRequestId } from "./lib/event-http.mjs";
 import { assertInventoryAvailable } from "./lib/event-inventory-service.mjs";
 import { priceCart } from "./lib/event-products.mjs";
 import { createTerminalPaymentIntent } from "./lib/stripe-api.mjs";
@@ -14,7 +14,7 @@ export default async (request: Request) => {
     await requireEventOperator(request);
     const body = await readJson(request);
     const priced = priceCart(body.items, Number(process.env.EVENT_TAX_RATE_BPS));
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.requestId || "")) {
+    if (!validRequestId(body.requestId)) {
       throw Object.assign(new Error("A new UUID requestId is required for each sale."), { status: 400 });
     }
     await assertInventoryAvailable(body.items);

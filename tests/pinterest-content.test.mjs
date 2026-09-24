@@ -26,6 +26,14 @@ test('branded media URLs preserve the upload and selected logo treatment', () =>
   assert.match(decodeURIComponent(url), /https:\/\/nomadicpaws\.co\/images\/uploads\/cheeto\.jpg/)
 })
 
+test('already-rendered working images do not receive a second watermark', () => {
+  const image = '/media/working/11111111-1111-4111-8111-111111111111.jpg'
+  assert.equal(
+    brandedMediaUrl({ image, template: 'terracotta', logo_size: 'medium', logo_placement: 'right' }),
+    `https://nomadicpaws.co${image}`,
+  )
+})
+
 test('existing campaigns retain small left logo defaults', () => {
   const url = brandedMediaUrl({ image: '/images/uploads/cheeto.jpg', template: 'bark' })
   assert.match(url, /size=small/)

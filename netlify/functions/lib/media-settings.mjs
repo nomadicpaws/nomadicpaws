@@ -7,6 +7,13 @@ export const MEDIA_TAGS = ['Cheeto', 'Trail', 'Wildlife', 'Product', 'Behind the
 export const PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'])
 export const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/x-m4v'])
 
+export function normalizeMediaContentType(value = '') {
+  const type = String(value).trim().toLowerCase()
+  if (type === 'image/jpg' || type === 'image/pjpeg') return 'image/jpeg'
+  if (type === 'video/mov') return 'video/quicktime'
+  return type
+}
+
 export function validAdventure(value = {}) {
   return typeof value.title === 'string' && value.title.trim().length > 0 && value.title.trim().length <= 160 &&
     typeof (value.notes || '') === 'string' && String(value.notes || '').length <= 10000 &&
@@ -14,14 +21,14 @@ export function validAdventure(value = {}) {
 }
 
 export function validDirectPhoto(file) {
-  return Boolean(file && PHOTO_TYPES.has(String(file.type || '').toLowerCase()) && Number(file.size) > 0 && Number(file.size) <= MAX_DIRECT_PHOTO_BYTES)
+  return Boolean(file && PHOTO_TYPES.has(normalizeMediaContentType(file.type)) && Number(file.size) > 0 && Number(file.size) <= MAX_DIRECT_PHOTO_BYTES)
 }
 
 export function validDirectPhotoUpload(value = {}) {
   return typeof value.adventureId === 'string' && /^[0-9a-f-]{36}$/i.test(value.adventureId)
     && typeof value.originalName === 'string' && value.originalName.trim().length > 0 && value.originalName.length <= 255
     && typeof (value.displayName || '') === 'string' && String(value.displayName || '').trim().length <= 160
-    && PHOTO_TYPES.has(String(value.contentType || '').toLowerCase())
+    && PHOTO_TYPES.has(normalizeMediaContentType(value.contentType))
     && Number.isInteger(Number(value.byteSize)) && Number(value.byteSize) > 0 && Number(value.byteSize) <= MAX_ADVENTURE_PHOTO_BYTES
 }
 
@@ -30,7 +37,7 @@ export function validVideoUpload(value = {}) {
   return typeof value.adventureId === 'string' && /^[0-9a-f-]{36}$/i.test(value.adventureId)
     && typeof value.originalName === 'string' && value.originalName.trim().length > 0 && value.originalName.length <= 255
     && typeof (value.displayName || '') === 'string' && String(value.displayName || '').trim().length <= 160
-    && VIDEO_TYPES.has(String(value.contentType || '').toLowerCase())
+    && VIDEO_TYPES.has(normalizeMediaContentType(value.contentType))
     && Number.isInteger(Number(value.byteSize)) && Number(value.byteSize) > 0 && Number(value.byteSize) <= MAX_ADVENTURE_VIDEO_BYTES
     && Number.isFinite(durationSeconds) && durationSeconds > 0 && durationSeconds <= MAX_ADVENTURE_VIDEO_SECONDS
 }

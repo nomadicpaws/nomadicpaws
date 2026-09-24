@@ -27,6 +27,9 @@ export function absoluteMediaUrl(path = '') {
 export function brandedMediaUrl(pin = {}) {
   const source = absoluteMediaUrl(pin.image || '')
   if (pin.media_type === 'video') return source
+  // Working-media URLs are already rendered with the selected crop and logo.
+  // Sending them through pinterest-image again would apply a second watermark.
+  if (/\/media\/working\/[0-9a-f-]+\.jpg(?:$|[?#])/i.test(source)) return source
   if (!pin.template) return source
   const template = ['bark', 'sage', 'sand', 'terracotta'].includes(pin.template) ? pin.template : 'bark'
   const size = ['small', 'medium'].includes(pin.logo_size) ? pin.logo_size : 'small'

@@ -16,6 +16,10 @@ export async function readJson(request) {
   }
 }
 
+export function validRequestId(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
+}
+
 export function requireSeller(request) {
   const secret = process.env.EVENT_REGISTER_SESSION_SECRET || "";
   const claims = verifySellerToken(bearerToken(request.headers), secret);

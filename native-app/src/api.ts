@@ -80,19 +80,52 @@ export type SharedCalendarEvent = {
   updated_at: string
 }
 
+function normalizedUploadContentType(mimeType: string | null | undefined, name: string, kind: 'photo' | 'video') {
+  const supplied = String(mimeType || '').trim().toLowerCase()
+  if (supplied === 'image/jpg' || supplied === 'image/pjpeg') return 'image/jpeg'
+  if (supplied === 'video/mov') return 'video/quicktime'
+  if (supplied) return supplied
+  const extension = name.split('.').pop()?.toLowerCase()
+  if (extension === 'png') return 'image/png'
+  if (extension === 'webp') return 'image/webp'
+  if (extension === 'heic') return 'image/heic'
+  if (extension === 'heif') return 'image/heif'
+  if (extension === 'mp4') return 'video/mp4'
+  if (extension === 'm4v') return 'video/x-m4v'
+  if (extension === 'mov') return 'video/quicktime'
+  return kind === 'video' ? 'video/quicktime' : 'image/jpeg'
+}
+
+class ApiResponseError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message)
+    this.name = 'ApiResponseError'
+  }
+}
+
 async function request<T>(path: string, token: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      Accept: 'application/json',
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-  })
-  const data = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(data.error || 'Nomadic Paws could not complete that request.')
-  return data as T
+  const controller = options.signal ? null : new AbortController()
+  const timeout = controller ? setTimeout(() => controller.abort(), 30000) : null
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      signal: options.signal || controller?.signal,
+      headers: {
+        Accept: 'application/json',
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new ApiResponseError(data.error || 'Nomadic Paws could not complete that request.', response.status)
+    return data as T
+  } catch (error) {
+    if (controller?.signal.aborted) throw new Error('The connection took too long. Your work is still safe—please try again.')
+    throw error
+  } finally {
+    if (timeout) clearTimeout(timeout)
+  }
 }
 
 function privateCachePath(key: string) {
@@ -100,14 +133,16 @@ function privateCachePath(key: string) {
   return `${FileSystem.documentDirectory || FileSystem.cacheDirectory}private-${safeKey}.json`
 }
 
-async function cachedRequest<T>(key: string, load: () => Promise<T>): Promise<T> {
+async function cachedRequest<T>(key: string, token: string, load: () => Promise<T>): Promise<T> {
+  const scopedKey = `${key}-${token.slice(-16)}`
   try {
     const data = await load()
-    await FileSystem.writeAsStringAsync(privateCachePath(key), JSON.stringify(data)).catch(() => {})
+    await FileSystem.writeAsStringAsync(privateCachePath(scopedKey), JSON.stringify(data)).catch(() => {})
     return data
   } catch (networkError) {
+    if (networkError instanceof ApiResponseError && networkError.status < 500) throw networkError
     try {
-      return JSON.parse(await FileSystem.readAsStringAsync(privateCachePath(key))) as T
+      return JSON.parse(await FileSystem.readAsStringAsync(privateCachePath(scopedKey))) as T
     } catch {
       throw networkError
     }
@@ -194,14 +229,20 @@ export async function advanceAdventureToJournal(token: string, adventureId: stri
   return data.adventure
 }
 
+export async function dismissAdventureFromJournal(token: string, adventureId: string) {
+  const data = await request<{ adventure: SharedAdventure }>('/api/app/media', token, { method: 'POST', body: JSON.stringify({ action: 'dismiss-adventure-from-journal', adventureId }) })
+  return data.adventure
+}
+
 export async function uploadAdventurePhoto(token: string, adventureId: string, file: { uri: string; name: string; displayName?: string; mimeType?: string | null; byteSize?: number; width?: number; height?: number }, onProgress?: (current: number, total: number) => void) {
   const info = file.byteSize ? null : await FileSystem.getInfoAsync(file.uri)
   const byteSize = file.byteSize || (info?.exists ? info.size || 0 : 0)
+  const contentType = normalizedUploadContentType(file.mimeType, file.name, 'photo')
   const direct = await request<{ mode: 'r2'; uploadId: string; uploadUrl: string } | { mode: 'multipart' }>('/api/app/media', token, {
     method: 'POST',
     body: JSON.stringify({
       action: 'create-direct-photo-upload', adventureId, originalName: file.name,
-      displayName: file.displayName?.trim() || '', contentType: file.mimeType || 'image/jpeg', byteSize,
+      displayName: file.displayName?.trim() || '', contentType, byteSize,
       width: file.width || 0, height: file.height || 0,
     }),
   })
@@ -212,25 +253,23 @@ export async function uploadAdventurePhoto(token: string, adventureId: string, f
       {
         httpMethod: 'PUT',
         uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-        headers: { 'Content-Type': file.mimeType || 'image/jpeg' },
+        headers: { 'Content-Type': contentType },
       },
       ({ totalBytesSent, totalBytesExpectedToSend }) =>
         onProgress?.(totalBytesSent, totalBytesExpectedToSend || byteSize),
     )
-    const result = await task.uploadAsync()
+    let result: Awaited<ReturnType<typeof task.uploadAsync>> = null
+    try {
+      result = await task.uploadAsync()
+    } catch {
+      // The small-file multipart path is less sensitive to iCloud placeholders,
+      // relays, and signed-upload network interruptions.
+    }
     if (!result || result.status < 200 || result.status >= 300) {
       // A signed R2 PUT can be refused by a network, iCloud placeholder, or
       // restrictive relay. Retry small photos through the proven multipart
       // path instead of making the user reselect everything.
-      const fallback = await request<{ mode: 'multipart' }>('/api/app/media', token, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'create-direct-photo-upload', preferMultipart: true, adventureId, originalName: file.name,
-          displayName: file.displayName?.trim() || '', contentType: file.mimeType || 'image/jpeg', byteSize,
-          width: file.width || 0, height: file.height || 0,
-        }),
-      })
-      if (fallback.mode !== 'multipart') throw new Error('Cloud storage did not accept that photo. Please retry.')
+      if (byteSize > 5 * 1024 * 1024) throw new Error('The full-size photo upload was interrupted. Your selection is still here—please try again.')
       return uploadAdventurePhotoMultipart(token, adventureId, file, onProgress)
     }
     const finished = await request<{ media: SharedMediaAsset }>('/api/app/media', token, {
@@ -246,7 +285,7 @@ export async function uploadAdventurePhoto(token: string, adventureId: string, f
     httpMethod: 'POST',
     uploadType: FileSystem.FileSystemUploadType.MULTIPART,
     fieldName: 'file',
-    mimeType: file.mimeType || 'image/jpeg',
+    mimeType: contentType,
     parameters: {
       adventureId,
       originalName: file.name,
@@ -268,12 +307,42 @@ export async function uploadAdventurePhoto(token: string, adventureId: string, f
 }
 
 export async function uploadAdventureVideo(token: string, adventureId: string, file: { uri: string; name: string; displayName?: string; mimeType?: string | null; byteSize: number; width?: number; height?: number; durationSeconds: number }, onProgress?: (current: number, total: number) => void) {
+  const contentType = normalizedUploadContentType(file.mimeType, file.name, 'video')
+  const uploadInChunks = async () => {
+    const started = await request<{ uploadId: string; chunkBytes: number; chunkCount: number }>('/api/app/media', token, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'start-video-upload', adventureId, originalName: file.name,
+        displayName: file.displayName?.trim() || '', contentType, byteSize: file.byteSize,
+        width: file.width || 0, height: file.height || 0, durationSeconds: file.durationSeconds,
+      }),
+    })
+    for (let index = 0; index < started.chunkCount; index += 1) {
+      const position = index * started.chunkBytes
+      const length = Math.min(started.chunkBytes, file.byteSize - position)
+      const data = await FileSystem.readAsStringAsync(file.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+        position,
+        length,
+      })
+      await request<{ received: number }>('/api/app/media', token, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'upload-video-chunk', uploadId: started.uploadId, index, data }),
+      })
+      onProgress?.(index + 1, started.chunkCount)
+    }
+    const finished = await request<{ media: SharedMediaAsset }>('/api/app/media', token, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'finish-video-upload', uploadId: started.uploadId }),
+    })
+    return finished.media
+  }
   const direct = await request<{ mode: 'r2'; uploadId: string; uploadUrl: string } | { mode: 'chunked' }>('/api/app/media', token, {
     method: 'POST',
     body: JSON.stringify({
       action: 'create-direct-video-upload', adventureId, originalName: file.name,
       displayName: file.displayName?.trim() || '',
-      contentType: file.mimeType || 'video/quicktime', byteSize: file.byteSize,
+      contentType, byteSize: file.byteSize,
       width: file.width || 0, height: file.height || 0, durationSeconds: file.durationSeconds,
     }),
   })
@@ -284,55 +353,34 @@ export async function uploadAdventureVideo(token: string, adventureId: string, f
       {
         httpMethod: 'PUT',
         uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-        headers: { 'Content-Type': file.mimeType || 'video/quicktime' },
+        headers: { 'Content-Type': contentType },
       },
       ({ totalBytesSent, totalBytesExpectedToSend }) =>
         onProgress?.(totalBytesSent, totalBytesExpectedToSend || file.byteSize),
     )
-    const result = await task.uploadAsync()
-    if (!result || result.status < 200 || result.status >= 300) throw new Error('Cloud storage did not accept that video. Please retry.')
+    let result: Awaited<ReturnType<typeof task.uploadAsync>> = null
+    try {
+      result = await task.uploadAsync()
+    } catch {
+      // Continue through the resumable small-piece path below.
+    }
+    if (!result || result.status < 200 || result.status >= 300) return uploadInChunks()
     const finished = await request<{ media: SharedMediaAsset }>('/api/app/media', token, {
       method: 'POST',
       body: JSON.stringify({ action: 'finish-direct-video-upload', uploadId: direct.uploadId }),
     })
     return finished.media
   }
-  const started = await request<{ uploadId: string; chunkBytes: number; chunkCount: number }>('/api/app/media', token, {
-    method: 'POST',
-    body: JSON.stringify({
-      action: 'start-video-upload', adventureId, originalName: file.name,
-      displayName: file.displayName?.trim() || '',
-      contentType: file.mimeType || 'video/quicktime', byteSize: file.byteSize,
-      width: file.width || 0, height: file.height || 0, durationSeconds: file.durationSeconds,
-    }),
-  })
-  for (let index = 0; index < started.chunkCount; index += 1) {
-    const position = index * started.chunkBytes
-    const length = Math.min(started.chunkBytes, file.byteSize - position)
-    const data = await FileSystem.readAsStringAsync(file.uri, {
-      encoding: FileSystem.EncodingType.Base64,
-      position,
-      length,
-    })
-    await request<{ received: number }>('/api/app/media', token, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'upload-video-chunk', uploadId: started.uploadId, index, data }),
-    })
-    onProgress?.(index + 1, started.chunkCount)
-  }
-  const finished = await request<{ media: SharedMediaAsset }>('/api/app/media', token, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'finish-video-upload', uploadId: started.uploadId }),
-  })
-  return finished.media
+  return uploadInChunks()
 }
 
 async function uploadAdventurePhotoMultipart(token: string, adventureId: string, file: { uri: string; name: string; displayName?: string; mimeType?: string | null; byteSize?: number; width?: number; height?: number }, onProgress?: (current: number, total: number) => void) {
+  const contentType = normalizedUploadContentType(file.mimeType, file.name, 'photo')
   const result = await FileSystem.uploadAsync(`${API_URL}/api/app/media`, file.uri, {
     httpMethod: 'POST',
     uploadType: FileSystem.FileSystemUploadType.MULTIPART,
     fieldName: 'file',
-    mimeType: file.mimeType || 'image/jpeg',
+    mimeType: contentType,
     parameters: { adventureId, originalName: file.name, displayName: file.displayName?.trim() || '', width: String(file.width || 0), height: String(file.height || 0) },
     headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
   })
@@ -358,13 +406,13 @@ export async function saveWorkingVersion(token: string, mediaId: string, destina
 }
 
 export async function loadStories(token: string) {
-  return cachedRequest('journal-stories', () =>
+  return cachedRequest('journal-stories', token, () =>
     request<{ stories: JournalStory[] }>('/api/app/journal', token),
   )
 }
 
 export async function loadStory(token: string, slug: string) {
-  return cachedRequest(`journal-story-${slug}`, () =>
+  return cachedRequest(`journal-story-${slug}`, token, () =>
     request<{ story: JournalStoryDetail; notes: JournalReviewNote[]; workingDraft: JournalWorkingDraft | null; versions: JournalWorkingVersion[]; storyVideos: JournalStoryVideo[] }>(`/api/app/journal?slug=${encodeURIComponent(slug)}`, token),
   )
 }
@@ -418,7 +466,7 @@ export async function completeMomReview(token: string, slug: string) {
 }
 
 export async function loadInstagramStudio(token: string) {
-  const data = await cachedRequest('instagram-studio', () =>
+  const data = await cachedRequest('instagram-studio', token, () =>
     request<{ rhythm: InstagramDay[] | null; templates: Array<{ id: string; name: string; kind: InstagramTemplate['kind']; aspect_ratio: string; source_url: string; favorite: boolean }>; posts: Array<{ id: string; title: string; caption: string; media_urls: string[]; target_date: string | null; theme: string; status: InstagramPostDraft['status']; assigned_to: InstagramPostDraft['assignedTo']; handoff_note: string; shared_with_mom: boolean; alt_text: string; instagram_url: string; pinterest_reusable: boolean; posted_at: string | null; updated_at: string }> }>('/api/app/instagram', token),
   )
   return { rhythm: data.rhythm, templates: data.templates.map(template => ({ id: template.id, name: template.name, kind: template.kind, aspectRatio: template.aspect_ratio, previewUrl: template.source_url, favorite: template.favorite })), posts: data.posts.map(post => ({ id: post.id, title: post.title, caption: post.caption, mediaUrls: post.media_urls, targetDate: post.target_date, theme: post.theme, status: post.status, assignedTo: post.assigned_to, handoffNote: post.handoff_note, sharedWithMom: post.shared_with_mom, altText: post.alt_text || '', instagramUrl: post.instagram_url || '', pinterestReusable: post.pinterest_reusable === true, postedAt: post.posted_at || null, updatedAt: post.updated_at })) }
@@ -465,7 +513,7 @@ function normalizeVideoProject(item: any): VideoProject {
 }
 
 export async function loadVideoProjects(token: string) {
-  const data = await cachedRequest('video-projects', () => request<{ projects: any[] }>('/api/app/video', token))
+  const data = await cachedRequest('video-projects', token, () => request<{ projects: any[] }>('/api/app/video', token))
   return { projects: data.projects.map(normalizeVideoProject) }
 }
 
@@ -478,7 +526,7 @@ export async function saveVideoProject(token: string, project: Omit<VideoProject
 }
 
 export async function loadPinterestCampaigns(token: string) {
-  return cachedRequest('pinterest-campaigns', () =>
+  return cachedRequest('pinterest-campaigns', token, () =>
     request<{ campaigns: PinterestCampaign[] }>('/api/app/pinterest', token),
   )
 }
