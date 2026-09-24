@@ -2,6 +2,7 @@ import { requireNativeModule } from 'expo'
 
 export type NativeVideoOverlay = {
   text: string
+  imageUri: string
   fontName: string
   textColor: string
   accentColor: string

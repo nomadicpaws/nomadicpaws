@@ -234,16 +234,16 @@ const videoAnimations = [
   "Zoom",
   "Flicker",
 ] as const;
-const videoStickers = [
-  { label: "Cheeto", glyph: "🐈" },
-  { label: "Paw", glyph: "🐾" },
-  { label: "Sparkle", glyph: "✨" },
-  { label: "Heart", glyph: "🧡" },
-  { label: "Trail", glyph: "🥾" },
-  { label: "Camp", glyph: "🏕️" },
-  { label: "Bible", glyph: "📖" },
-  { label: "Arrow", glyph: "➜" },
-] as const;
+const videoStickers: Array<{ id: string; label: string; glyph: string; source?: number }> = [
+  { id: "cheeto-approved", label: "Approved", glyph: "🐈", source: require("./assets/stickers/cheeto-approved-v1.png") },
+  { id: "cheeto-rest", label: "Rest", glyph: "💤", source: require("./assets/stickers/cheeto-rest-v1.png") },
+  { id: "cheeto-adventure", label: "Adventure", glyph: "🐈", source: require("./assets/stickers/cheeto-adventure-v1.png") },
+  { id: "paw", label: "Paw", glyph: "🐾" },
+  { id: "sparkle", label: "Sparkle", glyph: "✨" },
+  { id: "heart", label: "Heart", glyph: "🧡" },
+  { id: "bible", label: "Bible", glyph: "📖" },
+  { id: "arrow", label: "Arrow", glyph: "➜" },
+];
 const mediaTags = [
   "Cheeto",
   "Trail",
@@ -5487,14 +5487,14 @@ function VideoStudio({
       "Added to this video. You can add another overlay without changing the original clip.",
     );
   }
-  function addSticker(label: string, glyph: string) {
+  function addSticker(id: string, label: string, glyph: string) {
     const start = Math.max(0, Number(startAt) || 0),
       end = Math.max(start + 0.5, Number(endAt) || start + 5);
     setTimeline((current) => [
       ...current,
       {
         id: `sticker-${Date.now()}`,
-        presetId: "sticker",
+        presetId: `sticker-${id}`,
         name: `${label} sticker`,
         fontId: "clean",
         fontName: "Sticker",
@@ -5577,8 +5577,13 @@ function VideoStudio({
       const uri = await renderNomadicVideo(
         clip.uri,
         destination,
-        exportLayers.map((layer) => ({
+        exportLayers.map((layer) => {
+          const sticker = layer.presetId.startsWith("sticker-")
+            ? videoStickers.find((item) => `sticker-${item.id}` === layer.presetId)
+            : undefined;
+          return {
           text: layer.text,
+          imageUri: sticker?.source ? Image.resolveAssetSource(sticker.source).uri : "",
           fontName: layer.fontFamily,
           textColor: layer.textColor,
           accentColor: layer.accentColor,
@@ -5587,7 +5592,8 @@ function VideoStudio({
           animation: layer.animation,
           boxed: layer.boxed,
           uppercase: layer.uppercase,
-        })),
+          };
+        }),
       );
       setFinishedVideo(uri);
       setRenderProgress(1);
@@ -5989,11 +5995,15 @@ function VideoStudio({
           {videoStickers.map((item) => (
             <Pressable
               key={item.label}
-              onPress={() => addSticker(item.label, item.glyph)}
+              onPress={() => addSticker(item.id, item.label, item.glyph)}
               accessibilityLabel={`Add ${item.label} sticker`}
               style={styles.stickerChoice}
             >
-              <Text style={styles.stickerGlyph}>{item.glyph}</Text>
+              {item.source ? (
+                <Image source={item.source} style={styles.stickerImage} resizeMode="contain" />
+              ) : (
+                <Text style={styles.stickerGlyph}>{item.glyph}</Text>
+              )}
               <Text style={styles.stickerLabel}>{item.label}</Text>
             </Pressable>
           ))}
@@ -10529,6 +10539,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   stickerGlyph: { fontSize: 28 },
+  stickerImage: { width: 50, height: 50 },
   stickerLabel: { color: colors.barkSoft, fontSize: 9, fontWeight: "900", marginTop: 5 },
   videoTimeline: { marginTop: 25 },
   timelineOverlay: {

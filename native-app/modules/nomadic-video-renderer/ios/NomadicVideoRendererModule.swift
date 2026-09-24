@@ -4,6 +4,7 @@ import UIKit
 
 struct NomadicVideoOverlay: Record {
   @Field var text: String = ""
+  @Field var imageUri: String = ""
   @Field var fontName: String = ""
   @Field var textColor: String = "#ffffff"
   @Field var accentColor: String = "#111111"
@@ -152,8 +153,17 @@ public final class NomadicVideoRendererModule: Module {
         .strokeWidth: strokeWidth,
       ])
     }
-    textLayer.string = attributed(fullText)
+    textLayer.string = overlay.imageUri.isEmpty ? attributed(fullText) : attributed("")
     container.addSublayer(textLayer)
+    if !overlay.imageUri.isEmpty,
+       let image = UIImage(contentsOfFile: localURL(overlay.imageUri).path)?.cgImage {
+      let imageLayer = CALayer()
+      imageLayer.frame = CGRect(x: 24, y: 8, width: frame.width - 48, height: frame.height - 16)
+      imageLayer.contents = image
+      imageLayer.contentsGravity = .resizeAspect
+      imageLayer.contentsScale = 3
+      container.addSublayer(imageLayer)
+    }
 
     let visibility = CAKeyframeAnimation(keyPath: "opacity")
     visibility.values = [0, 1, 1, 0]
@@ -171,7 +181,7 @@ public final class NomadicVideoRendererModule: Module {
       fade.duration = min(0.8, visibleDuration)
       fade.fillMode = .both
       fade.isRemovedOnCompletion = false
-      textLayer.add(fade, forKey: "entrance")
+      container.add(fade, forKey: "entrance")
     } else if overlay.animation == "Pop" {
       let pop = CAKeyframeAnimation(keyPath: "transform.scale")
       pop.values = [0.55, 1.08, 1]
@@ -226,7 +236,7 @@ public final class NomadicVideoRendererModule: Module {
       flicker.duration = min(0.75, visibleDuration)
       flicker.fillMode = .both
       flicker.isRemovedOnCompletion = false
-      textLayer.add(flicker, forKey: "entrance")
+      container.add(flicker, forKey: "entrance")
     } else if overlay.animation == "Typewriter" || overlay.animation == "Word by word" {
       let pieces = overlay.animation == "Word by word" ? fullText.split(separator: " ").map(String.init) : fullText.map(String.init)
       let strings: [NSAttributedString] = pieces.indices.map { index in
