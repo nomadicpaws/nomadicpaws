@@ -22,6 +22,8 @@ test('Studio and Events agree on the calendar deep-link scheme', () => {
 
 test('Meet Cheeto page includes the production social images it references', () => {
   const page = readFileSync(join(root, 'cheeto', 'index.html'), 'utf8')
+  const dynamicSitemap = readFileSync(join(root, 'netlify', 'functions', 'sitemap.mts'), 'utf8')
+  assert.match(dynamicSitemap, /urlEntry\('\/cheeto\/'/)
   for (const filename of [
     'cheeto-desert-sunset-1440.jpg',
     'cheeto-desert-sunset-mobile-720.jpg',

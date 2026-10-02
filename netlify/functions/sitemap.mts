@@ -52,6 +52,7 @@ function urlEntry(
 export default async () => {
   const entries = [
     urlEntry('/', 'weekly', '1.0'),
+    urlEntry('/cheeto/', 'monthly', '0.9'),
     urlEntry('/trail-journal', 'weekly', '0.8'),
     urlEntry('/checklist/', 'monthly', '0.8'),
     urlEntry('/cheetos-store/', 'weekly', '0.8'),
