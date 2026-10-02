@@ -134,6 +134,17 @@ export async function mediaByBlobKey(blobKey) {
   return result.rows[0] || null
 }
 
+export async function mediaByImportFingerprint(userId, originalName, byteSize, kind) {
+  const result = await db().pool.query(
+    `SELECT * FROM media_assets
+      WHERE created_by = $1 AND LOWER(original_name) = LOWER($2)
+        AND byte_size = $3 AND kind = $4 AND status = 'ready'
+      ORDER BY created_at ASC LIMIT 1`,
+    [userId, originalName, byteSize, kind],
+  )
+  return result.rows[0] || null
+}
+
 export async function updateMediaDetails(id, displayName, tags, notes) {
   const result = await db().pool.query(
     `UPDATE media_assets SET display_name = $2, tags = $3::jsonb, notes = $4, updated_at = NOW()

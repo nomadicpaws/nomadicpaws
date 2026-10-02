@@ -41,6 +41,13 @@ export async function hasKatie() {
   return Boolean(result.rowCount)
 }
 
+export async function activeKatieUser() {
+  const result = await db().pool.query(
+    `SELECT * FROM app_users WHERE role = 'katie' AND status = 'active' ORDER BY created_at ASC LIMIT 1`,
+  )
+  return result.rows[0] || null
+}
+
 export async function claimKatie(userId) {
   const client = await db().pool.connect()
   try {

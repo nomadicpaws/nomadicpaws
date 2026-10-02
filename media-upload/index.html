@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#6f7e62">
+  <title>Private Media Upload — Nomadic Paws</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Fraunces:opsz,wght@9..144,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/media-upload/media-upload.css">
+</head>
+<body>
+  <main>
+    <header>
+      <span class="mark">NP</span>
+      <div><strong>Nomadic Paws</strong><small>Private Media Library</small></div>
+    </header>
+
+    <section class="hero">
+      <p class="eyebrow">CHEETO ARCHIVE IMPORT</p>
+      <h1>Bring the whole folder.</h1>
+      <p>Choose Apple’s ZIP or select photos directly. Originals go into the same private Media Library used by Studio and Pinterest. Nothing is unpacked into a folder on this computer.</p>
+    </section>
+
+    <section id="signin" class="card">
+      <h2>Private door</h2>
+      <p>Enter Katie’s private upload code. The upload session lasts two hours and can only add Media Library files.</p>
+      <label for="code">Private upload code</label>
+      <input id="code" type="password" autocomplete="one-time-code" inputmode="text">
+      <button id="signinButton">Open uploader</button>
+    </section>
+
+    <section id="uploader" class="card" hidden>
+      <h2>Add previous photos and videos</h2>
+      <label class="picker" for="archive">
+        <strong>Choose Apple ZIP or media files</strong>
+        <span>ZIP, JPG, PNG, HEIC, WebP, MOV, MP4, or M4V</span>
+      </label>
+      <input id="archive" type="file" accept=".zip,image/jpeg,image/png,image/heic,image/heif,image/webp,video/quicktime,video/mp4,video/x-m4v" multiple>
+      <div id="summary" class="summary" hidden></div>
+      <button id="uploadButton" disabled>Start private upload</button>
+      <button id="retryButton" class="secondary" hidden>Retry unfinished files</button>
+      <div class="progress-shell" aria-hidden="true"><div id="progress" class="progress"></div></div>
+      <p id="status" class="status" aria-live="polite">Choose the ZIP when you are ready.</p>
+      <ol id="failures" class="failures"></ol>
+      <p class="fineprint">Keep this page open while it works. Completed items stay saved if the connection drops, and matching names plus file sizes are skipped on a retry.</p>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@zip.js/zip.js@2.8.11/dist/zip-full.min.js"></script>
+  <script src="/media-upload/media-upload.js"></script>
+</body>
+</html>
