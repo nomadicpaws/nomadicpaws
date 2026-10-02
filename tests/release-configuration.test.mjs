@@ -20,6 +20,16 @@ test('Studio and Events agree on the calendar deep-link scheme', () => {
   assert.match(studioSource, /nomadicpawsevents:\/\/calendar\?eventId=/)
 })
 
+test('EAS excludes generated dependencies and bundles for both apps', () => {
+  const easIgnore = readFileSync(join(root, '.easignore'), 'utf8')
+  for (const path of [
+    'native-app/node_modules/',
+    'native-app/dist/',
+    'future-event-register/app/node_modules/',
+    'future-event-register/app/dist/',
+  ]) assert.match(easIgnore, new RegExp(`^${path.replaceAll('/', '\\/')}\\s*$`, 'm'))
+})
+
 test('Meet Cheeto page includes the production social images it references', () => {
   const page = readFileSync(join(root, 'cheeto', 'index.html'), 'utf8')
   const dynamicSitemap = readFileSync(join(root, 'netlify', 'functions', 'sitemap.mts'), 'utf8')

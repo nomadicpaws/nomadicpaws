@@ -5,6 +5,9 @@ native-app/.expo/
 native-app/.expo-build-check/
 native-app/dist/
 native-app/web-build/
+future-event-register/app/node_modules/
+future-event-register/app/.expo/
+future-event-register/app/dist/
 tmp/
 *.log
 .DS_Store
