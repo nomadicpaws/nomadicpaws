@@ -2548,6 +2548,9 @@ function PinCard({
               }}
               style={styles.pinMediaThumb}
             />
+            <Text numberOfLines={2} style={styles.helper}>
+              {asset.display_name || asset.original_name || "Untitled photo"}
+            </Text>
           </Pressable>
         ))}
       </ScrollView>
@@ -2692,17 +2695,37 @@ function SeedCard({
         ))}
       </ScrollView>
       {onStartJournal ? (
-        <Pressable disabled={journalStarting} onPress={onStartJournal} style={[styles.adventureNextPrimary, journalStarting && styles.primaryDisabled]}>
+        <Pressable
+          disabled={journalStarting}
+          onPress={(event) => {
+            event.stopPropagation();
+            onStartJournal();
+          }}
+          style={[styles.adventureNextPrimary, journalStarting && styles.primaryDisabled]}
+        >
           <Text style={styles.adventureNextPrimaryText}>{journalStarting ? "Opening Journal draft…" : seed.platforms.includes("Trail Journal") ? "Open Trail Journal draft" : "Start Trail Journal draft"}</Text>
         </Pressable>
       ) : null}
       {onSkipJournal ? (
-        <Pressable disabled={journalStarting} onPress={onSkipJournal} style={styles.adventureNextSecondary}>
+        <Pressable
+          disabled={journalStarting}
+          onPress={(event) => {
+            event.stopPropagation();
+            onSkipJournal();
+          }}
+          style={styles.adventureNextSecondary}
+        >
           <Text style={styles.adventureNextSecondaryText}>Not for a blog post · Clear from Today</Text>
         </Pressable>
       ) : null}
       {onPress ? (
-        <Pressable onPress={onPress} style={styles.adventureNextSecondary}>
+        <Pressable
+          onPress={(event) => {
+            event.stopPropagation();
+            onPress();
+          }}
+          style={styles.adventureNextSecondary}
+        >
           <Text style={styles.adventureNextSecondaryText}>Add more media or edit Adventure</Text>
         </Pressable>
       ) : null}
@@ -2750,6 +2773,7 @@ function ContentCalendar({
   onOpenInstagramPost,
   onOpenJournalStory,
   onOpenPinterestStory,
+  onOpenEvent,
 }: {
   token: string;
   person: Person;
@@ -2757,6 +2781,7 @@ function ContentCalendar({
   onOpenInstagramPost: (postId: string) => void;
   onOpenJournalStory: (slug: string) => void;
   onOpenPinterestStory: (slug: string) => void;
+  onOpenEvent: (event: SharedCalendarEvent) => void;
 }) {
   const [stories, setStories] = useState<JournalStory[]>([]);
   const [posts, setPosts] = useState<InstagramPostDraft[]>([]);
@@ -3016,12 +3041,7 @@ function ContentCalendar({
                 onPress={() => {
                   if (item.platform === "Event") {
                     const event = events.find((entry) => entry.id === item.sourceId);
-                    Alert.alert(
-                      event?.title || "Shared event",
-                      [formatAdventureDate(event?.event_date || ""), event?.location, event?.notes, "Planning and checklists are managed in Nomadic Paws Events."]
-                        .filter(Boolean)
-                        .join("\n\n"),
-                    );
+                    if (event) onOpenEvent(event);
                   }
                   else if (item.platform === "Instagram")
                     onOpenInstagramPost(item.sourceId);
@@ -3095,6 +3115,7 @@ function Today({
   onOpenJournalWorkspace,
   onOpenInstagramPost,
   onOpenJournalStory,
+  onOpenEvent,
   onOpenAdventure,
   onStartJournal,
   onSkipJournal,
@@ -3110,6 +3131,7 @@ function Today({
   onOpenJournalWorkspace: () => void;
   onOpenInstagramPost: (postId: string) => void;
   onOpenJournalStory: (slug: string) => void;
+  onOpenEvent: (event: SharedCalendarEvent) => void;
   onOpenAdventure: (adventureId: string) => void;
   onStartJournal: (seed: ContentSeed) => Promise<void>;
   onSkipJournal: (seed: ContentSeed) => Promise<void>;
@@ -3232,7 +3254,7 @@ function Today({
           {eventReminders.map(({ event, symbol, label }) => (
             <Pressable
               key={`${event.id}-${label}`}
-              onPress={onOpenCalendar}
+              onPress={() => onOpenEvent(event)}
               accessibilityRole="button"
               accessibilityLabel={`Open ${label} for ${event.title} in the shared calendar`}
               style={styles.todayEventCard}
@@ -6134,7 +6156,9 @@ function Pinterest({
     [message, setMessage] = useState(""),
     [saving, setSaving] = useState(false),
     [uploadingPin, setUploadingPin] = useState<number>(),
-    [importAdventureId, setImportAdventureId] = useState(""),
+    [uploadingLibrary, setUploadingLibrary] = useState(false),
+    [mediaQuery, setMediaQuery] = useState(""),
+    [storyQueue, setStoryQueue] = useState<"backlog" | "all">("backlog"),
     [board, setBoard] = useState("Nomadic Paws Trail Journal"),
     [keywords, setKeywords] = useState(""),
     [retroactive, setRetroactive] = useState(false),
@@ -6153,11 +6177,6 @@ function Pinterest({
       .then(([storyData, mediaData, campaignData]) => {
         setStories(storyData.stories);
         setMedia(mediaData.media);
-        setImportAdventureId(
-          mediaData.adventures.find(
-            (item) => item.title === "Pinterest photo imports",
-          )?.id || "",
-        );
         setCampaigns(campaignData.campaigns);
       })
       .catch((reason) => setError(reason.message))
@@ -6184,7 +6203,7 @@ function Pinterest({
     const savedPins = saved
       ? [saved.rss_pin, saved.day_7_pin, saved.day_14_pin, saved.day_21_pin]
       : [];
-    setPins(
+    setPins((current) =>
       ["bark", "sage", "sand", "terracotta"].map((color, index) => ({
         mediaType: index === 0 ? "image" : savedPins[index]?.media_type || "image",
         title: savedPins[index]?.title || story.title,
@@ -6196,8 +6215,49 @@ function Pinterest({
         finishedImage: savedPins[index]?.media_type === "video" ? undefined : savedPins[index]?.image,
         savedVideoUrl: savedPins[index]?.media_type === "video" ? savedPins[index]?.image : undefined,
         savedThumbnail: savedPins[index]?.thumbnail,
+        ...(!saved && !selected && current[index]?.asset ? {
+          asset: current[index]?.asset,
+          focus: current[index]?.focus || "center",
+        } : {}),
       })),
     );
+  }
+  async function addPhotosToLibrary() {
+    setError("");
+    setMessage("");
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      selectionLimit: 20,
+      quality: 1,
+      orderedSelection: true,
+    });
+    if (result.canceled) return;
+    setUploadingLibrary(true);
+    try {
+      const collection = await ensureMediaLibraryCollection(token);
+      const added: SharedMediaAsset[] = [];
+      for (const [index, picked] of result.assets.entries()) {
+        setMessage(`Adding photo ${index + 1} of ${result.assets.length} to Media…`);
+        const info = await FileSystem.getInfoAsync(picked.uri);
+        added.push(await uploadAdventurePhoto(token, collection.id, {
+          uri: picked.uri,
+          name: picked.fileName || `Cheeto-past-photo-${Date.now()}-${index + 1}.jpg`,
+          displayName: (picked.fileName || `Cheeto photo ${index + 1}`).replace(/\.[^.]+$/, ""),
+          mimeType: picked.mimeType,
+          byteSize: picked.fileSize || (info.exists ? info.size || 0 : 0),
+          width: picked.width,
+          height: picked.height,
+        }));
+      }
+      setMedia((current) => [...added.reverse(), ...current]);
+      setMessage(`${added.length} photo${added.length === 1 ? "" : "s"} saved in Media. No Adventure card was created.`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Those photos could not be added to Media.");
+      setMessage("");
+    } finally {
+      setUploadingLibrary(false);
+    }
   }
   async function choosePinterestPhoto(index: number) {
     setUploadingPin(index);
@@ -6209,18 +6269,9 @@ function Pinterest({
         quality: 1,
       });
       if (result.canceled) return;
-      let adventureId = importAdventureId;
-      if (!adventureId) {
-        const adventure = await createSharedAdventure(token, {
-          title: "Pinterest photo imports",
-          notes: "Original photos selected directly while preparing Pinterest campaigns.",
-          privateLocation: "",
-        });
-        adventureId = adventure.id;
-        setImportAdventureId(adventure.id);
-      }
+      const collection = await ensureMediaLibraryCollection(token);
       const picked = result.assets[0]!;
-      const asset = await uploadAdventurePhoto(token, adventureId, {
+      const asset = await uploadAdventurePhoto(token, collection.id, {
         uri: picked.uri,
         name: picked.fileName || `Pinterest-photo-${Date.now()}.jpg`,
         mimeType: picked.mimeType,
@@ -6362,26 +6413,63 @@ function Pinterest({
   const needsArchiveSchedulingChoice = Boolean(
     selected && selected.status === "Published" && !selectedCampaign,
   );
+  const publishedStories = stories.filter((story) => story.status === "Published");
+  const backlogStories = publishedStories
+    .filter((story) => !campaigns.some((campaign) => campaign.post_slug === story.slug))
+    .sort((left, right) => left.date.localeCompare(right.date));
+  const completedPublishedCount = publishedStories.length - backlogStories.length;
+  const pickerStories = storyQueue === "backlog" ? backlogStories : stories;
+  const visibleMedia = media.filter((asset) => {
+    if (asset.kind !== "photo") return true;
+    const haystack = `${asset.display_name || ""} ${asset.original_name || ""} ${(asset.tags || []).join(" ")} ${asset.notes || ""}`.toLowerCase();
+    return haystack.includes(mediaQuery.trim().toLowerCase());
+  });
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <Text style={styles.eyebrow}>PINTEREST WORKSPACE</Text>
       <Text style={styles.pageTitle}>Build a beautiful campaign.</Text>
       <Text style={styles.copy}>
-        Choose the story once, then prepare all four Pins without opening the
-        article editor.
+        Add and prepare all four photos first. Attach the Journal story later
+        when its public link is ready—your photo choices stay in place.
       </Text>
+      <Pressable disabled={uploadingLibrary} onPress={addPhotosToLibrary} style={styles.primary}>
+        <Text style={styles.primaryText}>{uploadingLibrary ? "Adding photos…" : "Add photos to Media Library"}</Text>
+      </Pressable>
+      <View style={styles.noticeBox}>
+        <Text style={styles.noticeTitle}>Previous-blog Pinterest backlog</Text>
+        <Text style={styles.helper}>
+          {backlogStories.length} published {backlogStories.length === 1 ? "story still needs" : "stories still need"} a four-Pin campaign. {completedPublishedCount} completed.
+        </Text>
+        <View style={styles.choiceRow}>
+          <Choice value="backlog" label={`Backlog (${backlogStories.length})`} current={storyQueue} onPress={setStoryQueue} />
+          <Choice value="all" label="All stories" current={storyQueue} onPress={setStoryQueue} />
+        </View>
+      </View>
       {loading ? (
         <ActivityIndicator color={colors.terracotta} />
       ) : error ? (
         <Text style={styles.error}>{error}</Text>
       ) : (
         <StoryPicker
-          stories={stories}
+          stories={pickerStories}
           selected={selected}
           onSelect={selectStory}
         />
       )}
-      {selected ? (
+      <Text style={styles.controlLabel}>Find a Media Library photo</Text>
+      <TextInput
+        value={mediaQuery}
+        onChangeText={setMediaQuery}
+        style={styles.input}
+        placeholder="Search names, tags, hashtags, or notes"
+        placeholderTextColor="#8b8075"
+      />
+      {!selected ? (
+        <View style={styles.noticeBox}>
+          <Text style={styles.noticeTitle}>You can choose all four photos now</Text>
+          <Text style={styles.helper}>Choose the story above only when you are ready to connect its blog link and save the campaign.</Text>
+        </View>
+      ) : (
         <>
           <Text style={styles.controlLabel}>Pinterest board</Text>
           <TextInput value={board} onChangeText={setBoard} style={styles.input} />
@@ -6403,11 +6491,13 @@ function Pinterest({
               </View>
             </Pressable>
           ) : null}
+        </>
+      )}
           {pins.map((pin, index) => (
             <PinCard
               key={index}
               token={token}
-              media={media}
+              media={visibleMedia}
               storyVideos={storyVideos}
               number={index + 1}
               value={pin}
@@ -6418,9 +6508,9 @@ function Pinterest({
           ))}
           {error ? <Text style={styles.error}>{error}</Text> : null}
           {message ? <Text style={styles.successText}>{message}</Text> : null}
-          <Pressable disabled={saving} onPress={saveCampaign} style={[styles.primary, saving && styles.primaryDisabled]}>
+          {selected ? <Pressable disabled={saving} onPress={saveCampaign} style={[styles.primary, saving && styles.primaryDisabled]}>
             <Text style={styles.primaryText}>{saving ? "Preparing campaign…" : "Save Pinterest campaign"}</Text>
-          </Pressable>
+          </Pressable> : null}
           <Pressable onPress={sharePinterestCsv} style={styles.secondary}>
             <Text style={styles.secondaryText}>Share latest Pinterest CSV</Text>
           </Pressable>
@@ -6428,8 +6518,6 @@ function Pinterest({
             RSS and CSV keep their existing public URLs. A Pin never enters RSS
             until its Trail Journal article is publicly available.
           </Text>
-        </>
-      ) : null}
     </ScrollView>
   );
 }
@@ -7879,6 +7967,17 @@ export default function App() {
     setAdaptation(undefined);
     setTab("Pinterest");
   }
+  async function openEventsCalendar(event: SharedCalendarEvent) {
+    const url = `nomadicpawsevents://calendar?eventId=${encodeURIComponent(event.id)}&date=${encodeURIComponent(dateKeyFrom(event.event_date || ""))}`;
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(
+        "Nomadic Paws Events is needed",
+        "Install or update the private Events app to edit this event. The schedule remains visible here in Studio.",
+      );
+    }
+  }
   async function startJournalFromAdventure(seed: ContentSeed) {
     const adventure = adventures.find((item) => item.id === seed.id);
     const publishDate = dateKeyFrom(adventure?.captured_at || adventure?.created_at || "") || localDateKey();
@@ -7896,8 +7995,12 @@ export default function App() {
     setTab("Journal");
   }
   async function skipJournalForAdventure(seed: ContentSeed) {
-    await dismissAdventureFromJournal(account!.token, seed.id);
-    await refreshShared();
+    const updated = await dismissAdventureFromJournal(account!.token, seed.id);
+    setAdventures((current) =>
+      current.map((item) => item.id === updated.id ? updated : item),
+    );
+    setSeeds((current) => current.filter((item) => item.id !== updated.id));
+    refreshShared().catch(() => {});
   }
   function goToToday() {
     Keyboard.dismiss();
@@ -7951,6 +8054,7 @@ export default function App() {
       onOpenInstagramPost={openInstagramPost}
       onOpenJournalStory={openJournalStory}
       onOpenPinterestStory={openPinterestStory}
+      onOpenEvent={openEventsCalendar}
     />
   ) : creatingAdventure || editingAdventure ? (
     <NewAdventure
@@ -7986,6 +8090,7 @@ export default function App() {
       onOpenJournalWorkspace={() => setTab("Journal")}
       onOpenInstagramPost={openInstagramPost}
       onOpenJournalStory={openJournalStory}
+      onOpenEvent={openEventsCalendar}
       onStartJournal={startJournalFromAdventure}
       onSkipJournal={skipJournalForAdventure}
     />

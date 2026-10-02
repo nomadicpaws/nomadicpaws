@@ -170,7 +170,7 @@ function Login({ onSignedIn }: { onSignedIn: (session: StoredSession) => void })
   )
 }
 
-function Calendar({ token, permission }: { token: string; permission: SignedInStaff['permission'] }) {
+function Calendar({ token, permission, request, onRequestHandled }: { token: string; permission: SignedInStaff['permission']; request?: { eventId?: string; date?: string; nonce: number }; onRequestHandled: () => void }) {
   const canManage = permission === 'owner' || permission === 'manager'
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
@@ -212,6 +212,13 @@ function Calendar({ token, permission }: { token: string; permission: SignedInSt
       }
     })
   }, [token])
+  useEffect(() => {
+    if (!request || loading) return
+    const requestedEvent = request.eventId ? events.find((event) => event.id === request.eventId) : undefined
+    if (requestedEvent) edit(requestedEvent)
+    else edit(undefined, request.date)
+    onRequestHandled()
+  }, [events, loading, request])
   async function loadDeviceCalendars(preferredId = '') {
     const permission = await DeviceCalendar.getCalendarPermissionsAsync()
     if (!permission.granted) return
@@ -521,6 +528,7 @@ function Calendar({ token, permission }: { token: string; permission: SignedInSt
 }
 
 function Register({ token }: { token: string }) {
+  const [readerMode, setReaderMode] = useState<'m2' | 'simulated'>('m2')
   const [products, setProducts] = useState<EventProduct[]>([])
   const [cart, setCart] = useState<Record<string, number>>({})
   const [readers, setReaders] = useState<Reader.Type[]>([])
@@ -542,7 +550,8 @@ function Register({ token }: { token: string }) {
   } = useStripeTerminal({
     onUpdateDiscoveredReaders: (next) => {
       setReaders(next)
-      setMessage(next.length ? `${next.length} test reader${next.length === 1 ? '' : 's'} found.` : 'Still looking for the test reader…')
+      const label = readerMode === 'm2' ? 'Reader M2' : 'simulated reader'
+      setMessage(next.length ? `${next.length} ${label}${next.length === 1 ? '' : 's'} found.` : `Still looking for the ${label}…`)
     },
   })
   async function refresh() {
@@ -561,7 +570,7 @@ function Register({ token }: { token: string }) {
     refreshSales(true).catch(() => {})
     initialize().then((result) => {
       if (result.error) setError(result.error.message)
-      else setMessage('Stripe Terminal is ready for a simulated reader.')
+      else setMessage('Stripe Terminal is ready. Turn on the Reader M2 when you are ready to connect.')
     })
     return () => { cancelDiscovering().catch(() => {}) }
   }, [token])
@@ -581,34 +590,43 @@ function Register({ token }: { token: string }) {
         nextLocation = result.locations?.[0]?.id || ''
         setLocationId(nextLocation)
       }
-      if (!nextLocation) throw new Error('Create a Stripe Terminal location before connecting a test reader.')
-      // The event app's test reader is a Stripe-hosted simulated reader. Using
-      // internet discovery keeps testing independent of iPhone Bluetooth and
-      // avoids opening the native Bluetooth scan path when no physical reader
-      // is present.
-      const result = await discoverReaders({
-        discoveryMethod: 'internet',
-        simulated: true,
-        locationId: nextLocation,
-        timeout: 12,
-      })
+      if (!nextLocation) throw new Error('Create a Stripe Terminal location before connecting a reader.')
+      const result = readerMode === 'm2'
+        ? await discoverReaders({
+            discoveryMethod: 'bluetoothScan',
+            simulated: false,
+            timeout: 20,
+          })
+        : await discoverReaders({
+            discoveryMethod: 'internet',
+            simulated: true,
+            locationId: nextLocation,
+            timeout: 12,
+          })
       if (result.error) throw result.error
-      setMessage('Opening Stripe’s simulated reader…')
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'The test reader could not start.') }
+      setMessage(readerMode === 'm2' ? 'Scanning for the Reader M2… Keep it awake and close to this iPhone.' : 'Opening Stripe’s simulated reader…')
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'The reader search could not start.') }
     finally { setReaderBusy(false) }
   }
   async function connect(reader: Reader.Type) {
     setReaderBusy(true); setError('')
     try {
       await cancelDiscovering().catch(() => {})
-      const result = await connectReader({
-        discoveryMethod: 'internet',
-        reader,
-        failIfInUse: true,
-      })
+      const result = readerMode === 'm2'
+        ? await connectReader({
+            discoveryMethod: 'bluetoothScan',
+            reader,
+            locationId,
+            autoReconnectOnUnexpectedDisconnect: true,
+          })
+        : await connectReader({
+            discoveryMethod: 'internet',
+            reader,
+            failIfInUse: true,
+          })
       if (result.error) throw result.error
-      setMessage('Simulated Stripe reader connected. Test cards only.')
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'The test reader could not connect.') }
+      setMessage(readerMode === 'm2' ? 'Stripe Reader M2 connected in TEST MODE. Use only a Stripe test card.' : 'Simulated Stripe reader connected. Test cards only.')
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'The reader could not connect.') }
     finally { setReaderBusy(false) }
   }
   async function waitForPaid(saleId: string) {
@@ -637,7 +655,7 @@ function Register({ token }: { token: string }) {
       await setReaderDisplay({ currency: 'usd', tax: sale.taxCents, total: sale.totalCents, lineItems: cartItems.map((item) => { const product = products.find((entry) => entry.sku === item.sku)!; return { displayName: product.name, quantity: item.quantity, amount: product.unitPriceCents * item.quantity } }) }).catch(() => ({ error: undefined }))
       const retrieved = await retrievePaymentIntent(sale.clientSecret)
       if (retrieved.error || !retrieved.paymentIntent) throw retrieved.error || new Error('Stripe could not open the test payment.')
-      setMessage('Present the Stripe test card to the simulated reader.')
+      setMessage(readerMode === 'm2' ? 'Present a Stripe test card to the Reader M2.' : 'Present the Stripe test card to the simulated reader.')
       const processed = await processPaymentIntent({ paymentIntent: retrieved.paymentIntent })
       if (processed.error) throw processed.error
       setMessage('Test payment approved. Synchronizing inventory…')
@@ -659,7 +677,18 @@ function Register({ token }: { token: string }) {
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.row}><View style={styles.grow}><Text style={styles.eyebrow}>EVENT REGISTER</Text><Text style={styles.pageTitle}>A calm little checkout.</Text></View><Text style={styles.testPill}>TEST MODE</Text></View>
       <Text style={styles.copy}>Real product setup and protected test inventory. Live charges stay impossible until the final launch review.</Text>
-      {paymentMethod === 'card' ? <View style={styles.readerCard}><Text style={styles.cardTitle}>Stripe reader</Text><Text style={styles.cardCopy}>{connectedReader ? 'Connected to Stripe’s simulated reader. No live card can be charged.' : 'Connect the simulated reader for an end-to-end protected test sale.'}</Text>{!connectedReader ? <><Pressable disabled={readerBusy} onPress={findReader} style={[styles.secondary, readerBusy && styles.disabled]}><Text style={styles.secondaryText}>{readerBusy ? 'Preparing…' : 'Find simulated reader'}</Text></Pressable>{readers.map((reader) => <Pressable key={reader.id || reader.serialNumber} onPress={() => connect(reader)} style={styles.readerChoice}><Text style={styles.cardTitle}>Stripe simulated reader</Text><Text style={styles.link}>Connect ›</Text></Pressable>)}</> : <Pressable onPress={() => disconnectReader()} style={styles.secondary}><Text style={styles.secondaryText}>Disconnect reader</Text></Pressable>}</View> : null}
+      {paymentMethod === 'card' ? <View style={styles.readerCard}>
+        <Text style={styles.cardTitle}>Stripe reader</Text>
+        <Text style={styles.cardCopy}>{connectedReader ? `${readerMode === 'm2' ? 'Reader M2' : 'Simulated reader'} connected in TEST MODE. No live card can be charged.` : readerMode === 'm2' ? 'Turn on the Reader M2, keep it near this iPhone, and connect it here. Do not pair it in iPhone Settings.' : 'Connect Stripe’s simulated reader for an end-to-end protected test sale.'}</Text>
+        {!connectedReader ? <>
+          <View style={styles.cartChoices}>
+            <Pressable onPress={() => { cancelDiscovering().catch(() => {}); setReaders([]); setError(''); setMessage(''); setReaderMode('m2') }} style={[styles.cartChoice, readerMode === 'm2' && styles.cartChoiceActive]}><Text style={[styles.cartChoiceText, readerMode === 'm2' && styles.cartChoiceTextActive]}>Reader M2</Text></Pressable>
+            <Pressable onPress={() => { cancelDiscovering().catch(() => {}); setReaders([]); setError(''); setMessage(''); setReaderMode('simulated') }} style={[styles.cartChoice, readerMode === 'simulated' && styles.cartChoiceActive]}><Text style={[styles.cartChoiceText, readerMode === 'simulated' && styles.cartChoiceTextActive]}>Simulator</Text></Pressable>
+          </View>
+          <Pressable disabled={readerBusy} onPress={findReader} style={[styles.secondary, readerBusy && styles.disabled]}><Text style={styles.secondaryText}>{readerBusy ? 'Preparing…' : readerMode === 'm2' ? 'Find Reader M2' : 'Find simulated reader'}</Text></Pressable>
+          {readers.map((reader) => <Pressable key={reader.id || reader.serialNumber} onPress={() => connect(reader)} style={styles.readerChoice}><View><Text style={styles.cardTitle}>{readerMode === 'm2' ? 'Stripe Reader M2' : 'Stripe simulated reader'}</Text>{reader.serialNumber ? <Text style={styles.meta}>Serial · {reader.serialNumber}</Text> : null}</View><Text style={styles.link}>Connect ›</Text></Pressable>)}
+        </> : <Pressable onPress={() => disconnectReader()} style={styles.secondary}><Text style={styles.secondaryText}>Disconnect reader</Text></Pressable>}
+      </View> : null}
       {message ? <Text style={styles.success}>{message}</Text> : null}
       {lastResult ? <View style={[styles.paymentResult, lastResult.status === 'success' ? styles.paymentResultSuccess : lastResult.status === 'pending' ? styles.paymentResultPending : styles.paymentResultError]}><Text style={styles.paymentResultIcon}>{lastResult.status === 'success' ? '✓' : lastResult.status === 'pending' ? '…' : '!'}</Text><View style={styles.grow}><Text style={styles.cardTitle}>{lastResult.title}</Text><Text style={styles.cardCopy}>{lastResult.detail}</Text></View></View> : null}
       <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>Products</Text><Pressable onPress={refresh}><Text style={styles.link}>Refresh stock</Text></Pressable></View>
@@ -777,6 +806,17 @@ export default function App() {
   const [session, setSession] = useState<StoredSession>()
   const [restoring, setRestoring] = useState(true)
   const [tab, setTab] = useState<Tab>('Calendar')
+  const [calendarRequest, setCalendarRequest] = useState<{ eventId?: string; date?: string; nonce: number }>()
+  const handleAppLink = useCallback((url: string | null) => {
+    if (!url || !url.startsWith('nomadicpawsevents://calendar')) return
+    try {
+      const parsed = new URL(url)
+      const eventId = parsed.searchParams.get('eventId') || undefined
+      const date = parsed.searchParams.get('date') || undefined
+      setCalendarRequest({ eventId, date, nonce: Date.now() })
+      setTab('Calendar')
+    } catch {}
+  }, [])
   const terminalTokenProvider = useCallback(async () => {
     if (!session?.token) throw new Error('Sign in again before opening the event register.')
     try {
@@ -787,12 +827,15 @@ export default function App() {
     }
   }, [session?.token])
   useEffect(() => {
+    Linking.getInitialURL().then(handleAppLink).catch(() => {})
+    const linkSubscription = Linking.addEventListener('url', ({ url }) => handleAppLink(url))
     SecureStore.getItemAsync(SESSION_KEY).then((raw) => {
       if (!raw) return
       const saved = JSON.parse(raw) as StoredSession
       if (saved.expiresAt > Date.now() && saved.staff) setSession(saved)
       else SecureStore.deleteItemAsync(SESSION_KEY).catch(() => {})
     }).catch(() => {}).finally(() => setRestoring(false))
+    return () => linkSubscription.remove()
   }, [])
   if (restoring) return <View style={styles.center}><ActivityIndicator color={colors.terracotta} /></View>
   if (!session) return <Login onSignedIn={setSession} />
@@ -801,7 +844,7 @@ export default function App() {
       <StatusBar barStyle="dark-content" />
       <ExpoStatusBar style="dark" />
       <View style={styles.header}><View style={styles.logoMark}><Text style={styles.logoText}>NP</Text></View><View><Text style={styles.headerTitle}>Nomadic Paws</Text><Text style={styles.headerSubtitle}>{session.staff.name} · Events & Mobile Store</Text></View><Pressable onPress={async () => { await SecureStore.deleteItemAsync(SESSION_KEY); setSession(undefined) }} style={styles.signOut}><Text style={styles.signOutText}>Lock</Text></Pressable></View>
-      <View style={styles.body}>{tab === 'Calendar' ? <Calendar token={session.token} permission={session.staff.permission} /> : tab === 'Staff' ? <StaffAccess token={session.token} /> : <StripeTerminalProvider tokenProvider={terminalTokenProvider}><Register token={session.token} /></StripeTerminalProvider>}</View>
+      <View style={styles.body}>{tab === 'Calendar' ? <Calendar token={session.token} permission={session.staff.permission} request={calendarRequest} onRequestHandled={() => setCalendarRequest(undefined)} /> : tab === 'Staff' ? <StaffAccess token={session.token} /> : <StripeTerminalProvider tokenProvider={terminalTokenProvider}><Register token={session.token} /></StripeTerminalProvider>}</View>
       <View style={styles.tabs}>{(['Calendar', 'Register', ...(session.staff.permission === 'owner' ? ['Staff' as const] : [])] as Tab[]).map((item) => <Pressable key={item} onPress={() => setTab(item)} style={styles.tab}><Text style={[styles.tabText, tab === item && styles.tabTextActive]}>{item}</Text></Pressable>)}</View>
     </SafeAreaView>
   )

@@ -2,6 +2,7 @@
   "expo": {
     "name": "Nomadic Paws Events",
     "slug": "nomadic-paws-events",
+    "scheme": "nomadicpawsevents",
     "owner": "nomadic-paws",
     "version": "0.1.0",
     "orientation": "portrait",

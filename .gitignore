@@ -9,4 +9,8 @@ node_modules/
 native-app/.expo/
 native-app/.expo-build-check/
 native-app/.expo-release-check/
+native-app/dist/
+future-event-register/app/.expo/
+future-event-register/app/dist/
+*.log
 .firecrawl/

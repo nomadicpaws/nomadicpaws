@@ -8,6 +8,7 @@ const postsDirectory = join(root, '_posts')
 
 const staticPages = [
   { path: '/', changefreq: 'weekly', priority: '1.0' },
+  { path: '/cheeto/', changefreq: 'monthly', priority: '0.9' },
   { path: '/trail-journal', changefreq: 'weekly', priority: '0.8' },
   { path: '/checklist/', changefreq: 'monthly', priority: '0.8' },
   { path: '/cheetos-store/', changefreq: 'weekly', priority: '0.8' },
