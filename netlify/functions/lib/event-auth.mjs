@@ -21,6 +21,7 @@ export function createSellerToken(secret, { now = Date.now(), ttlSeconds = 8 * 6
 }
 
 export function verifySellerToken(token, secret, now = Date.now()) {
+  if (!secret || secret.length < 32) return null;
   const [payload, signature, extra] = String(token || "").split(".");
   if (!payload || !signature || extra || !secureEqual(signature, sign(payload, secret))) return null;
   try {

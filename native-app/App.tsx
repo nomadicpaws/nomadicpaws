@@ -32,10 +32,12 @@ import {
   approveTeamAccess,
   claimKatieAccount,
   CheetoSuggestion,
+  commerceRequest,
   completeMomReview,
   createJournalStory,
   createSharedAdventure,
   ensureMediaLibraryCollection,
+  EventProduct,
   JournalContribution,
   JournalReviewNote,
   JournalStory,
@@ -120,7 +122,8 @@ type Tab =
   | "Studio"
   | "Video"
   | "Journal"
-  | "Pinterest";
+  | "Pinterest"
+  | "Register";
 type LogoColor = "none" | "bark" | "sage" | "sand" | "terracotta";
 type LogoSize = "small" | "medium";
 type LogoSide = "left" | "right";
@@ -7394,408 +7397,117 @@ function eventMoney(cents: number) {
 function EventRegister({ token }: { token: string }) {
   const [products, setProducts] = useState<EventProduct[]>([]);
   const [cart, setCart] = useState<Record<string, number>>({});
-  const [readerMode, setReaderMode] = useState<"simulated" | "physical">(
-    "simulated",
-  );
-  const [readers, setReaders] = useState<Reader.Type[]>([]);
-  const [locationId, setLocationId] = useState("");
-  const [connectionStatus, setConnectionStatus] = useState<
-    Reader.ConnectionStatus
-  >("notConnected");
-  const [loadingProducts, setLoadingProducts] = useState(true);
-  const [readerBusy, setReaderBusy] = useState(false);
-  const [checkoutBusy, setCheckoutBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const {
-    initialize,
-    discoverReaders,
-    cancelDiscovering,
-    connectReader,
-    disconnectReader,
-    connectedReader,
-    retrievePaymentIntent,
-    processPaymentIntent,
-    setReaderDisplay,
-    getLocations,
-  } = useStripeTerminal({
-    onUpdateDiscoveredReaders: (nextReaders) => {
-      setReaders(nextReaders);
-      setMessage(
-        nextReaders.length
-          ? `${nextReaders.length} ${readerMode === "simulated" ? "simulated" : "nearby"} reader${nextReaders.length === 1 ? "" : "s"} found.`
-          : "Still looking for the reader…",
-      );
-    },
-    onDidChangeConnectionStatus: setConnectionStatus,
-  });
-
-  async function refreshProducts() {
-    setLoadingProducts(true);
-    setError("");
-    try {
-      const data = await loadEventProducts(token);
-      setProducts(data.products);
-    } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : "Test inventory could not synchronize.",
-      );
-    } finally {
-      setLoadingProducts(false);
-    }
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [tendered, setTendered] = useState('');
+  const [pending, setPending] = useState<any>(null);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [mode, setMode] = useState('');
+  const [quote, setQuote] = useState<any>(null);
+  const [adjustSku, setAdjustSku] = useState('');
+  const [adjustDelta, setAdjustDelta] = useState('');
+  const [adjustReason, setAdjustReason] = useState('');
+  const inFlight = useRef(false);
+  const savedKey = 'np-commerce-pending';
+  const items = products.filter(p => (cart[p.sku] || 0) > 0).map(p => ({ sku: p.sku, quantity: cart[p.sku] || 0 }));
+  const subtotal = items.reduce((sum, item) => sum + (products.find(p => p.sku === item.sku)?.unitPriceCents || 0)*item.quantity, 0);
+  async function refresh() {
+    const [catalog, history] = await Promise.all([commerceRequest('/products', token), commerceRequest('/orders', token)]);
+    setProducts(catalog.products.filter((p: any) => p.active)); setMode(catalog.mode); setOrders(history.orders);
   }
-
-  useEffect(() => {
-    refreshProducts();
-    initialize().then((result) => {
-      if (result.error) setError(result.error.message);
-      else setMessage("Stripe Terminal is ready for a test reader.");
-    });
-    return () => {
-      cancelDiscovering().catch(() => {});
-    };
-  }, []);
-
-  const subtotal = products.reduce(
-    (sum, product) =>
-      sum + product.unitPriceCents * (cart[product.sku] || 0),
-    0,
-  );
-  const cartItems = products
-    .filter((product) => (cart[product.sku] || 0) > 0)
-    .map((product) => ({
-      sku: product.sku,
-      quantity: cart[product.sku] || 0,
-    }));
-
-  function changeQuantity(product: EventProduct, change: number) {
-    setCart((current) => {
-      const next = Math.max(
-        0,
-        Math.min(product.stock, (current[product.sku] || 0) + change),
-      );
-      const updated = { ...current };
-      if (next) updated[product.sku] = next;
-      else delete updated[product.sku];
-      return updated;
-    });
+  useEffect(() => { refresh().catch(e => setError(e.message)); SecureStore.getItemAsync(savedKey).then(value => { if(value) setPending(JSON.parse(value)); }).catch(() => setError('A saved sale could not be recovered. Check order history before charging again.')); }, []);
+  async function savePending(value: any) { await SecureStore.setItemAsync(savedKey, JSON.stringify(value)); setPending(value); }
+  async function finish(message: string) { await SecureStore.deleteItemAsync(savedKey); setPending(null); setCart({}); setTendered(''); setQuote(null); setMessage(message); await refresh(); }
+  async function checkPayment() {
+    if(!pending?.result) return;
+    setBusy(true); setError('');
+    try { const result = await commerceRequest(`/status?id=${encodeURIComponent(pending.result.id)}&token=${encodeURIComponent(pending.result.statusToken)}`, token);
+      if(result.status === 'paid') await finish('Payment confirmed. Sale recorded.');
+      else if(result.status === 'cancelled') await finish('Checkout expired. No sale recorded.');
+      else setMessage(`Order status: ${result.status}. Do not charge again while payment is pending.`);
+    } catch(e: any) { setError(e.message); } finally { setBusy(false); }
   }
-
-  async function findReader() {
-    setReaderBusy(true);
-    setError("");
-    setReaders([]);
+  async function takePayment(method: 'cash' | 'stripe') {
+    if(inFlight.current) return; inFlight.current=true; setBusy(true); setError('');
     try {
-      if (connectionStatus === "discovering") await cancelDiscovering();
-      let stripeLocation = locationId;
-      if (!stripeLocation) {
-        const locations = await getLocations({ limit: 10 });
-        if (locations.error) throw locations.error;
-        stripeLocation = locations.locations?.[0]?.id || "";
-        setLocationId(stripeLocation);
+      let sale = pending;
+      if(!sale) {
+        sale = { method, body: { requestId: Crypto.randomUUID(), channel: 'pos', items, ...(method === 'cash' ? { tenderedCents: Math.round(Number(tendered)*100) } : {}) } };
+        await savePending(sale);
       }
-      if (!stripeLocation)
-        throw new Error(
-          "Create a Stripe Terminal location before connecting a reader.",
-        );
-      const result = await discoverReaders({
-        discoveryMethod: "bluetoothScan",
-        simulated: readerMode === "simulated",
-        timeout: 12,
-      });
-      if (result.error) throw result.error;
-      setMessage(
-        readerMode === "simulated"
-          ? "Opening Stripe’s simulated reader…"
-          : "Scanning nearby Bluetooth readers for 12 seconds…",
-      );
-    } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : "Reader scan could not start.",
-      );
-    } finally {
-      setReaderBusy(false);
+      const result = await commerceRequest(sale.method === 'cash' ? '/cash' : '/checkout', token, sale.body);
+      if(sale.method === 'cash') await finish(`Cash sale recorded. Change: ${eventMoney(result.changeCents)}.`);
+      else { await savePending({ ...sale, result }); setMessage('Customer scans the QR code. Check payment status before handing over the products.'); }
+    } catch(e: any) {
+      if ([400,401,403].includes(e.status) || e.code === 'out_of_stock') { await SecureStore.deleteItemAsync(savedKey); setPending(null); setError(e.message); }
+      else setError(`${e.message} Retry the saved sale; do not create a second charge.`);
     }
+    finally { inFlight.current=false; setBusy(false); }
   }
-
-  async function connectToReader(reader: Reader.Type) {
-    setReaderBusy(true);
-    setError("");
+  async function getQuote() { setBusy(true); setError(''); try { setQuote(await commerceRequest('/quote', token, { items, channel: 'pos' })); } catch(e: any) { setError(e.message); } finally { setBusy(false); } }
+  async function adjustStock() {
+    if(inFlight.current) return; inFlight.current=true; setBusy(true); setError('');
     try {
-      await cancelDiscovering().catch(() => {});
-      const result = await connectReader({
-        discoveryMethod: "bluetoothScan",
-        reader,
-        locationId: reader.locationId || reader.location?.id || locationId,
-        autoReconnectOnUnexpectedDisconnect: true,
-      });
-      if (result.error) throw result.error;
-      setMessage(
-        `${readerMode === "simulated" ? "Simulated reader" : reader.label || reader.serialNumber} connected.`,
-      );
-    } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : "The reader could not connect.",
-      );
-    } finally {
-      setReaderBusy(false);
-    }
+      const requestKey = 'np-stock-adjustment';
+      const previous = await SecureStore.getItemAsync(requestKey);
+      const adjustment = previous ? JSON.parse(previous) : { requestId: Crypto.randomUUID(), sku: adjustSku.trim(), delta: Number(adjustDelta), reason: adjustReason.trim() };
+      await SecureStore.setItemAsync(requestKey, JSON.stringify(adjustment));
+      await commerceRequest('/inventory', token, adjustment);
+      await SecureStore.deleteItemAsync(requestKey); setMessage('Inventory adjustment recorded.'); setAdjustDelta(''); setAdjustReason(''); await refresh();
+    } catch(e: any) { if(e.status === 400) await SecureStore.deleteItemAsync('np-stock-adjustment'); setError(e.message); } finally { inFlight.current=false; setBusy(false); }
   }
-
-  async function waitForPaidSale(saleId: string) {
-    for (let attempt = 0; attempt < 8; attempt += 1) {
-      const status = await loadEventSaleStatus(token, saleId);
-      if (status.sale.status === "paid") return status.sale;
-      await new Promise((resolve) => setTimeout(resolve, 1250));
-    }
-    return null;
-  }
-
-  async function checkout() {
-    if (!connectedReader) {
-      setError("Connect the simulated or physical test reader first.");
-      return;
-    }
-    if (!cartItems.length) {
-      setError("Add at least one product to the test cart.");
-      return;
-    }
-    setCheckoutBusy(true);
-    setError("");
-    setMessage("Creating a protected Stripe test sale…");
+  async function cashRefund(order: any) {
+    if(inFlight.current) return; inFlight.current=true; setBusy(true); setError('');
     try {
-      const sale = await createEventSale(token, cartItems, Crypto.randomUUID());
-      await setReaderDisplay({
-        currency: "usd",
-        tax: sale.taxCents,
-        total: sale.totalCents,
-        lineItems: cartItems.map((item) => {
-          const product = products.find((candidate) => candidate.sku === item.sku)!;
-          return {
-            displayName: product.name,
-            quantity: item.quantity,
-            amount: product.unitPriceCents * item.quantity,
-          };
-        }),
-      }).catch(() => ({ error: undefined }));
-      const retrieved = await retrievePaymentIntent(sale.clientSecret);
-      if (retrieved.error || !retrieved.paymentIntent)
-        throw retrieved.error || new Error("Stripe could not open the test payment.");
-      setMessage("Present the Stripe test card to the reader.");
-      const processed = await processPaymentIntent({
-        paymentIntent: retrieved.paymentIntent,
-      });
-      if (processed.error) throw processed.error;
-      setMessage("Test payment approved. Synchronizing inventory…");
-      const paid = await waitForPaidSale(sale.saleId);
-      setCart({});
-      await refreshProducts();
-      setMessage(
-        paid
-          ? `Test sale complete · ${eventMoney(sale.totalCents)}. Inventory synchronized.`
-          : `Stripe approved ${eventMoney(sale.totalCents)}. The signed webhook is still finishing inventory in the background.`,
-      );
-    } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : "The test sale could not finish.",
-      );
-    } finally {
-      setCheckoutBusy(false);
-    }
+      const saved = await SecureStore.getItemAsync('np-cash-refund');
+      const body = saved ? JSON.parse(saved) : {requestId:Crypto.randomUUID(),orderId:order.id,amountCents:order.total_cents-order.refunded_cents};
+      await SecureStore.setItemAsync('np-cash-refund',JSON.stringify(body));
+      await commerceRequest('/cash-refund',token,body); await SecureStore.deleteItemAsync('np-cash-refund');
+      setMessage('Cash refund recorded. Returned items are restocked separately after inspection.'); await refresh();
+    }catch(e:any){if(e.status===400) await SecureStore.deleteItemAsync('np-cash-refund');setError(e.message);}finally{inFlight.current=false;setBusy(false);}
   }
-
-  return (
-    <ScrollView contentContainerStyle={styles.page}>
-      <View style={styles.registerHeading}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.eyebrow}>EVENT REGISTER · TEST MODE</Text>
-          <Text style={styles.pageTitle}>A calm little checkout.</Text>
-        </View>
-        <View style={styles.testModePill}>
-          <Text style={styles.testModePillText}>NO LIVE CHARGES</Text>
-        </View>
-      </View>
-      <Text style={styles.copy}>
-        Katie’s app sign-in opens the register directly. Prices and stock are
-        still verified by the existing secure server before Stripe receives a
-        test payment.
-      </Text>
-      <View style={styles.readerPanel}>
-        <View style={styles.readerPanelTop}>
-          <View>
-            <Text style={styles.readerTitle}>Stripe reader</Text>
-            <Text style={styles.readerStatus}>
-              {connectedReader
-                ? `Connected · ${connectedReader.label || connectedReader.serialNumber}`
-                : connectionStatus === "discovering"
-                  ? "Looking nearby…"
-                  : "Not connected"}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.readerDot,
-              connectedReader && styles.readerDotConnected,
-            ]}
-          />
-        </View>
-        {!connectedReader ? (
-          <>
-            <View style={styles.readerModeRow}>
-              {(["simulated", "physical"] as const).map((mode) => (
-                <Pressable
-                  key={mode}
-                  onPress={() => {
-                    setReaderMode(mode);
-                    setReaders([]);
-                  }}
-                  style={[
-                    styles.readerMode,
-                    readerMode === mode && styles.readerModeActive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.readerModeText,
-                      readerMode === mode && styles.readerModeTextActive,
-                    ]}
-                  >
-                    {mode === "simulated" ? "Simulated reader" : "Physical reader"}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <Pressable
-              onPress={findReader}
-              disabled={readerBusy}
-              style={[styles.primary, readerBusy && styles.primaryDisabled]}
-            >
-              <Text style={styles.primaryText}>
-                {readerBusy ? "Preparing scan…" : "Find test reader"}
-              </Text>
-            </Pressable>
-            {readers.map((reader) => (
-              <Pressable
-                key={reader.id || reader.serialNumber}
-                onPress={() => connectToReader(reader)}
-                style={styles.readerChoice}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.readerChoiceTitle}>
-                    {reader.simulated ? "Stripe simulated reader" : reader.label || "Stripe reader"}
-                  </Text>
-                  <Text style={styles.readerChoiceMeta}>
-                    {reader.deviceType} · {reader.serialNumber}
-                  </Text>
-                </View>
-                <Text style={styles.readerChoiceAction}>Connect ›</Text>
-              </Pressable>
-            ))}
-          </>
-        ) : (
-          <Pressable
-            onPress={() => disconnectReader()}
-            style={styles.secondary}
-          >
-            <Text style={styles.secondaryText}>Disconnect reader</Text>
-          </Pressable>
-        )}
-      </View>
-      {message ? <Text style={styles.successText}>{message}</Text> : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <View style={styles.listHeading}>
-        <Text style={styles.listTitle}>Products</Text>
-        <Pressable onPress={refreshProducts}>
-          <Text style={styles.listCount}>Refresh stock</Text>
-        </Pressable>
-      </View>
-      {loadingProducts ? (
-        <ActivityIndicator color={colors.terracotta} />
-      ) : (
-        products.map((product) => {
-          const quantity = cart[product.sku] || 0;
-          return (
-            <View key={product.sku} style={styles.registerProduct}>
-              <Image
-                source={{ uri: `${API_URL}${product.image}` }}
-                style={styles.registerProductImage}
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.registerProductTitle}>{product.name}</Text>
-                <Text style={styles.registerProductMeta}>
-                  {eventMoney(product.unitPriceCents)} · {product.stock} in test stock
-                </Text>
-              </View>
-              <View style={styles.quantityControl}>
-                <Pressable
-                  onPress={() => changeQuantity(product, -1)}
-                  disabled={!quantity}
-                  style={styles.quantityButton}
-                >
-                  <Text style={styles.quantityButtonText}>−</Text>
-                </Pressable>
-                <Text style={styles.quantityValue}>{quantity}</Text>
-                <Pressable
-                  onPress={() => changeQuantity(product, 1)}
-                  disabled={quantity >= product.stock}
-                  style={styles.quantityButton}
-                >
-                  <Text style={styles.quantityButtonText}>＋</Text>
-                </Pressable>
-              </View>
-            </View>
-          );
-        })
-      )}
-      <View style={styles.registerCart}>
-        <Text style={styles.eyebrow}>CURRENT TEST SALE</Text>
-        {cartItems.length ? (
-          cartItems.map((item) => {
-            const product = products.find((candidate) => candidate.sku === item.sku)!;
-            return (
-              <View key={item.sku} style={styles.cartLine}>
-                <Text style={styles.cartLineName}>
-                  {item.quantity} × {product.name}
-                </Text>
-                <Text style={styles.cartLineAmount}>
-                  {eventMoney(product.unitPriceCents * item.quantity)}
-                </Text>
-              </View>
-            );
-          })
-        ) : (
-          <Text style={styles.calendarNoticeCopy}>Add a product to begin.</Text>
-        )}
-        <View style={styles.cartTotal}>
-          <Text style={styles.cartTotalLabel}>Subtotal before server tax</Text>
-          <Text style={styles.cartTotalAmount}>{eventMoney(subtotal)}</Text>
-        </View>
-        <Pressable
-          onPress={checkout}
-          disabled={checkoutBusy || !cartItems.length || !connectedReader}
-          style={[
-            styles.registerCheckout,
-            (checkoutBusy || !cartItems.length || !connectedReader) &&
-              styles.primaryDisabled,
-          ]}
-        >
-          <Text style={styles.registerCheckoutText}>
-            {checkoutBusy ? "Completing Stripe test…" : "Take test payment"}
-          </Text>
-        </Pressable>
-        <Text style={styles.registerSafety}>
-          Backend-enforced test mode. Use Stripe’s simulated reader or an
-          approved Stripe test card only—never a customer’s real card.
-        </Text>
-      </View>
-    </ScrollView>
-  );
+  return <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+    <View style={styles.registerHeading}><Text style={styles.eyebrow}>EVENT REGISTER</Text><Text style={styles.pageTitle}>A calm little checkout.</Text><Text style={styles.copy}>Shared stock and prices · {mode === 'test' ? 'Test payments only' : mode === 'live' ? 'Live payments' : 'Connecting…'}</Text></View>
+    {error ? <Text accessibilityRole="alert" style={{color: colors.terracottaDeep}}>{error}</Text> : null}
+    {message ? <Text style={styles.copy}>{message}</Text> : null}
+    {products.map(product => <View key={product.sku} style={styles.registerProduct}>
+      <Image source={{uri: `${API_URL}${product.image}`}} style={styles.registerProductImage}/>
+      <View style={{flex:1}}><Text style={styles.registerProductTitle}>{product.name}</Text><Text style={styles.registerProductMeta}>{eventMoney(product.unitPriceCents)} · {product.stock} available</Text></View>
+      <Pressable disabled={busy || !!pending} onPress={() => {setCart(c => ({...c, [product.sku]: Math.max(0, (c[product.sku] || 0)-1)})); setQuote(null);}}><Text style={{padding:12}}>−</Text></Pressable>
+      <Text>{cart[product.sku] || 0}</Text>
+      <Pressable disabled={busy || !!pending || (cart[product.sku] || 0) >= product.stock} onPress={() => {setCart(c => ({...c, [product.sku]: Math.min(product.stock, (c[product.sku] || 0)+1)})); setQuote(null);}}><Text style={{padding:12}}>+</Text></Pressable>
+    </View>)}
+    <View style={styles.registerCart}><Text style={styles.registerProductTitle}>Products: {eventMoney(subtotal)}</Text>
+      {quote ? <Text>Tax: {eventMoney(quote.taxCents)} · Total: {eventMoney(quote.totalCents)}</Text> : null}
+      <Pressable disabled={busy || !items.length || !!pending} onPress={getQuote}><Text style={{padding:12}}>Calculate total</Text></Pressable>
+      <TextInput accessibilityLabel="Cash tendered in dollars" placeholder="Cash tendered ($)" keyboardType="decimal-pad" value={tendered} editable={!busy && !pending} onChangeText={setTendered} style={{padding:12, backgroundColor: colors.white}}/>
+      <Pressable disabled={busy || !!pending || !items.length || !quote || !Number.isFinite(Number(tendered)) || Number(tendered)*100 < quote.totalCents} onPress={() => takePayment('cash')} style={styles.registerCheckout}><Text style={styles.registerCheckoutText}>Confirm cash received</Text></Pressable>
+      <Pressable disabled={busy || !!pending || !items.length} onPress={() => takePayment('stripe')} style={styles.registerCheckout}><Text style={styles.registerCheckoutText}>Create payment QR</Text></Pressable>
+      {pending?.result?.qrDataUrl ? <Image source={{uri: pending.result.qrDataUrl}} style={{width:280,height:280,alignSelf:'center'}}/> : null}
+      {pending?.result ? <Pressable disabled={busy} onPress={checkPayment}><Text style={{padding:12}}>Check payment status</Text></Pressable> : null}
+      {pending && !pending.result ? <Pressable disabled={busy} onPress={() => takePayment(pending.method)}><Text style={{padding:12}}>Retry saved sale</Text></Pressable> : null}
+      {pending?.result ? <Pressable disabled={busy} onPress={async () => {setBusy(true); try {const result = await commerceRequest('/cancel', token, {id:pending.result.id, statusToken:pending.result.statusToken}); if(result.status === 'cancelled') await finish('Checkout cancelled.'); else setMessage(`Order status: ${result.status}. Check payment before proceeding.`);} catch(e:any) {setError(e.message);} finally {setBusy(false);}}}><Text style={{padding:12}}>Cancel unpaid checkout</Text></Pressable> : null}
+    </View>
+    <Text style={styles.registerProductTitle}>Recent orders</Text>
+    <Pressable disabled={busy} onPress={() => refresh().catch(e => setError(e.message))}><Text style={{padding:12}}>Refresh orders and stock</Text></Pressable>
+    <Pressable disabled={busy} onPress={async () => {setBusy(true); try {await commerceRequest('/reconcile',token,{}); await refresh(); setMessage('Pending Stripe orders checked against the payment provider.');}catch(e:any){setError(e.message);}finally{setBusy(false);}}}><Text style={{padding:12}}>Reconcile pending payments</Text></Pressable>
+    {orders.map(order => <View key={order.id} style={{paddingVertical:10}}><Text>{order.id.slice(0,8)} · {order.method} · {order.status}</Text><Text>{eventMoney(order.total_cents)}{order.refunded_cents ? ` · refunded ${eventMoney(order.refunded_cents)}` : ''}</Text>
+      {order.items?.map((item:any)=><Text key={item.sku} style={styles.registerProductMeta}>{item.quantity} × {item.name}</Text>)}
+      {order.shipping_details ? <Text style={styles.registerProductMeta}>{order.shipping_details.name}{'\n'}{Object.values(order.shipping_details.address || {}).filter(Boolean).join(', ')}</Text> : null}
+      {order.method === 'cash' && order.refunded_cents < order.total_cents && ['paid','partially_refunded'].includes(order.status) ? <Pressable disabled={busy} onPress={()=>Alert.alert('Record cash refund?',`Confirm you are returning ${eventMoney(order.total_cents-order.refunded_cents)} in cash. Inventory is adjusted separately.`,[{text:'Cancel',style:'cancel'},{text:'Confirm cash returned',onPress:()=>cashRefund(order)}])}><Text style={{paddingVertical:10}}>Record remaining cash refund</Text></Pressable> : null}
+    </View>)}
+    <Text style={styles.registerProductTitle}>Inventory adjustment</Text>
+    <Text style={styles.copy}>Use component SKUs for stock counts. Bundles share their component inventory.</Text>
+    <TextInput accessibilityLabel="Inventory SKU" placeholder="SKU (for example NP-PEZ-LION)" value={adjustSku} onChangeText={setAdjustSku}/>
+    <TextInput accessibilityLabel="Inventory quantity change" placeholder="Quantity change (+ or −)" value={adjustDelta} onChangeText={setAdjustDelta} keyboardType="numbers-and-punctuation"/>
+    <TextInput accessibilityLabel="Inventory reason" placeholder="Reason (opening count, return, damage…)" value={adjustReason} onChangeText={setAdjustReason}/>
+    <Pressable disabled={busy || !!pending} onPress={adjustStock}><Text style={{padding:12}}>Record stock change</Text></Pressable>
+    <Text style={styles.copy}>Payments require an internet connection. A pending order is not a confirmed sale.</Text>
+  </ScrollView>;
 }
 */
+
 
 export default function App() {
   const [account, setAccount] = useState<SignedInAccount | null>(null),
@@ -8070,6 +7782,8 @@ export default function App() {
         refreshShared().catch(() => {});
       }}
     />
+  ) : tab === "Register" && person === "Katie" ? (
+    <EventRegister token={token} />
   ) : tab === "Today" ? (
     <Today
       token={token}
@@ -8193,6 +7907,7 @@ export default function App() {
             ...(pinterestBacklogCount === null || pinterestBacklogCount > 0
               ? (["Pinterest"] as Tab[])
               : []),
+            "Register",
           ];
   return (
     <SafeAreaView style={styles.shell}>

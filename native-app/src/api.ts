@@ -11,7 +11,7 @@ export type SharedMediaAsset = { id: string; adventure_id: string | null; displa
 export type WorkingVersion = { id: string; media_id: string; destination_type: string; destination_id: string; treatment: { logoColor: string; logoSize: string; logoSide: string; focus: string }; created_at: string }
 export type PinterestPin = { image: string; title: string; description: string; template: 'bark' | 'sage' | 'sand' | 'terracotta'; logo_size: 'small' | 'medium'; logo_placement: 'left' | 'right'; media_type?: 'image' | 'video'; thumbnail?: string }
 export type PinterestCampaign = { post_slug: string; campaign_title: string; board: string; keywords: string; retroactive: boolean; enabled: boolean; rss_pin: PinterestPin; day_7_pin: PinterestPin; day_14_pin: PinterestPin; day_21_pin: PinterestPin; updated_at?: string }
-export type EventProduct = { sku: string; snipcartId: string; name: string; image: string; unitPriceCents: number; stock: number; active: boolean }
+export type EventProduct = { sku: string; id: string; name: string; image: string; unitPriceCents: number; stock: number; active: boolean }
 export type EventSale = { saleId: string; paymentIntentId: string; clientSecret: string; subtotalCents: number; taxCents: number; totalCents: number; currency: 'usd'; mode: 'test' }
 export type EventSaleStatus = { id: string; status: string; mode: 'test'; currency: 'usd'; subtotal_cents: number; tax_cents: number; total_cents: number; stripe_payment_intent_id: string; created_at: string; updated_at: string }
 export type VideoOverlayDraft = { id: string; presetId: string; name: string; fontId: string; fontName: string; fontFamily: string; text: string; textColor: string; accentColor: string; startAt: number; endAt: number; animation: string; boxed: boolean; uppercase: boolean }
@@ -564,4 +564,11 @@ export async function publishJournalWorkingDraft(token: string, slug: string) {
   return request<{ commitSha: string; filePath: string; branch: string; slug: string; state: 'committed' }>('/api/app/journal', token, {
     method: 'POST', body: JSON.stringify({ action: 'publish-working-draft', slug }),
   })
+}
+
+export async function commerceRequest(path: string, token: string, body?: unknown): Promise<any> {
+  const response = await fetch(`${API_URL}/api/commerce${path}`, { ...(body === undefined ? {} : { method: 'POST', body: JSON.stringify(body) }), headers: { Accept: 'application/json', Authorization: `Bearer ${token}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) } })
+  const result = await response.json().catch(() => ({}))
+  if (!response.ok) throw Object.assign(new Error(result.error || 'The register could not connect.'), { status: response.status, code: result.code })
+  return result
 }

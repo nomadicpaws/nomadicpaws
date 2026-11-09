@@ -132,7 +132,7 @@
       const payload = await api('/api/event/products');
       state.products = payload.products || [];
       connectionState.classList.remove('is-error');
-      connectionState.querySelector('span:last-child').textContent = 'Connected to Snipcart Test inventory';
+      connectionState.querySelector('span:last-child').textContent = 'Connected to shared test inventory';
       renderProducts();
       renderCart();
     } catch (error) {
