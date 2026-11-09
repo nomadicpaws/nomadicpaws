@@ -59,7 +59,7 @@
     document.querySelectorAll('[data-item-id]').forEach(button => {
       const product = products.find(p => p.id === button.dataset.itemId); if (!product) return;
       const container = button.closest('.np-treat-card, .np-bundle-hero'); const message = container?.querySelector('[data-inventory-message]');
-      if (product.stock > 0 && product.active) { button.disabled = false; button.removeAttribute('aria-disabled'); button.classList.add('np-add-item'); if(message) message.textContent = `${product.stock} left`; }
+      if (product.stock > 0 && product.active) { button.disabled = false; button.textContent = "Add to pack"; button.removeAttribute('aria-disabled'); button.classList.add('np-add-item'); if(message) message.textContent = `${product.stock} left`; }
       else if (product.affiliateUrl) {
         const link = document.createElement('a'); link.className = button.className.replace('np-add-item',''); link.href = product.affiliateUrl; link.target='_blank'; link.rel='noopener sponsored'; link.textContent = product.active ? 'Shop through Pezzy' : 'Check at Pezzy ↗'; button.replaceWith(link);
         if(message) message.textContent = 'Affiliate link · Availability may vary';
