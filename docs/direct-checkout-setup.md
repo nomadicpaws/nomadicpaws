@@ -82,3 +82,7 @@ Before launch, use a clean production commerce dataset and a physical stock coun
 No PR has been opened, no GitHub changes have been pushed, and the original OneDrive checkout is unchanged. The delivered patch is against a local snapshot of that checkout and should first be checked against the current repository with `git apply --check`. Review it before applying; do not upload a ZIP containing node_modules, credentials or local database files.
 
 Official implementation references: [Stripe Checkout creation](https://docs.stripe.com/api/checkout/sessions/create), [fulfillment and asynchronous events](https://docs.stripe.com/checkout/fulfillment), [QR generator documentation](https://github.com/soldair/node-qrcode).
+
+## Current source reconciliation
+
+This change is based on main at 1ab7acc. The dedicated Events iPhone app receives the register update; the Creative & Publishing Studio remains unchanged. Calendar and staff tools are preserved. Stripe sandbox checkout has completed successfully using synthetic customer details; preview webhook/database testing is still pending. No production payment setting has been enabled.
