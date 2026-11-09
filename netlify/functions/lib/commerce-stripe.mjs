@@ -41,6 +41,7 @@ export function checkoutParameters(order, priced, env = process.env) {
     values[`line_items[${i}][price_data][currency]`] = 'usd';
     values[`line_items[${i}][price_data][unit_amount]`] = String(item.unitPriceCents);
     values[`line_items[${i}][price_data][product_data][name]`] = item.name;
+    values[`line_items[${i}][price_data][product_data][tax_code]`] = item.taxCode;
     values[`line_items[${i}][price_data][tax_behavior]`] = 'exclusive';
     values[`line_items[${i}][quantity]`] = String(item.quantity);
   });

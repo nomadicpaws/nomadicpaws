@@ -117,3 +117,14 @@ test('SQL migration, reservation, cash retry, payment deduplication, expiry and 
     assert.equal((await db.query('SELECT value FROM journal_sentinel')).rows[0].value,'unchanged');
   } finally {await db.close();}
 });
+
+test('automatic web tax uses pet-food classification and shipping address instead of a guessed tax line', () => {
+  const automaticEnv={...env,COMMERCE_WEB_TAX_MODE:'stripe'};
+  const priced=quote(lion,'web',automaticEnv);
+  const params=checkoutParameters({id:randomUUID(),channel:'web'},priced,automaticEnv);
+  assert.equal(params['automatic_tax[enabled]'],'true');
+  assert.equal(params['line_items[0][price_data][product_data][tax_code]'],'txcd_36010004');
+  assert.equal(params['shipping_address_collection[allowed_countries][0]'],'US');
+  assert.equal(params['line_items[1][price_data][product_data][name]'],undefined);
+  assert.equal(priced.taxCents,0);
+});
