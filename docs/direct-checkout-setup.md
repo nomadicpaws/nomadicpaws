@@ -94,3 +94,5 @@ Draft PR: https://github.com/nomadicpaws/nomadicpaws/pull/2
 Preview: https://deploy-preview-2--nomadicpaws.netlify.app/cheetos-store/
 
 Netlify applies the additive commerce migration to the separate `codex/direct-checkout-test` database branch. Commerce configuration and verification secrets are scoped to that branch. The 610 basis-point tax is only a sandbox fixture, not approved live sourcing/tax treatment. The webhook receives only the five supported Stripe sandbox payment/refund events with API version 2024-06-20. No production checkout has been enabled.
+
+Set the explicit COMMERCE_SITE_URL through Netlify environment settings with Functions scope. Build-only netlify.toml environment entries do not configure the deployed function runtime.

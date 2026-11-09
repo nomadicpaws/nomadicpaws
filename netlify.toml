@@ -38,6 +38,3 @@
   to = "/blog.html"
   status = 200
 
-# Isolated PR 2 sandbox. This exact origin is never used by production.
-[context."codex/direct-checkout-test".environment]
-  COMMERCE_SITE_URL = "https://deploy-preview-2--nomadicpaws.netlify.app"
