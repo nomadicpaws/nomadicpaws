@@ -4,7 +4,7 @@ export const CATALOG = Object.freeze([
   { sku: 'NP-PEZ-LION', id: 'pezzy-lionfish-sticks', name: 'Pezzy Lionfish Sticks', taxCode: 'txcd_36010004', unitPriceCents: 2100, image: '/images/products/pezzy-lionfish-sticks.png', active: true, affiliateUrl: 'https://pezzypets.com/products/lionfish-sticks?sca_ref=11859855.fBiDjsDHsK' },
   { sku: 'NP-PEZ-NILGAI', id: 'pezzy-nilgai-antelope-heart', name: 'Pezzy Nilgai Antelope Heart', taxCode: 'txcd_36010004', unitPriceCents: 1800, image: '/images/products/pezzy-nilgai-heart.png', active: true, affiliateUrl: 'https://pezzypets.com/products/nilgai-antelope-heart-single-ingredient?sca_ref=11859855.fBiDjsDHsK' },
   { sku: 'NP-PEZ-CARP', id: 'pezzy-silver-carp-chips', name: 'Pezzy Silver Carp Chips', taxCode: 'txcd_36010004', unitPriceCents: 1700, image: '/images/products/pezzy-silver-carp-chips.png', active: true, affiliateUrl: 'https://pezzypets.com/products/single-ingredient-silver-carp-chips?sca_ref=11859855.fBiDjsDHsK' },
-  { sku: 'NP-PEZ-DEVIL', id: 'pezzy-devil-fish-strips-preorder', name: 'Pezzy Devil Fish Strips', taxCode: 'txcd_36010004', unitPriceCents: 1700, image: '/images/products/pezzy-devil-fish-strips.png', active: false, affiliateUrl: 'https://pezzypets.com/products/pezzy-single-ingredient-treats-fish-strips?sca_ref=11859855.fBiDjsDHsK' },
+  { sku: 'NP-PEZ-DEVIL', id: 'pezzy-devil-fish-strips-preorder', name: 'Pezzy Devil Fish Strips', taxCode: 'txcd_36010004', unitPriceCents: 1700, image: '/images/products/pezzy-devil-fish-strips.png', active: true, affiliateUrl: 'https://pezzypets.com/products/pezzy-single-ingredient-treats-fish-strips?sca_ref=11859855.fBiDjsDHsK' },
 ]);
 
 export function commerceError(message, status = 400) { return Object.assign(new Error(message), { status }); }

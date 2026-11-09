@@ -13,7 +13,7 @@ const lion = [{sku:'NP-PEZ-LION',quantity:1}];
 test('canonical prices ignore browser price input and reject invalid quantities', () => {
   assert.equal(quote([{...lion[0],unitPriceCents:1}], 'web', env).subtotalCents,2100);
   for(const quantity of [0,-1,1.5,'1',100]) assert.throws(() => normalizeItems([{sku:'NP-PEZ-LION',quantity}]));
-  assert.throws(() => normalizeItems([{sku:'NP-PEZ-DEVIL',quantity:1}]));
+  assert.throws(() => normalizeItems([{sku:'NP-UNKNOWN',quantity:1}]));
   assert.throws(() => normalizeItems([{sku:'NP-PEZ-LION',quantity:60},{sku:'NP-PEZ-LION',quantity:60}]));
 });
 test('bundle shares component stock without a phantom bundle decrement', () => {

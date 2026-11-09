@@ -103,7 +103,7 @@ async function request<T>(path: string, token = '', options: RequestInit = {}) {
 }
 
 export async function createSellerSession(accessCode: string) {
-  return request<{ token: string; expiresInSeconds: number; mode: 'test'; staff: SignedInStaff }>('/api/event/auth/session', '', {
+  return request<{ token: string; expiresInSeconds: number; mode: 'test' | 'live'; staff: SignedInStaff }>('/api/event/auth/session', '', {
     method: 'POST',
     body: JSON.stringify({ accessCode }),
   })
@@ -138,7 +138,7 @@ export async function viewEventStaffCode(token: string, id: string) {
 }
 
 export async function loadProducts(token: string) {
-  return request<{ products: EventProduct[]; mode: 'test' }>('/api/event/products', token)
+  return request<{ products: EventProduct[]; mode: 'test' | 'live' }>('/api/event/products', token)
 }
 
 export async function createTerminalToken(token: string) {

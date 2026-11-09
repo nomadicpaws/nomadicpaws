@@ -1,10 +1,12 @@
 import type { Config } from '@netlify/functions'
 import { createEventStaff, getEventStaffCode, listEventStaff, rotateEventStaffCode, setEventStaffActive } from './lib/event-staff-db.mjs'
-import { errorResponse, json, readJson, requireEventOwner, requireTestMode } from './lib/event-http.mjs'
+import { errorResponse, json, readJson, requireEventOwner } from './lib/event-http.mjs'
+
+import { commerceConfig } from './lib/commerce-stripe.mjs'
 
 export default async (request: Request) => {
   try {
-    requireTestMode()
+    commerceConfig(process.env, { allowDisabled: true })
     await requireEventOwner(request)
     if (request.method === 'GET') return json({ staff: await listEventStaff() })
     if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405, { Allow: 'GET, POST' })
