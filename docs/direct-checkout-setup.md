@@ -1,6 +1,6 @@
 # Direct checkout: implementation and test setup
 
-Status: local implementation for review. No deployment, Stripe configuration, payment, membership email, or stock import has been performed.
+Status: draft PR #2 deployed to an isolated Netlify sandbox preview. Stripe Checkout, webhook confirmation, shared stock and cash retry/concurrency tests passed. Live checkout remains disabled.
 
 ## Confirmed policy
 
