@@ -1,4 +1,4 @@
-const API_URL = 'https://nomadicpaws.co'
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://nomadicpaws.co'
 
 export type EventProduct = {
   sku: string
@@ -103,7 +103,7 @@ async function request<T>(path: string, token = '', options: RequestInit = {}) {
 }
 
 export async function createSellerSession(accessCode: string) {
-  return request<{ token: string; expiresInSeconds: number; mode: 'test'; staff: SignedInStaff }>('/api/event/auth/session', '', {
+  return request<{ token: string; expiresInSeconds: number; mode: 'test' | 'live'; staff: SignedInStaff }>('/api/event/auth/session', '', {
     method: 'POST',
     body: JSON.stringify({ accessCode }),
   })
@@ -138,7 +138,7 @@ export async function viewEventStaffCode(token: string, id: string) {
 }
 
 export async function loadProducts(token: string) {
-  return request<{ products: EventProduct[]; mode: 'test' }>('/api/event/products', token)
+  return request<{ products: EventProduct[]; mode: 'test' | 'live' }>('/api/event/products', token)
 }
 
 export async function createTerminalToken(token: string) {
@@ -188,3 +188,8 @@ export async function saveCalendar(token: string, input: {
 }
 
 export { API_URL }
+
+export async function commerceRequest(path: string, token: string, body?: unknown): Promise<any> {
+  const response = await fetch(`${API_URL}/api/commerce${path}`, {method: body === undefined ? "GET" : "POST", headers: {Accept: "application/json", Authorization: `Bearer ${token}`, ...(body === undefined ? {} : {"Content-Type":"application/json"})}, ...(body === undefined ? {} : {body:JSON.stringify(body)})});
+  const data = await response.json(); if (!response.ok) throw Object.assign(new Error(data.error || "Checkout could not complete that request."), {status:response.status, code:data.code}); return data;
+}

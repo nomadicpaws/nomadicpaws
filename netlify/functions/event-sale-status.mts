@@ -1,22 +1,3 @@
-import type { Config } from "@netlify/functions";
-import { getSale } from "./lib/event-db.mjs";
-import { reconcileSalePayment } from "./lib/event-payment-service.mjs";
-import { errorResponse, json, requireEventOperator, requireTestMode } from "./lib/event-http.mjs";
-
-export default async (request: Request) => {
-  if (request.method !== "GET") return json({ error: "Method not allowed." }, 405, { Allow: "GET" });
-  try {
-    requireTestMode();
-    await requireEventOperator(request);
-    const id = new URL(request.url).searchParams.get("id");
-    if (!id) throw Object.assign(new Error("A sale id is required."), { status: 400 });
-    let sale = await getSale(id);
-    if (!sale) throw Object.assign(new Error("Sale not found."), { status: 404 });
-    sale = await reconcileSalePayment(sale);
-    return json({ sale });
-  } catch (error) {
-    return errorResponse(error);
-  }
-};
-
-export const config: Config = { path: "/api/event/sales/status" };
+import type { Config } from '@netlify/functions';
+export default async () => Response.json({error:'This test endpoint has been retired. Update the Events app to use shared commerce.'},{status:410,headers:{'Cache-Control':'no-store'}});
+export const config: Config = {path:'/api/event/sales/status'};

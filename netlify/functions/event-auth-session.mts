@@ -1,13 +1,14 @@
 import type { Config } from "@netlify/functions";
 import { authRateLimitKey, createSellerToken, secureEqual } from "./lib/event-auth.mjs";
 import { clearAuthFailures, getAuthThrottle, recordAuthFailure } from "./lib/event-db.mjs";
-import { errorResponse, json, readJson, requireTestMode } from "./lib/event-http.mjs";
+import { errorResponse, json, readJson } from "./lib/event-http.mjs";
+import { commerceConfig } from './lib/commerce-stripe.mjs';
 import { authenticateEventStaff } from "./lib/event-staff-db.mjs";
 
 export default async (request: Request) => {
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405, { Allow: "POST" });
   try {
-    requireTestMode();
+    const { mode } = commerceConfig(process.env, { allowDisabled: true });
     const configuredCode = process.env.EVENT_REGISTER_ACCESS_CODE || "";
     if (configuredCode.length < 8) throw Object.assign(new Error("Seller access is not configured."), { status: 503 });
     const sessionSecret = process.env.EVENT_REGISTER_SESSION_SECRET || "";
@@ -35,7 +36,7 @@ export default async (request: Request) => {
     }
     await clearAuthFailures(clientKey);
     const token = createSellerToken(sessionSecret, { staffId: staff.id, name: staff.name, permission: staff.permission });
-    return json({ token, expiresInSeconds: 8 * 60 * 60, mode: "test", staff });
+    return json({ token, expiresInSeconds: 8 * 60 * 60, mode, staff });
   } catch (error) {
     return errorResponse(error);
   }

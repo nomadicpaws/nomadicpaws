@@ -1,22 +1,6 @@
-import type { Config } from "@netlify/functions";
-import { errorResponse, json, requireEventOperator, requireTestMode } from "./lib/event-http.mjs";
-import { EVENT_PRODUCTS } from "./lib/event-products.mjs";
-import { createSnipcartInventoryClient } from "./lib/snipcart-inventory.mjs";
-
-export default async (request: Request) => {
-  if (request.method !== "GET") return json({ error: "Method not allowed." }, 405, { Allow: "GET" });
-  try {
-    requireTestMode();
-    await requireEventOperator(request);
-    const inventory = createSnipcartInventoryClient();
-    const products = await Promise.all(EVENT_PRODUCTS.filter((product) => product.active).map(async (product) => {
-      const { stock } = await inventory.get(product.snipcartId);
-      return { ...product, stock };
-    }));
-    return json({ products, simulatedReader: true, mode: "test" });
-  } catch (error) {
-    return errorResponse(error);
-  }
-};
-
-export const config: Config = { path: "/api/event/products" };
+import type { Config } from '@netlify/functions';
+import { products } from './lib/commerce-db.mjs';
+import { commerceConfig } from './lib/commerce-stripe.mjs';
+import { requireEventOperator, errorResponse } from './lib/event-http.mjs';
+export default async (request: Request) => {try { const {mode}=commerceConfig(); await requireEventOperator(request); return Response.json({products:await products(),mode},{headers:{'Cache-Control':'no-store'}}); }catch(error){return errorResponse(error);}};
+export const config: Config={path:'/api/event/products'};

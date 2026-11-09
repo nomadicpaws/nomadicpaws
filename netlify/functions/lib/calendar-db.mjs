@@ -5,7 +5,7 @@ const EVENT_CHECKLIST_TEMPLATE = [
   'Confirm venue rules, booth dimensions, setup window, electricity, and contacts',
   'Test checkout, prices, QR destinations, internet or hotspot, and backup battery',
   'Record starting quantity for every sellable item',
-  'Update Snipcart quantities before departure',
+  'Verify shared store inventory before departure',
   'Pack phone or tablet stand, Stripe reader, chargers, and battery banks',
   'Pack cash box and starting change if accepting cash',
   'Pack extension cord, power strip, gaffer tape, zip ties, scissors, and toolkit',

@@ -12,6 +12,14 @@
     "@netlify/blobs": "^11.0.2",
     "@netlify/database": "^1.0.0",
     "jose": "6.1.0",
+    "qrcode": "^1.5.4",
     "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
+    "@netlify/functions": "^6.1.1",
+    "@types/node": "^26.6.6",
+    "@types/qrcode": "^1.5.6",
+    "typescript": "^7.0.2"
   }
 }
