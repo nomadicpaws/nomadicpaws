@@ -123,8 +123,24 @@ test('automatic web tax uses pet-food classification and shipping address instea
   const priced=quote(lion,'web',automaticEnv);
   const params=checkoutParameters({id:randomUUID(),channel:'web'},priced,automaticEnv);
   assert.equal(params['automatic_tax[enabled]'],'true');
+  assert.equal(params['shipping_options[0][shipping_rate_data][tax_code]'],'txcd_92010001');
+  assert.equal(params['shipping_options[0][shipping_rate_data][tax_behavior]'],'exclusive');
   assert.equal(params['line_items[0][price_data][product_data][tax_code]'],'txcd_36010004');
   assert.equal(params['shipping_address_collection[allowed_countries][0]'],'US');
   assert.equal(params['line_items[1][price_data][product_data][name]'],undefined);
   assert.equal(priced.taxCents,0);
+});
+
+test('opening inventory seeds a clean store once and never resets existing counts', async () => {
+  const db=new PGlite();
+  try {
+    await db.exec(await readFile(new URL('../netlify/database/migrations/202611090001_commerce.sql',import.meta.url),'utf8'));
+    const seed=await readFile(new URL('../netlify/database/migrations/202611090002_opening_inventory.sql',import.meta.url),'utf8');
+    await db.exec(seed);
+    assert.deepEqual((await db.query('SELECT sku,on_hand FROM commerce_inventory ORDER BY sku')).rows,[{sku:'NP-PEZ-CARP',on_hand:25},{sku:'NP-PEZ-DEVIL',on_hand:25},{sku:'NP-PEZ-LION',on_hand:10},{sku:'NP-PEZ-NILGAI',on_hand:10}]);
+    await db.exec("UPDATE commerce_inventory SET on_hand=9 WHERE sku='NP-PEZ-LION'");
+    await db.exec(seed);
+    assert.equal((await db.query("SELECT on_hand FROM commerce_inventory WHERE sku='NP-PEZ-LION'")).rows[0].on_hand,9);
+    assert.equal((await db.query('SELECT COUNT(*)::int AS count FROM commerce_stock_movements')).rows[0].count,4);
+  } finally {await db.close();}
 });

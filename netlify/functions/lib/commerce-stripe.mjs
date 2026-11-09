@@ -62,6 +62,10 @@ export function checkoutParameters(order, priced, env = process.env) {
     values['shipping_options[0][shipping_rate_data][fixed_amount][amount]'] = String(priced.shippingCents);
     values['shipping_options[0][shipping_rate_data][fixed_amount][currency]'] = 'usd';
     values['shipping_options[0][shipping_rate_data][display_name]'] = 'Standard shipping';
+    if (priced.taxMode === 'stripe') {
+      values['shipping_options[0][shipping_rate_data][tax_code]'] = 'txcd_92010001';
+      values['shipping_options[0][shipping_rate_data][tax_behavior]'] = 'exclusive';
+    }
   }
   return values;
 }
