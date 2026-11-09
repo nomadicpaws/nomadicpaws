@@ -13,6 +13,7 @@
   const checkout = dialog.querySelector('[data-pack-checkout]');
   const perk = dialog.querySelector('[data-pack-code]');
   let products = [];
+  let catalogReady = false;
   function save() { localStorage.setItem(key, JSON.stringify(cart)); document.querySelectorAll('.np-items-count').forEach(el => { el.textContent = String(cart.reduce((n,p) => n+p.quantity,0)); }); }
   function render() {
     lines.replaceChildren(); let subtotal = 0;
@@ -29,7 +30,7 @@
     });
     if (!cart.length) lines.textContent = 'Your pack is empty.';
     dialog.querySelector('[data-pack-subtotal]').textContent = money(subtotal);
-    checkout.disabled = !cart.length;
+    checkout.disabled = !catalogReady || !cart.length;
     perk.disabled = Boolean(pending);
   }
   document.querySelectorAll('.np-checkout').forEach(el => el.addEventListener('click', () => { render(); dialog.showModal(); }));
@@ -54,7 +55,7 @@
   });
   try { pending = JSON.parse(localStorage.getItem('np-checkout-request') || 'null'); } catch { pending = null; }
   fetch('/api/commerce/products').then(async response => {
-    const data = await response.json(); if (!response.ok) throw new Error(data.error); products = data.products;
+    const data = await response.json(); if (!response.ok) throw new Error(data.error); products = data.products; catalogReady = true;
     if (data.mode === "test") { const banner = document.createElement("p"); banner.textContent = "SANDBOX PREVIEW — Test orders only. No real payment will be taken."; banner.setAttribute("role","status"); banner.style.cssText="position:sticky;top:0;z-index:10000;padding:12px;text-align:center;background:#fff1b8;color:#3f352a;font-weight:700"; document.body.prepend(banner); dialog.querySelector(".np-pack-trust").textContent="Stripe sandbox · Test orders only"; }
     document.querySelectorAll('[data-item-id]').forEach(button => {
       const product = products.find(p => p.id === button.dataset.itemId); if (!product) return;

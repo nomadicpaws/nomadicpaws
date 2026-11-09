@@ -20,7 +20,7 @@ This confirms the business-origin location rate, not a blanket rate for every sh
 ## What changed
 
 - Website: custom branded Your Pack cart, product images, quantities, monthly code entry and hosted Stripe Checkout. The existing signup form/Zoho workflow stays unchanged.
-- iPhone: adapt the preserved EventRegister screen, expose it to Katie through Register, use the shared catalog, show a server-generated payment QR, confirm cash, persist pending requests in SecureStore, show recent orders/shipping details, adjust stock, reconcile pending payments and record remaining cash refunds.
+- iPhone: update the Register in the dedicated Events app, preserve calendar/staff tools, use the shared catalog, show a server-generated payment QR, confirm cash, persist pending requests in SecureStore, show recent orders/shipping details, adjust stock, reconcile pending payments and record remaining cash refunds.
 - Backend: one canonical server catalog, transactional stock/reservations, orders, payment/refund status, stock ledger, authenticated operator APIs and signature-verified Stripe events. New web checkout requests are throttled; request IDs and provider idempotency keys protect retries.
 - Bundles: assembled from one bag of each component; availability is derived. No independent bundle stock is deducted. If actual stock is separately prepacked, resolve that physical inventory policy before launch.
 - Old Snipcart network adapter and inventory updater are removed. Public inventory now reads the shared database. Retired test payment, webhook and reconciliation routes return HTTP 410; they never contact Snipcart. Historical event tables/identifiers remain readable.
@@ -66,7 +66,7 @@ This is a shared bearer code, not an identity-verified membership entitlement: a
 
 ## Validation completed locally
 
-- 45 automated tests passed, including existing Journal/media/social tests and new commerce tests.
+- 58 automated tests passed, including existing Journal/media/social tests and new commerce tests.
 - New tests cover price tampering, quantity validation, component bundles, free-shipping codes and dates, missing configuration, wrong origins, operator authentication, forged webhooks, stable provider idempotency and order-status capabilities.
 - Embedded Postgres executes the real migration and SQL for opening stock, cash retries, reservation rejection, payment deduplication, bad totals, expiry, late success, partial/full refunds and refund ordering. This exercises real transactions/rollback but uses one embedded connection; it does not prove production multi-connection contention behavior.
 - Changed server endpoints and the complete native project pass TypeScript checks.
@@ -75,17 +75,17 @@ This is a shared bearer code, not an identity-verified membership entitlement: a
 
 ## Required before real sales
 
-Complete real Stripe sandbox checkout/webhook tests, Netlify migration/transaction tests with competing clients, device QR/cash/restart/refund tests, tax configuration review, email/fulfillment workflow, stock reconciliation and actual hosting usage checks. Branding in the custom cart is implemented; Stripe's hosted payment page still needs its dashboard branding configured and reviewed. No actual Stripe account settings have been changed.
+Complete device QR/cash/restart/refund tests, tax configuration review, email/fulfillment workflow, stock reconciliation and actual hosting usage checks. Branding in the custom cart is implemented; Stripe's hosted payment page still needs its dashboard branding configured and reviewed. Only the approved sandbox webhook was created; live payment settings remain unchanged.
 
 Before launch, use a clean production commerce dataset and a physical stock count; do not carry test sales or test reservations into production. Keep Journal data intact. Configure live secrets and a separate live webhook only after the test gates pass; set `COMMERCE_MODE=live` and `COMMERCE_LIVE_APPROVED=true` in the approved production environment.
 
-No PR has been opened, no GitHub changes have been pushed, and the original OneDrive checkout is unchanged. The delivered patch is against a local snapshot of that checkout and should first be checked against the current repository with `git apply --check`. Review it before applying; do not upload a ZIP containing node_modules, credentials or local database files.
+Draft PR #2 is open on codex/direct-checkout-test, based on current main 1ab7acc. The original OneDrive checkout and Creative Studio source are unchanged. The supplied patch is against current main. No credentials are included.
 
 Official implementation references: [Stripe Checkout creation](https://docs.stripe.com/api/checkout/sessions/create), [fulfillment and asynchronous events](https://docs.stripe.com/checkout/fulfillment), [QR generator documentation](https://github.com/soldair/node-qrcode).
 
 ## Current source reconciliation
 
-This change is based on main at 1ab7acc. The dedicated Events iPhone app receives the register update; the Creative & Publishing Studio remains unchanged. Calendar and staff tools are preserved. Stripe sandbox checkout has completed successfully using synthetic customer details; preview webhook/database testing is still pending. No production payment setting has been enabled.
+This change is based on main at 1ab7acc. The dedicated Events iPhone app receives the register update; the Creative & Publishing Studio remains unchanged. Calendar and staff tools are preserved. Stripe sandbox checkout and deployed preview webhook/database testing completed successfully using synthetic customer details. No production payment setting has been enabled.
 
 ## Sandbox deployment
 
@@ -96,3 +96,7 @@ Preview: https://deploy-preview-2--nomadicpaws.netlify.app/cheetos-store/
 Netlify applies the additive commerce migration to the separate `codex/direct-checkout-test` database branch. Commerce configuration and verification secrets are scoped to that branch. The 610 basis-point tax is only a sandbox fixture, not approved live sourcing/tax treatment. The webhook receives only the five supported Stripe sandbox payment/refund events with API version 2024-06-20. No production checkout has been enabled.
 
 Set the explicit COMMERCE_SITE_URL through Netlify environment settings with Functions scope. Build-only netlify.toml environment entries do not configure the deployed function runtime.
+
+## Deployed integration evidence
+
+A storefront order completed through hosted Stripe sandbox Checkout and returned to the preview with payment confirmed. The signed webhook marked the order paid at $27.28 ($21 merchandise, $1.28 sandbox tax fixture, $5 shipping), captured synthetic shipping details and reduced lionfish stock from 10 to 9. No operator reconciliation was used to mark this order paid. An identical cash retry produced one order/stock decrement; two concurrent last-item cash requests yielded one paid sale and one out-of-stock rejection. The isolated database migration succeeded. Netlify transiently returned HTTP 500 during a later deployment; retry succeeded.
