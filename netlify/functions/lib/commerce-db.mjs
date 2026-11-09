@@ -52,9 +52,9 @@ export async function reserveOrder(id, priced, method, mode, hash, pool, tendere
     return inserted.rows[0];
   }, pool);
 }
-export async function attachSession(id, session) {
-  if (!/^cs_(test_)?[a-zA-Z0-9]+$/.test(session.id || '') || !String(session.url || '').startsWith('https://checkout.stripe.com/')) throw commerceError('Unexpected checkout response.', 502);
-  await getDatabase().pool.query('UPDATE commerce_orders SET stripe_session_id=$2,stripe_url=$3,updated_at=NOW() WHERE id=$1 AND (stripe_session_id IS NULL OR stripe_session_id=$2)', [id, session.id, session.url]);
+export async function attachSession(id, session, pool = getDatabase().pool) {
+  if (!/^cs_(test|live)_[a-zA-Z0-9]+$/.test(session.id || '') || !String(session.url || '').startsWith('https://checkout.stripe.com/')) throw commerceError('Unexpected checkout response.', 502);
+  await pool.query('UPDATE commerce_orders SET stripe_session_id=$2,stripe_url=$3,updated_at=NOW() WHERE id=$1 AND (stripe_session_id IS NULL OR stripe_session_id=$2)', [id, session.id, session.url]);
 }
 
 export async function applySessionEvent(event, session, mode, pool) {

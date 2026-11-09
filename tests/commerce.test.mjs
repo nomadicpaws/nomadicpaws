@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { normalizeItems, stockEffects, quote, memberShipping, availableStock, CATALOG } from '../netlify/functions/lib/commerce-catalog.mjs';
 import { checkoutParameters, commerceConfig, commerceStripe } from '../netlify/functions/lib/commerce-stripe.mjs';
-import { reserveOrder, applySessionEvent, adjustInventory, recordRefund, statusToken, validStatusToken, refundCash } from '../netlify/functions/lib/commerce-db.mjs';
+import { reserveOrder, applySessionEvent, attachSession, adjustInventory, recordRefund, statusToken, validStatusToken, refundCash } from '../netlify/functions/lib/commerce-db.mjs';
 import { createSellerToken } from '../netlify/functions/lib/event-auth.mjs';
 
 const env = { COMMERCE_ENABLED: 'true', COMMERCE_MODE: 'test', STRIPE_SECRET_KEY: 'sk_test_fixture', COMMERCE_STATUS_SECRET: 'x'.repeat(32), COMMERCE_SITE_URL: 'https://nomadicpaws.co', COMMERCE_WEB_TAX_MODE: 'manual', COMMERCE_WEB_TAX_RATE_BPS: '820', EVENT_TAX_RATE_BPS: '820', COMMERCE_SHIPPING_CENTS: '500', COMMERCE_SHIPPING_COUNTRIES: 'US' };
@@ -78,6 +78,15 @@ test('order status capabilities reject tampering and missing secrets',()=>{
   const id=randomUUID(); const secret='s'.repeat(32); const token=statusToken(id,secret);
   assert.equal(validStatusToken(id,token,secret),true); assert.equal(validStatusToken(randomUUID(),token,secret),false);
   assert.throws(()=>statusToken(id,''));
+});
+
+test('provider sessions attach in both live and sandbox modes and reject malformed IDs',async()=>{
+  const attached=[];const pool={query:async(sql,args)=>{attached.push(args);}};const id=randomUUID();
+  for(const sessionId of ['cs_test_abc123','cs_live_abc123'])await attachSession(id,{id:sessionId,url:'https://checkout.stripe.com/c/pay/'+sessionId},pool);
+  assert.deepEqual(attached.map(args=>args[1]),['cs_test_abc123','cs_live_abc123']);
+  for(const sessionId of ['cs_abc123','cs_live_bad_id','pi_live_abc'])await assert.rejects(()=>attachSession(id,{id:sessionId,url:'https://checkout.stripe.com/c/pay/'+sessionId},pool));
+  await assert.rejects(()=>attachSession(id,{id:'cs_live_abc123',url:'https://attacker.example'},pool));
+  assert.equal(attached.length,2);
 });
 
 test('SQL migration, reservation, cash retry, payment deduplication, expiry and refunds', async () => {
