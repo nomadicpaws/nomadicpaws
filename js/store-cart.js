@@ -55,6 +55,7 @@
   try { pending = JSON.parse(localStorage.getItem('np-checkout-request') || 'null'); } catch { pending = null; }
   fetch('/api/commerce/products').then(async response => {
     const data = await response.json(); if (!response.ok) throw new Error(data.error); products = data.products;
+    if (data.mode === "test") { const banner = document.createElement("p"); banner.textContent = "SANDBOX PREVIEW — Test orders only. No real payment will be taken."; banner.setAttribute("role","status"); banner.style.cssText="position:sticky;top:0;z-index:10000;padding:12px;text-align:center;background:#fff1b8;color:#3f352a;font-weight:700"; document.body.prepend(banner); dialog.querySelector(".np-pack-trust").textContent="Stripe sandbox · Test orders only"; }
     document.querySelectorAll('[data-item-id]').forEach(button => {
       const product = products.find(p => p.id === button.dataset.itemId); if (!product) return;
       const container = button.closest('.np-treat-card, .np-bundle-hero'); const message = container?.querySelector('[data-inventory-message]');
