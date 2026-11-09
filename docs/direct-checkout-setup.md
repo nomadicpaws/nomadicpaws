@@ -36,7 +36,7 @@ This confirms the business-origin location rate, not a blanket rate for every sh
 6. Keep confirmed shipping values `COMMERCE_SHIPPING_CENTS=500` and `COMMERCE_SHIPPING_COUNTRIES=US`.
 7. Confirm tax obligations and rate treatment first. Web tax can use `COMMERCE_WEB_TAX_MODE=stripe` for configured Stripe automatic tax, or `manual` with an explicitly approved fixed `COMMERCE_WEB_TAX_RATE_BPS`. Fixed manual pricing applies tax to merchandise only; it is unsuitable where shipping is taxable, address-specific rates are required, or items have differing tax treatment. POS uses the event-specific `EVENT_TAX_RATE_BPS`. A rate of 0 is an affirmative business configuration, not a default. Set appropriate Stripe product tax classifications/account defaults before automatic-tax testing.
 8. Enable `COMMERCE_CASH_APP_PAY=true` only after eligibility is confirmed in your Stripe account and test it with supported customers/devices.
-9. The native API host remains the existing production URL by default. Point `native-app/src/api.ts` at the test host for a test build; restore the production host only for the reviewed launch build. Use the existing Apple sign-in setup. Seller tokens additionally require the existing session secret/access-code setup; no replacement authentication scheme was introduced.
+9. The native API host remains the existing production URL by default. Set `EXPO_PUBLIC_API_URL` to the test host for an Events test build; omit it for the reviewed production build. Use the existing Events seller sign-in. Seller tokens additionally require the existing session secret/access-code setup; no replacement authentication scheme was introduced.
 10. Add **test stock only** using Register's inventory adjustments. Physical component SKUs: NP-PEZ-LION, NP-PEZ-NILGAI, NP-PEZ-CARP and NP-PEZ-DEVIL (currently inactive). Opening-count adjustments are additive, so enter the actual delta, not the final total repeatedly.
 
 ## Monthly free-shipping codes
@@ -86,3 +86,11 @@ Official implementation references: [Stripe Checkout creation](https://docs.stri
 ## Current source reconciliation
 
 This change is based on main at 1ab7acc. The dedicated Events iPhone app receives the register update; the Creative & Publishing Studio remains unchanged. Calendar and staff tools are preserved. Stripe sandbox checkout has completed successfully using synthetic customer details; preview webhook/database testing is still pending. No production payment setting has been enabled.
+
+## Sandbox deployment
+
+Draft PR: https://github.com/nomadicpaws/nomadicpaws/pull/2
+
+Preview: https://deploy-preview-2--nomadicpaws.netlify.app/cheetos-store/
+
+Netlify applies the additive commerce migration to the separate `codex/direct-checkout-test` database branch. Commerce configuration and verification secrets are scoped to that branch. The 610 basis-point tax is only a sandbox fixture, not approved live sourcing/tax treatment. The webhook receives only the five supported Stripe sandbox payment/refund events with API version 2024-06-20. No production checkout has been enabled.
